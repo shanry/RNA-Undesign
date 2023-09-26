@@ -74,6 +74,28 @@ def diff_positions(ref1, ref2):
     assert "critical positions" in lines[-1]
     return eval(lines[-1].split(":")[-1])
 
+def get_diffs(ref1, ref2):
+    cr_positions = diff_positions(ref1, ref2) #[(6, 38), (16, 28), 5, 7, 37, 39, 15, 29] # ( 7, 39) GC; ( 17, 29)
+    pairs_dict = pairs_match(ref1)
+    diffs = []
+    for p in cr_positions:
+        if p in pairs_dict:
+            i, j = min(p, pairs_dict[p]), max(p, pairs_dict[p])
+            if (i, j) not in diffs:
+                diffs.append((i, j))
+        else:
+            diffs.append(p)
+    return diffs
+
+def count_enum(diffs):
+    num_enum = 1
+    for item in diffs:
+        if type(item) is tuple:
+            num_enum *= 6
+        else:
+            num_enum *= 4
+    return num_enum
+
 def test(seq, ref1, ref2, alg=None):
     # seq = "AAAAAAGGAAAAAAAAGCCCGAAAAGGGUGAAAAAAGACAGAAAAAAAAAAAAAAAAAAAA"
     # ref1 = "......(.........((((.....)))).........)......................"
@@ -89,24 +111,9 @@ def test(seq, ref1, ref2, alg=None):
     # struct = "....((((((((....((..(...................).(((...((....))...((....))........))).....))))))))))...."
     # diffs = [(42, 77), (43, 76), 41, 78]
     
-    cr_positions = diff_positions(ref1, ref2) #[(6, 38), (16, 28), 5, 7, 37, 39, 15, 29] # ( 7, 39) GC; ( 17, 29)
-    pairs_dict = pairs_match(ref1)
-    diffs = []
-    for p in cr_positions:
-        if p in pairs_dict:
-            i, j = min(p, pairs_dict[p]), max(p, pairs_dict[p])
-            if (i, j) not in diffs:
-                diffs.append((i, j))
-        else:
-            diffs.append(p)
+    diffs = get_diffs(ref1, ref2)
     print('diffs:', diffs)
-
-    num_enum = 1
-    for item in diffs:
-        if type(item) is tuple:
-            num_enum *= 6
-        else:
-            num_enum *= 4
+    num_enum = count_enum(diffs)
     print(f'total number of enumerations: {num_enum}')
     if alg=="1" and num_enum < 10**8:
         alg_1(ref1, ref2, diffs, seq)
