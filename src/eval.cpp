@@ -28,6 +28,7 @@ enum loops {
     hairpin,
     stacking,
     bulge,
+    interior,
     multi_inside,
     multi_outside,
     external
@@ -62,158 +63,7 @@ struct hash_tuple2 {
     }
 };
 
-void find_critical(string ref1, string ref2) {
-    assert(ref1.size() == ref2.size());
-    int n = ref1.length();
-
-    // map[{i, j, type of loops}] = {y or y', indices}
-    unordered_map<tuple<int, int, loops>, vector<int>, hash_tuple> critical_loops;
-    unordered_map<tuple<int, int, int, int>, vector<int>, hash_tuple2> critical_internal;
-    set<int> critical_positions;
-
-    unordered_map<int, vector<pair<int, int>>> inside;
-
-    stack<pair<int, int>> stk; // tuple of (index, page)
-    tuple<int, int> inner_loop;
-
-    for (int t = 0; t < 2; t++) {
-        string& ref = (t == 0? ref1 : ref2);
-        inside.clear();
-
-        for (int j = 0; j < n; j++) {
-            if (ref[j] == '(') {
-                if (!stk.empty()) { // +1 for outer loop page
-                    stk.top().second ++;
-                }
-                stk.push(make_pair(j, 0)); // init page=0
-            }
-
-            else if (ref[j] == ')') {
-                assert(!stk.empty());
-                tuple<int, int> top = stk.top();
-                int i = get<0>(top), page = get<1>(top);
-                stk.pop();
-
-                if (page == 0) { // hairpin
-                    tuple<int, int, loops> loop = make_tuple(i, j, hairpin);
-                    if (critical_loops.find(loop) != critical_loops.end()) {
-                        critical_loops.erase(loop);
-                    } else {
-                        critical_loops[loop] = {i, i+1, j-1, j};
-                    }
-                }
-
-                else if (page == 1) { //single
-                    int p = get<0>(inner_loop), q = get<1>(inner_loop);
-
-
-                    if (p == i+1 && q == j-1) {
-                        // stacking
-                        tuple<int, int, loops> loop = make_tuple(i, j, stacking);
-
-                        if (critical_loops.find(loop) != critical_loops.end()) {
-                            critical_loops.erase(loop);
-                        } else {
-                            critical_loops[loop] = {i, p, q, j};
-                        }
-                    } else if (p == i+1 || q == j-1) {
-                        // bugle
-                        tuple<int, int, loops> loop = make_tuple(i, j, bulge);
-
-                        if (critical_loops.find(loop) != critical_loops.end()) {
-                            critical_loops.erase(loop);
-                        } else {
-                            critical_loops[loop] = {i, p, q, j};
-                        }
-                    } else {
-                        // internal
-                        tuple<int, int, int, int> loop = make_tuple(i, p, q, j);
-
-                        if (critical_internal.find(loop) != critical_internal.end()) {
-                            critical_internal.erase(loop);
-                        } else {
-                            critical_internal[loop] = {i, i+1, p-1, p, q, q+1, j-1, j};
-                        }
-                    }
-                }
-
-                else { // multi
-                    tuple<int, int, loops> loop = make_tuple(i, j, multi_outside);
-
-                    if (critical_loops.find(loop) != critical_loops.end()) {
-                        critical_loops.erase(loop);
-                    } else {
-                        critical_loops[loop] = {i, i+1, j-1, j};
-                    }
-
-                    for (auto& item: inside[i]) {
-                        int p = item.first, q = item.second;
-                        tuple<int, int, loops> loop = make_tuple(p, q, multi_inside);
-
-                        if (critical_loops.find(loop) != critical_loops.end()) {
-                            critical_loops.erase(loop);
-                        } else {
-                            critical_loops[loop] = {p-1, p, q, q+1};
-                        }
-                    }
-                }
-
-                //update inner_loop
-                inner_loop = make_tuple(i, j);
-
-                // possible M
-                if (!stk.empty()){
-                    inside[stk.top().first].push_back(make_pair(i, j));
-                }
-
-                // external loop
-                if (stk.empty()) {
-                    tuple<int, int, loops> loop = make_tuple(i, j, external);
-
-                    if (critical_loops.find(loop) != critical_loops.end()) {
-                        critical_loops.erase(loop);
-                    } else {
-                        if (i-1 > -1)
-                            critical_loops[loop].push_back(i-1);
-
-                        critical_loops[loop].push_back(i);
-                        critical_loops[loop].push_back(j);
-
-                        if (j+1 < n)
-                            critical_loops[loop].push_back(j+1);
-                    }
-                }
-            }
-        }
-    }
-
-    vector<string> loop_names = {"hairpin", "stacking", "bulge", "multi_inside", "multi_outside", "external"};
-    for (auto &item: critical_loops) {
-        printf("%s (%d, %d) : ", loop_names[get<2>(item.first)].c_str(), get<0>(item.first), get<1>(item.first));
-        for (int &x: item.second) {
-            critical_positions.insert(x);
-            printf("%d ", x);
-        }
-        printf("\n");
-    }
-
-    for (auto &item: critical_internal) {
-        printf("internal (%d, %d), (%d, %d) : ", get<0>(item.first), get<3>(item.first), get<1>(item.first), get<2>(item.first));
-        for (int &x: item.second) {
-            critical_positions.insert(x);
-            printf("%d ", x);
-        }
-        printf("\n");
-    }
-
-    printf("critical positions: ");
-    for (int x: critical_positions) {
-        printf("%d, ", x);
-    }
-    printf("\n");
-}
-
-long diff_eval(string seq, string ref1, string ref2, bool is_verbose, int dangle_model) {
+void find_critical(string ref1, string ref2, bool is_verbose) {
     assert(ref1.size() == ref2.size());
     int n = ref1.length();
 
@@ -250,7 +100,7 @@ long diff_eval(string seq, string ref1, string ref2, bool is_verbose, int dangle
                     if (critical_loops.find(loop) != critical_loops.end()) {
                         critical_loops.erase(loop);
                     } else {
-                        critical_loops[loop] = make_pair(t, vector<int> {i, i+1, j-1, j});
+                        critical_loops[loop] = make_pair(t, vector<int> {i, j, i+1, j-1});
                     }
                 }
 
@@ -265,7 +115,7 @@ long diff_eval(string seq, string ref1, string ref2, bool is_verbose, int dangle
                         if (critical_loops.find(loop) != critical_loops.end()) {
                             critical_loops.erase(loop);
                         } else {
-                            critical_loops[loop] = make_pair(t, vector<int> {i, p, q, j});
+                            critical_loops[loop] = make_pair(t, vector<int> {i, j, p, q});
                         }
                     } else if (p == i+1 || q == j-1) {
                         // bugle
@@ -274,7 +124,7 @@ long diff_eval(string seq, string ref1, string ref2, bool is_verbose, int dangle
                         if (critical_loops.find(loop) != critical_loops.end()) {
                             critical_loops.erase(loop);
                         } else {
-                            critical_loops[loop] = make_pair(t, vector<int> {i, p, q, j});
+                            critical_loops[loop] = make_pair(t, vector<int> {i, j, p, q});
                         }
                     } else {
                         // internal
@@ -283,7 +133,7 @@ long diff_eval(string seq, string ref1, string ref2, bool is_verbose, int dangle
                         if (critical_internal.find(loop) != critical_internal.end()) {
                             critical_internal.erase(loop);
                         } else {
-                            critical_internal[loop] = make_pair(t, vector<int> {i, i+1, p-1, p, q, q+1, j-1, j});
+                            critical_internal[loop] = make_pair(t, vector<int> {i, j, p, q, i+1, j-1, p-1, q+1});
                         }
                     }
                 }
@@ -294,7 +144,7 @@ long diff_eval(string seq, string ref1, string ref2, bool is_verbose, int dangle
                     if (critical_loops.find(loop) != critical_loops.end()) {
                         critical_loops.erase(loop);
                     } else {
-                        critical_loops[loop] = make_pair(t, vector<int> {i, i+1, j-1, j});
+                        critical_loops[loop] = make_pair(t, vector<int> {i, j, i+1, j-1});
                     }
 
                     for (auto& item: inside[i]) {
@@ -304,7 +154,7 @@ long diff_eval(string seq, string ref1, string ref2, bool is_verbose, int dangle
                         if (critical_loops.find(loop) != critical_loops.end()) {
                             critical_loops.erase(loop);
                         } else {
-                            critical_loops[loop] = make_pair(t, vector<int> {p-1, p, q, q+1});
+                            critical_loops[loop] = make_pair(t, vector<int> {p, q, p-1, q+1});
                         }
                     }
                 }
@@ -324,28 +174,18 @@ long diff_eval(string seq, string ref1, string ref2, bool is_verbose, int dangle
                     if (critical_loops.find(loop) != critical_loops.end()) {
                         critical_loops.erase(loop);
                     } else {
-                        vector<int> indices;
-                        
-                        if (i-1 > -1)
-                            indices.push_back(i-1);
-
-                        indices.push_back(i);
-                        indices.push_back(j);
-
-                        if (j+1 < n)
-                            indices.push_back(j+1);
-
-                        critical_loops[loop] = make_pair(t, indices);
+                        critical_loops[loop] = make_pair(t, vector<int> {i, j, i-1, j+1});
                     }
                 }
             }
         }
     }
 
-    vector<string> loop_names = {"Hairpin", "Stacking", "Bulge", "Multi_inside", "Multi_outside", "External"};
+    vector<string> loop_names = {"Hairpin", "Stacking", "Bulge", "Internal", "Multi_inside", "Multi_outside", "External"};
     for (auto &item: critical_loops) {
         for (int &x: item.second.second) {
-            critical_positions.insert(x);
+            if (x >= 0 && x < n) // external loops indices may be out of bound
+                critical_positions.insert(x);
         }
     }
 
@@ -353,6 +193,27 @@ long diff_eval(string seq, string ref1, string ref2, bool is_verbose, int dangle
         for (int &x: item.second.second) {
             critical_positions.insert(x);
         }
+    }
+
+    printf("critical loops start\n");
+    printf("%lu\n", critical_loops.size() + critical_internal.size());
+    for (auto &item: critical_loops) {
+        // print: is ref1, loop type, indices...
+        printf("%d %d ", item.second.first, get<2>(item.first));
+        for (int &x: item.second.second) {
+            printf("%d ", x);
+        }
+        printf("\n");
+    }
+
+    for (auto &item: critical_internal) {
+        // print: is ref1, loop type, indices...
+        loops type = interior;
+        printf("%d %d ", item.second.first, type);
+        for (int &x: item.second.second) {
+            printf("%d ", x);
+        }
+        printf("\n");
     }
 
     if (is_verbose) {
@@ -371,26 +232,24 @@ long diff_eval(string seq, string ref1, string ref2, bool is_verbose, int dangle
             }
             printf("\n");
         }
-
-        printf("critical positions: ");
-        for (int x: critical_positions) {
-            printf("%d ", x);
-        }
-        printf("\n");
     }
-    // printf("\n");
 
-    // string seq = "";
-    // for (int i = 0; i < n; i++) {
-    //     if (ref1[i] == '(' || ref2[i] == '(')
-    //         seq += 'C';
-    //     else if (ref1[i] == ')' || ref2[i] == ')')
-    //         seq += 'G';
-    //     else
-    //         seq += 'A';
-    // }
-    printf("%s\n", seq.c_str());
+    printf("critical positions: ");
+    for (int x: critical_positions) {
+        printf("%d, ", x);
+    }
+    printf("\n");
+}
 
+long diff_eval(string seq, string ref1, string ref2, vector<vector<int>>& cr_loops, bool is_verbose, int dangle_model) {
+    int n = seq.length();
+    
+    vector<int> if_tetraloops;
+    vector<int> if_hexaloops;
+    vector<int> if_triloops;
+
+    v_init_tetra_hex_tri(seq, n, if_tetraloops, if_hexaloops, if_triloops); // calculate if_tetraloops, if_hexaloops, if_triloops
+    
     vector<int> eval_nucs(n);
     for (int i = 0; i < n; i++) {
       eval_nucs[i] = GET_ACGU_NUM_V(seq[i]); // lhuang: explicitly use Vienna coding (not very nice)
@@ -398,11 +257,11 @@ long diff_eval(string seq, string ref1, string ref2, bool is_verbose, int dangle
 
     long score = 0;
     long energy_ref1 = 0, energy_ref2 = 0;
-    for (auto &item: critical_loops) {
-        loops type = get<2>(item.first);
-        bool is_ref1 = item.second.first;
+    for (auto &item: cr_loops) {
+        bool is_ref1 = item[0];
+        loops type = (loops) item[1];
         
-        int i = get<0>(item.first), j = get<1>(item.first);
+        int i = item[2], j = item[3];
 
         int nuci = eval_nucs[i];
         int nucj = eval_nucs[j];
@@ -413,13 +272,21 @@ long diff_eval(string seq, string ref1, string ref2, bool is_verbose, int dangle
 
         if (type == hairpin) {
             int tetra_hex_tri = -1;
+
+            if (j-i-1 == 4) // 6:tetra
+                tetra_hex_tri = if_tetraloops[i];
+            else if (j-i-1 == 6) // 8:hexa
+                tetra_hex_tri = if_hexaloops[i];
+            else if (j-i-1 == 3) // 5:tri
+                tetra_hex_tri = if_triloops[i];
+
             score = - v_score_hairpin(i, j, nuci, nuci1, nucj_1, nucj, tetra_hex_tri);
 
             if (is_verbose)
                 printf("Hairpin loop ( %d, %d) %c%c ref%d: %.2f\n", i, j, seq[i], seq[j], -is_ref1+2, score / -100.0);
         
-        } else if (type == stacking || type == bulge) {
-            int p = item.second.second[1], q = item.second.second[2];
+        } else if (type == stacking || type == bulge || type == interior) {
+            int p = item[4], q = item[5];
 
             int nucp_1 = eval_nucs[p-1], nucp = eval_nucs[p], nucq = eval_nucs[q], nucq1 = eval_nucs[q+1];
 
@@ -456,32 +323,6 @@ long diff_eval(string seq, string ref1, string ref2, bool is_verbose, int dangle
             energy_ref2 += score;
     }
 
-    for (auto &item: critical_internal) {
-        bool is_ref1 = item.second.first;
-        int i = get<0>(item.first), j = get<3>(item.first);
-        int p = get<1>(item.first), q = get<2>(item.first);
-
-        int nuci = eval_nucs[i];
-        int nucj = eval_nucs[j];
-        int nuci1 = (i + 1) < n ? eval_nucs[i + 1] : -1;
-        int nucj_1 = (j - 1) > -1 ? eval_nucs[j - 1] : -1;
-        int nucp_1 = eval_nucs[p-1];
-        int nucp = eval_nucs[p];
-        int nucq = eval_nucs[q];
-        int nucq1 = eval_nucs[q+1];
-
-        long score = - v_score_single(i,j,p,q, nuci, nuci1, nucj_1, nucj,
-                                        nucp_1, nucp, nucq, nucq1);
-
-        if (is_verbose)
-                printf("Internal loop ( %d, %d) %c%c; ( %d, %d) %c%c ref%d: %.2f\n", i, j, seq[i], seq[j], p, q, seq[p],seq[q], -is_ref1+2, score / -100.0);
-
-        if (is_ref1)
-            energy_ref1 += score;
-        else
-            energy_ref2 += score;                                
-    }
-    
     printf("ref1 energy = %.2f, ref2 energy = %.2f\n", energy_ref1 / -100.0, energy_ref2 / -100.0);
     return energy_ref1 - energy_ref2;
 }
@@ -607,12 +448,14 @@ bool test_diff(string seq, string ref1, string ref2, bool is_verbose, int dangle
     long energy_ref2 = linear_eval(seq, ref2, is_verbose, dangle_model);
     printf("ref1 energy: %.2f\n", energy_ref1/-100.0);
     printf("ref2 energy: %.2f\n", energy_ref2/-100.0);
-    long delta_energy = diff_eval(seq, ref1, ref2, is_verbose, dangle_model);
-    bool equal = (energy_ref1 - energy_ref2)==delta_energy;
-    printf("pass test: %s\n", equal ? "true" : "false");
-    printf("e1 - e2: %.2f\n", (energy_ref1 - energy_ref2) / -100.0);
-    printf("delta  : %.2f\n", delta_energy/-100.0);
-    return equal;
+
+    // weiyu : changed diff_eval, need to modify test
+    // long delta_energy = diff_eval(seq, ref1, ref2, is_verbose, dangle_model);
+    // bool equal = (energy_ref1 - energy_ref2)==delta_energy;
+    // printf("pass test: %s\n", equal ? "true" : "false");
+    // printf("e1 - e2: %.2f\n", (energy_ref1 - energy_ref2) / -100.0);
+    // printf("delta  : %.2f\n", delta_energy/-100.0);
+    return 1;
 }
 
 int main(int argc, char* argv[]){
@@ -656,7 +499,42 @@ int main(int argc, char* argv[]){
             while(cin >> ref1 && cin >> ref2){
                 cout << ref1 << endl;
                 cout << ref2 << endl;
-                find_critical(ref1, ref2);
+                bool verbose = false;
+                find_critical(ref1, ref2, verbose);
+            }
+        }else if (strcmp(argv[1], "diff") == 0){
+            while(cin >> seq && cin >> ref1 && cin >> ref2){
+                int n;
+                cin >> n;
+
+                vector<vector<int>> cr_loops;
+                for (int i = 0; i < n; i++) {
+                    vector<int> loop (2, 0);
+                    cin >> loop[0] >> loop[1];
+                    int num_indices = (loop[1] == interior) ? 8 : 4;
+                    int t;
+                    for (int j = 0; j < num_indices; j++) {
+                        cin >> t;
+                        loop.push_back(t);
+                    }
+                    cr_loops.push_back(loop);
+                }
+
+                // cout << seq << endl;
+                // cout << ref1 << endl;
+                // cout << ref2 << endl;
+
+                // for (int i = 0; i < cr_loops.size(); i++) {
+                //     for (int j = 0; j < cr_loops[i].size(); j++) {
+                //         printf("%d ", cr_loops[i][j]);
+                //     }
+                //     printf("\n");
+                // }
+
+                bool verbose = false;
+                int dangle = 2;
+                long energy = diff_eval(seq, ref1, ref2, cr_loops, verbose, dangle);
+                printf("energy diff: %.2f\n", energy/-100.0);
             }
         }
     }

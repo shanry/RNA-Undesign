@@ -16,6 +16,19 @@ def get_total_energy(seq, ref):
     assert "total energy" in outputs[-1]
     return float(outputs[-1].split(":")[-1])
 
+def rna_diff(seq, ref1, ref2, cr_loops):
+    cmds = f"./bin/eval diff"
+    rt = subprocess.run(cmds.split(), stdout=subprocess.PIPE, input="\n".join([seq, ref1, ref2, str(len(cr_loops)), *cr_loops]).encode())
+    lines = rt.stdout.decode('utf-8').strip().split('\n')
+    return lines
+
+def get_diff_energy(seq, ref1, ref2, cr_loops):
+    outputs = rna_diff(seq, ref1, ref2, cr_loops)
+    # for output in outputs:
+    #     print(output)
+    assert "energy diff" in outputs[-1]
+    return float(outputs[-1].split(":")[-1])
+
 def enum(diff_list, seq_list):
     if not diff_list:
         yield seq_list
@@ -34,7 +47,40 @@ def enum(diff_list, seq_list):
                 seq_list_new[i] = nuc_pair[0]
                 seq_list_new[j] = nuc_pair[1]
                 yield seq_list_new
-                 
+
+def alg_2(target, struct, diffs, cr_loops, seqstr):
+    start = time.time()
+    X = []
+    label = [" "]*len(target)
+    for diff in diffs:
+        if type(diff) is int:
+            label[diff] = '^'
+        else:
+            label[diff[0]] = '^'
+            label[diff[1]] = '^'
+    for i, seq_list in enumerate(enum(diffs, list(seqstr))):
+        seq = "".join(seq_list)
+        if (i+1)%1000 == 0:
+            print(f"{i+1:6d}", seq, f"{time.time()-start:.1f} seconds")
+            print(f"      ", "".join(label))
+
+        e_diff = float("inf") # e_struct - e_target
+        if check_compatible(seq, struct):
+            # weiyu: There is a bug where e_diff = e_target - e_struct even after switching the arguments
+            #        I will look into why that's the case.
+            e_diff = get_diff_energy(seq, struct, target, cr_loops)
+
+        if e_diff <= 0.:
+            X.append(seq)
+    
+    if X:
+        print(f"len(X): {len(X)}")
+        for i in range(min(len(X), 10)):
+            print(X[i])
+    else:
+        print(f'the puzzle {target} is unsolvable.')
+    return X
+
 def alg_1(target, struct, diffs, seqstr):
     start = time.time()
     X = []
@@ -55,6 +101,7 @@ def alg_1(target, struct, diffs, seqstr):
             e_struct = get_total_energy(seq, struct)
         else:
             e_struct = float("inf")
+
         if e_struct >= e_target:
             # print(seq)
             # print(f"{e_struct:.2f} >= {e_target:.2f}")
@@ -71,11 +118,20 @@ def diff_positions(ref1, ref2):
     cmds = f"./bin/eval critical"
     rt = subprocess.run(cmds.split(), stdout=subprocess.PIPE, input="\n".join([ref1, ref2]).encode())
     lines = rt.stdout.decode('utf-8').strip().split('\n')
+
+    assert "critical loops start" == lines[5]
+    n = int(lines[6])
+
+    # loops[i] = (is ref1, loop types, indices...)
+    cr_loops = []
+    for i in range(7, 7 + n):
+        cr_loops.append(lines[i])
+
     assert "critical positions" in lines[-1]
-    return eval(lines[-1].split(":")[-1])
+    return eval(lines[-1].split(":")[-1]), cr_loops
 
 def get_diffs(ref1, ref2):
-    cr_positions = diff_positions(ref1, ref2) #[(6, 38), (16, 28), 5, 7, 37, 39, 15, 29] # ( 7, 39) GC; ( 17, 29)
+    cr_positions, cr_loops = diff_positions(ref1, ref2) #[(6, 38), (16, 28), 5, 7, 37, 39, 15, 29] # ( 7, 39) GC; ( 17, 29)
     pairs_dict = pairs_match(ref1)
     diffs = []
     for p in cr_positions:
@@ -85,7 +141,7 @@ def get_diffs(ref1, ref2):
                 diffs.append((i, j))
         else:
             diffs.append(p)
-    return diffs
+    return diffs, cr_loops
 
 def count_enum(diffs):
     num_enum = 1
@@ -111,12 +167,17 @@ def test(seq, ref1, ref2, alg=None):
     # struct = "....((((((((....((..(...................).(((...((....))...((....))........))).....))))))))))...."
     # diffs = [(42, 77), (43, 76), 41, 78]
     
-    diffs = get_diffs(ref1, ref2)
+    
+
+    diffs, cr_loops = get_diffs(ref1, ref2)
     print('diffs:', diffs)
     num_enum = count_enum(diffs)
     print(f'total number of enumerations: {num_enum}')
+
     if alg=="1" and num_enum < 10**8:
         alg_1(ref1, ref2, diffs, seq)
+    if alg=="2" and num_enum < 10**8:
+        alg_2(ref1, ref2, diffs, cr_loops, seq)
 
 if __name__ == "__main__":
 
