@@ -35,6 +35,10 @@ pass test: true
 e1 - e2: 4.50
 delta  : 4.50
 ```
+or
+```
+./bin/eval test  < data/seq_refs.txt # batched input
+```
 ## Undesignability Alg1
 ```
 python main.py 1
