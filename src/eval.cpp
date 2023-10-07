@@ -63,7 +63,7 @@ struct hash_tuple2 {
     }
 };
 
-void find_critical(string ref1, string ref2, bool is_verbose) {
+vector<vector<int>> find_critical(string ref1, string ref2, bool is_verbose) {
     assert(ref1.size() == ref2.size());
     int n = ref1.length();
 
@@ -180,7 +180,6 @@ void find_critical(string ref1, string ref2, bool is_verbose) {
             }
         }
     }
-
     vector<string> loop_names = {"Hairpin", "Stacking", "Bulge", "Internal", "Multi_inside", "Multi_outside", "External"};
     for (auto &item: critical_loops) {
         for (int &x: item.second.second) {
@@ -194,26 +193,32 @@ void find_critical(string ref1, string ref2, bool is_verbose) {
             critical_positions.insert(x);
         }
     }
-
+    vector<vector<int>> cr_loops;
     printf("critical loops start\n");
     printf("%lu\n", critical_loops.size() + critical_internal.size());
     for (auto &item: critical_loops) {
         // print: is ref1, loop type, indices...
         printf("%d %d ", item.second.first, get<2>(item.first));
+        vector<int> indexed_loop = {item.second.first, get<2>(item.first)};
         for (int &x: item.second.second) {
             printf("%d ", x);
+            indexed_loop.push_back(x);
         }
         printf("\n");
+        cr_loops.push_back(indexed_loop);
     }
 
     for (auto &item: critical_internal) {
         // print: is ref1, loop type, indices...
         loops type = interior;
         printf("%d %d ", item.second.first, type);
+        vector<int> indexed_loop = {item.second.first, type};
         for (int &x: item.second.second) {
             printf("%d ", x);
+            indexed_loop.push_back(x);
         }
         printf("\n");
+        cr_loops.push_back(indexed_loop);
     }
 
     if (is_verbose) {
@@ -239,6 +244,7 @@ void find_critical(string ref1, string ref2, bool is_verbose) {
         printf("%d, ", x);
     }
     printf("\n");
+    return cr_loops;
 }
 
 long diff_eval(string seq, string ref1, string ref2, vector<vector<int>>& cr_loops, bool is_verbose, int dangle_model) {
@@ -449,12 +455,14 @@ bool test_diff(string seq, string ref1, string ref2, bool is_verbose, int dangle
     printf("ref1 energy: %.2f\n", energy_ref1/-100.0);
     printf("ref2 energy: %.2f\n", energy_ref2/-100.0);
 
+    vector<vector<int>> cr_loops = find_critical(ref1, ref2, is_verbose);
+    long delta_energy = diff_eval(seq, ref1, ref2, cr_loops, is_verbose, dangle_model);
     // weiyu : changed diff_eval, need to modify test
     // long delta_energy = diff_eval(seq, ref1, ref2, is_verbose, dangle_model);
-    // bool equal = (energy_ref1 - energy_ref2)==delta_energy;
-    // printf("pass test: %s\n", equal ? "true" : "false");
-    // printf("e1 - e2: %.2f\n", (energy_ref1 - energy_ref2) / -100.0);
-    // printf("delta  : %.2f\n", delta_energy/-100.0);
+    bool equal = (energy_ref1 - energy_ref2)==delta_energy;
+    printf("pass test: %s\n", equal ? "true" : "false");
+    printf("e1 - e2: %.2f\n", (energy_ref1 - energy_ref2) / -100.0);
+    printf("delta  : %.2f\n", delta_energy/-100.0);
     return 1;
 }
 
