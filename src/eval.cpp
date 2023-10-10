@@ -69,6 +69,7 @@ void find_critical(string ref1, string ref2, bool is_verbose) {
 
     // map[{i, j, type of loops}] = {y or y', indices}
     unordered_map<tuple<int, int, loops>, pair<int, vector<int>>, hash_tuple> critical_loops;
+    unordered_map<tuple<int, int, int, int>, pair<int, vector<int>>, hash_tuple2> critical_bulge;
     unordered_map<tuple<int, int, int, int>, pair<int, vector<int>>, hash_tuple2> critical_internal;
     set<int> critical_positions;
 
@@ -119,12 +120,12 @@ void find_critical(string ref1, string ref2, bool is_verbose) {
                         }
                     } else if (p == i+1 || q == j-1) {
                         // bugle
-                        tuple<int, int, loops> loop = make_tuple(i, j, bulge);
+                        tuple<int, int, int, int> loop = make_tuple(i, p, q, j);
 
-                        if (critical_loops.find(loop) != critical_loops.end()) {
-                            critical_loops.erase(loop);
+                        if (critical_bulge.find(loop) != critical_bulge.end()) {
+                            critical_bulge.erase(loop);
                         } else {
-                            critical_loops[loop] = make_pair(t, vector<int> {i, j, p, q});
+                            critical_bulge[loop] = make_pair(t, vector<int> {i, j, p, q});
                         }
                     } else {
                         // internal
@@ -189,6 +190,12 @@ void find_critical(string ref1, string ref2, bool is_verbose) {
         }
     }
 
+    for (auto &item: critical_bulge) {
+        for (int &x: item.second.second) {
+            critical_positions.insert(x);
+        }
+    }
+
     for (auto &item: critical_internal) {
         for (int &x: item.second.second) {
             critical_positions.insert(x);
@@ -200,6 +207,16 @@ void find_critical(string ref1, string ref2, bool is_verbose) {
     for (auto &item: critical_loops) {
         // print: is ref1, loop type, indices...
         printf("%d %d ", item.second.first, get<2>(item.first));
+        for (int &x: item.second.second) {
+            printf("%d ", x);
+        }
+        printf("\n");
+    }
+
+    for (auto &item: critical_bulge) {
+        // print: is ref1, loop type, indices...
+        loops type = bulge;
+        printf("%d %d ", item.second.first, type);
         for (int &x: item.second.second) {
             printf("%d ", x);
         }
@@ -219,6 +236,14 @@ void find_critical(string ref1, string ref2, bool is_verbose) {
     if (is_verbose) {
         for (auto &item: critical_loops) {
             printf("%s (%d, %d) ref%d : ", loop_names[get<2>(item.first)].c_str(), get<0>(item.first), get<1>(item.first), -item.second.first+2);
+            for (int &x: item.second.second) {
+                printf("%d ", x);
+            }
+            printf("\n");
+        }
+
+        for (auto &item: critical_bulge) {
+            printf("Bulge (%d, %d), (%d, %d) ref%d : ", get<0>(item.first), get<3>(item.first), get<1>(item.first), get<2>(item.first), -item.second.first+2);
             for (int &x: item.second.second) {
                 printf("%d ", x);
             }
@@ -507,6 +532,7 @@ int main(int argc, char* argv[]){
                 int n;
                 cin >> n;
 
+                // cr_loops[i] = {is ref1, loop type, indices...}
                 vector<vector<int>> cr_loops;
                 for (int i = 0; i < n; i++) {
                     vector<int> loop (2, 0);
@@ -520,16 +546,9 @@ int main(int argc, char* argv[]){
                     cr_loops.push_back(loop);
                 }
 
-                // cout << seq << endl;
-                // cout << ref1 << endl;
-                // cout << ref2 << endl;
-
-                // for (int i = 0; i < cr_loops.size(); i++) {
-                //     for (int j = 0; j < cr_loops[i].size(); j++) {
-                //         printf("%d ", cr_loops[i][j]);
-                //     }
-                //     printf("\n");
-                // }
+                cout << seq << endl;
+                cout << ref1 << endl;
+                cout << ref2 << endl;
 
                 bool verbose = false;
                 int dangle = 2;
