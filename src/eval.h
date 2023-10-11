@@ -11,7 +11,7 @@ std::vector<std::vector<int>> find_critical_plus(std::string ref1, std::string r
 
 // Function for diff evaluation
 long diff_eval(std::string seq, std::vector<std::vector<int>>& cr_loops, bool is_verbose, int dangle_model);
-
+long max_diff(int n, std::vector<std::vector<int>>& cr_loops, bool is_verbose, int dangle_model);
 
 
 #endif // EVAL_H
