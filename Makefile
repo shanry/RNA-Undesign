@@ -10,10 +10,13 @@ DEPS=src/fold.h src/LinearFoldEval.h src/LinearFold.h src/Utils/energy_parameter
 CFLAGS=-std=c++11 -O3
 objects=bin/eval bin/main
 
-all: main 
+all: main eval
 
 main: src/main.cpp   $(DEPS)
 	$(CC) $(CFLAGS) -Dlv -Dis_cube_pruning -Dis_candidate_list src/main.cpp -o bin/main
+
+eval: src/eval.cpp $(DEPS) 
+	$(CC) src/eval.cpp $(CFLAGS) -Dlv -o bin/eval
 
 clean:
 	-rm $(objects)

@@ -19,6 +19,7 @@
 #include <cmath>
 
 #include "Utils/utility_v.h"
+#include "eval.h"
 
 #define BASE 1000
 
@@ -69,6 +70,7 @@ vector<vector<int>> find_critical(string ref1, string ref2, bool is_verbose) {
 
     // map[{i, j, type of loops}] = {y or y', indices}
     unordered_map<tuple<int, int, loops>, pair<int, vector<int>>, hash_tuple> critical_loops;
+    unordered_map<tuple<int, int, int, int>, pair<int, vector<int>>, hash_tuple2> critical_bulge;
     unordered_map<tuple<int, int, int, int>, pair<int, vector<int>>, hash_tuple2> critical_internal;
     set<int> critical_positions;
 
@@ -119,12 +121,12 @@ vector<vector<int>> find_critical(string ref1, string ref2, bool is_verbose) {
                         }
                     } else if (p == i+1 || q == j-1) {
                         // bugle
-                        tuple<int, int, loops> loop = make_tuple(i, j, bulge);
+                        tuple<int, int, int, int> loop = make_tuple(i, p, q, j);
 
-                        if (critical_loops.find(loop) != critical_loops.end()) {
-                            critical_loops.erase(loop);
+                        if (critical_bulge.find(loop) != critical_bulge.end()) {
+                            critical_bulge.erase(loop);
                         } else {
-                            critical_loops[loop] = make_pair(t, vector<int> {i, j, p, q});
+                            critical_bulge[loop] = make_pair(t, vector<int> {i, j, p, q});
                         }
                     } else {
                         // internal
@@ -188,29 +190,40 @@ vector<vector<int>> find_critical(string ref1, string ref2, bool is_verbose) {
         }
     }
 
+    for (auto &item: critical_bulge) {
+        for (int &x: item.second.second) {
+            critical_positions.insert(x);
+        }
+    }
+
     for (auto &item: critical_internal) {
         for (int &x: item.second.second) {
             critical_positions.insert(x);
         }
     }
     vector<vector<int>> cr_loops;
-    if (is_verbose){
-        printf("critical loops start\n");
-        printf("%lu\n", critical_loops.size() + critical_internal.size());
-    }
+    printf("critical loops start\n");
+    printf("%lu\n", critical_loops.size() + critical_internal.size());
     for (auto &item: critical_loops) {
         // print: is ref1, loop type, indices...
-        if (is_verbose)
-            printf("%d %d ", item.second.first, get<2>(item.first));
+        printf("%d %d ", item.second.first, get<2>(item.first));
         vector<int> indexed_loop = {item.second.first, get<2>(item.first)};
         for (int &x: item.second.second) {
-            if (is_verbose)
-                printf("%d ", x);
+            printf("%d ", x);
             indexed_loop.push_back(x);
         }
-        if (is_verbose)
-            printf("\n");
+        printf("\n");
         cr_loops.push_back(indexed_loop);
+    }
+
+    for (auto &item: critical_bulge) {
+        // print: is ref1, loop type, indices...
+        loops type = bulge;
+        printf("%d %d ", item.second.first, type);
+        for (int &x: item.second.second) {
+            printf("%d ", x);
+        }
+        printf("\n");
     }
 
     for (auto &item: critical_internal) {
@@ -244,11 +257,13 @@ vector<vector<int>> find_critical(string ref1, string ref2, bool is_verbose) {
         }
     }
 
-    printf("critical positions: ");
-    for (int x: critical_positions) {
-        printf("%d, ", x);
+    if (is_verbose){
+        printf("critical positions: ");
+        for (int x: critical_positions) {
+            printf("%d, ", x);
+        }
+        printf("\n");
     }
-    printf("\n");
     return cr_loops;
 }
 
@@ -258,6 +273,7 @@ vector<vector<int>> find_critical_plus(string ref1, string ref2, set<int>& criti
 
     // map[{i, j, type of loops}] = {y or y', indices}
     unordered_map<tuple<int, int, loops>, pair<int, vector<int>>, hash_tuple> critical_loops;
+    unordered_map<tuple<int, int, int, int>, pair<int, vector<int>>, hash_tuple2> critical_bulge;
     unordered_map<tuple<int, int, int, int>, pair<int, vector<int>>, hash_tuple2> critical_internal;
 
     unordered_map<int, vector<pair<int, int>>> inside;
@@ -307,12 +323,12 @@ vector<vector<int>> find_critical_plus(string ref1, string ref2, set<int>& criti
                         }
                     } else if (p == i+1 || q == j-1) {
                         // bugle
-                        tuple<int, int, loops> loop = make_tuple(i, j, bulge);
+                        tuple<int, int, int, int> loop = make_tuple(i, p, q, j);
 
-                        if (critical_loops.find(loop) != critical_loops.end()) {
-                            critical_loops.erase(loop);
+                        if (critical_bulge.find(loop) != critical_bulge.end()) {
+                            critical_bulge.erase(loop);
                         } else {
-                            critical_loops[loop] = make_pair(t, vector<int> {i, j, p, q});
+                            critical_bulge[loop] = make_pair(t, vector<int> {i, j, p, q});
                         }
                     } else {
                         // internal
@@ -376,29 +392,40 @@ vector<vector<int>> find_critical_plus(string ref1, string ref2, set<int>& criti
         }
     }
 
+    for (auto &item: critical_bulge) {
+        for (int &x: item.second.second) {
+            critical_positions.insert(x);
+        }
+    }
+
     for (auto &item: critical_internal) {
         for (int &x: item.second.second) {
             critical_positions.insert(x);
         }
     }
     vector<vector<int>> cr_loops;
-    if(is_verbose){
-        printf("critical loops start\n");
-        printf("%lu\n", critical_loops.size() + critical_internal.size());
-    }
+    printf("critical loops start\n");
+    printf("%lu\n", critical_loops.size() + critical_internal.size());
     for (auto &item: critical_loops) {
         // print: is ref1, loop type, indices...
-        if(is_verbose)
-            printf("%d %d ", item.second.first, get<2>(item.first));
+        printf("%d %d ", item.second.first, get<2>(item.first));
         vector<int> indexed_loop = {item.second.first, get<2>(item.first)};
         for (int &x: item.second.second) {
-            if(is_verbose)
-                printf("%d ", x);
+            printf("%d ", x);
             indexed_loop.push_back(x);
         }
-        if(is_verbose)
-            printf("\n");
+        printf("\n");
         cr_loops.push_back(indexed_loop);
+    }
+
+    for (auto &item: critical_bulge) {
+        // print: is ref1, loop type, indices...
+        loops type = bulge;
+        printf("%d %d ", item.second.first, type);
+        for (int &x: item.second.second) {
+            printf("%d ", x);
+        }
+        printf("\n");
     }
 
     for (auto &item: critical_internal) {
@@ -423,6 +450,14 @@ vector<vector<int>> find_critical_plus(string ref1, string ref2, set<int>& criti
             printf("\n");
         }
 
+        for (auto &item: critical_bulge) {
+            printf("Bulge (%d, %d), (%d, %d) ref%d : ", get<0>(item.first), get<3>(item.first), get<1>(item.first), get<2>(item.first), -item.second.first+2);
+            for (int &x: item.second.second) {
+                printf("%d ", x);
+            }
+            printf("\n");
+        }
+
         for (auto &item: critical_internal) {
             printf("Internal (%d, %d), (%d, %d) ref%d : ", get<0>(item.first), get<3>(item.first), get<1>(item.first), get<2>(item.first), -item.second.first+2);
             for (int &x: item.second.second) {
@@ -432,7 +467,7 @@ vector<vector<int>> find_critical_plus(string ref1, string ref2, set<int>& criti
         }
     }
     if (is_verbose){
-         printf("critical positions: ");
+        printf("critical positions: ");
         for (int x: critical_positions) {
             printf("%d, ", x);
         }
@@ -441,14 +476,15 @@ vector<vector<int>> find_critical_plus(string ref1, string ref2, set<int>& criti
     return cr_loops;
 }
 
-long diff_eval(string seq, vector<vector<int>>& cr_loops, bool is_verbose, int dangle_model) {
+long diff_eval(string& seq, vector<vector<int>>& cr_loops, bool is_verbose, int dangle_model) {
     int n = seq.length();
     
-    vector<int> if_tetraloops;
-    vector<int> if_hexaloops;
-    vector<int> if_triloops;
+    // weiyu: Special Hairpin is currently off
+    // vector<int> if_tetraloops;
+    // vector<int> if_hexaloops;
+    // vector<int> if_triloops;
 
-    v_init_tetra_hex_tri(seq, n, if_tetraloops, if_hexaloops, if_triloops); // calculate if_tetraloops, if_hexaloops, if_triloops
+    // v_init_tetra_hex_tri(seq, n, if_tetraloops, if_hexaloops, if_triloops); // calculate if_tetraloops, if_hexaloops, if_triloops
     
     vector<int> eval_nucs(n);
     for (int i = 0; i < n; i++) {
@@ -473,12 +509,12 @@ long diff_eval(string seq, vector<vector<int>>& cr_loops, bool is_verbose, int d
         if (type == hairpin) {
             int tetra_hex_tri = -1;
 
-            if (j-i-1 == 4) // 6:tetra
-                tetra_hex_tri = if_tetraloops[i];
-            else if (j-i-1 == 6) // 8:hexa
-                tetra_hex_tri = if_hexaloops[i];
-            else if (j-i-1 == 3) // 5:tri
-                tetra_hex_tri = if_triloops[i];
+            // if (j-i-1 == 4) // 6:tetra
+            //     tetra_hex_tri = if_tetraloops[i];
+            // else if (j-i-1 == 6) // 8:hexa
+            //     tetra_hex_tri = if_hexaloops[i];
+            // else if (j-i-1 == 3) // 5:tri
+            //     tetra_hex_tri = if_triloops[i];
 
             score = - v_score_hairpin(i, j, nuci, nuci1, nucj_1, nucj, tetra_hex_tri);
 
@@ -522,12 +558,12 @@ long diff_eval(string seq, vector<vector<int>>& cr_loops, bool is_verbose, int d
         else
             energy_ref2 += score;
     }
-    if (is_verbose)
-        printf("ref1 energy = %.2f, ref2 energy = %.2f\n", energy_ref1 / -100.0, energy_ref2 / -100.0);
+
+    printf("ref1 energy = %.2f, ref2 energy = %.2f\n", energy_ref1 / -100.0, energy_ref2 / -100.0);
     return energy_ref1 - energy_ref2;
 }
 
-long linear_eval(string& seq, string& ref, bool& is_verbose, int& dangle_model) {
+long linear_eval(string& seq, string& ref, bool is_verbose, int dangle_model) {
 
     int seq_length = seq.length();
 
@@ -660,7 +696,7 @@ bool test_diff(string seq, string ref1, string ref2, bool is_verbose, int dangle
     return 1;
 }
 
-int main2(int argc, char* argv[]){
+int main(int argc, char* argv[]){
     // Print the program name (argv[0])
     cout << "Program name: " << argv[0] << endl;
 
