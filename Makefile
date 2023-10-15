@@ -13,9 +13,11 @@ objects=bin/eval bin/main
 all: main eval
 
 main: src/main.cpp   $(DEPS)
+	mkdir -p bin
 	$(CC) $(CFLAGS) -Dlv -Dis_cube_pruning -Dis_candidate_list src/main.cpp -o bin/main
 
-eval: src/eval.cpp $(DEPS) 
+eval: src/eval.cpp $(DEPS)
+	mkdir -p bin
 	$(CC) src/eval.cpp $(CFLAGS) -Dlv -o bin/eval
 
 clean:
