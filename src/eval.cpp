@@ -225,23 +225,20 @@ vector<vector<int>> find_critical(string ref1, string ref2, bool is_verbose) {
     for (auto &item: critical_bulge) {
         // print: is ref1, loop type, indices...
         loops type = bulge;
-        printf("%d %d ", item.second.first, type);
+        vector<int> indexed_loop = {item.second.first, type};
         for (int &x: item.second.second) {
-            printf("%d ", x);
+            indexed_loop.push_back(x);
         }
-        printf("\n");
+        cr_loops.push_back(indexed_loop);
     }
 
     for (auto &item: critical_internal) {
         // print: is ref1, loop type, indices...
         loops type = interior;
-        printf("%d %d ", item.second.first, type);
         vector<int> indexed_loop = {item.second.first, type};
         for (int &x: item.second.second) {
-            printf("%d ", x);
             indexed_loop.push_back(x);
         }
-        printf("\n");
         cr_loops.push_back(indexed_loop);
     }
 
@@ -261,13 +258,14 @@ vector<vector<int>> find_critical(string ref1, string ref2, bool is_verbose) {
             }
             printf("\n");
         }
+
+        printf("critical positions: ");
+        for (int x: critical_positions) {
+            printf("%d, ", x);
+        }
+        printf("\n");
     }
 
-    printf("critical positions: ");
-    for (int x: critical_positions) {
-        printf("%d, ", x);
-    }
-    printf("\n");
     return cr_loops;
 }
 
