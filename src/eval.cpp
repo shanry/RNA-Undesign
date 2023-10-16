@@ -203,17 +203,22 @@ vector<vector<int>> find_critical(string ref1, string ref2, bool is_verbose) {
         }
     }
     vector<vector<int>> cr_loops;
-    printf("critical loops start\n");
-    printf("%lu\n", critical_loops.size() + critical_internal.size());
+    if (is_verbose){
+        printf("critical loops start\n");
+        printf("%lu\n", critical_loops.size() + critical_internal.size());
+    }
     for (auto &item: critical_loops) {
         // print: is ref1, loop type, indices...
-        printf("%d %d ", item.second.first, get<2>(item.first));
+        if (is_verbose)
+            printf("%d %d ", item.second.first, get<2>(item.first));
         vector<int> indexed_loop = {item.second.first, get<2>(item.first)};
         for (int &x: item.second.second) {
-            printf("%d ", x);
+            if (is_verbose)
+                printf("%d ", x);
             indexed_loop.push_back(x);
         }
-        printf("\n");
+        if (is_verbose)
+            printf("\n");
         cr_loops.push_back(indexed_loop);
     }
 
@@ -403,17 +408,22 @@ vector<vector<int>> find_critical_plus(string ref1, string ref2, set<int>& criti
         }
     }
     vector<vector<int>> cr_loops;
-    printf("critical loops start\n");
-    printf("%lu\n", critical_loops.size() + critical_internal.size());
+    if(is_verbose){
+        printf("critical loops start\n");
+        printf("%lu\n", critical_loops.size() + critical_internal.size());
+    }
     for (auto &item: critical_loops) {
         // print: is ref1, loop type, indices...
-        printf("%d %d ", item.second.first, get<2>(item.first));
+        if(is_verbose)
+            printf("%d %d ", item.second.first, get<2>(item.first));
         vector<int> indexed_loop = {item.second.first, get<2>(item.first)};
         for (int &x: item.second.second) {
-            printf("%d ", x);
+            if(is_verbose)
+                printf("%d ", x);
             indexed_loop.push_back(x);
         }
-        printf("\n");
+        if(is_verbose)
+            printf("\n");
         cr_loops.push_back(indexed_loop);
     }
 
@@ -465,12 +475,13 @@ vector<vector<int>> find_critical_plus(string ref1, string ref2, set<int>& criti
             printf("\n");
         }
     }
-
-    printf("critical positions: ");
-    for (int x: critical_positions) {
-        printf("%d, ", x);
+    if (is_verbose){
+         printf("critical positions: ");
+        for (int x: critical_positions) {
+            printf("%d, ", x);
+        }
+        printf("\n");
     }
-    printf("\n");
     return cr_loops;
 }
 
@@ -556,12 +567,12 @@ long diff_eval(string seq, vector<vector<int>>& cr_loops, bool is_verbose, int d
         else
             energy_ref2 += score;
     }
-
-    printf("ref1 energy = %.2f, ref2 energy = %.2f\n", energy_ref1 / -100.0, energy_ref2 / -100.0);
+    if (is_verbose)
+        printf("ref1 energy = %.2f, ref2 energy = %.2f\n", energy_ref1 / -100.0, energy_ref2 / -100.0);
     return energy_ref1 - energy_ref2;
 }
 
-long linear_eval(string seq, string ref, bool is_verbose, int dangle_model) {
+long linear_eval(string& seq, string& ref, bool& is_verbose, int& dangle_model) {
 
     int seq_length = seq.length();
 
