@@ -132,8 +132,8 @@ void test(std::string& seq, std::string& ref1, std::string& ref2, bool is_verbos
     std::set<int> critical_positions;
     // std::vector<std::vector<int>> cr_loops = find_critical(ref1, ref2, is_verbose);
     std::vector<std::vector<int>> cr_loops = find_critical_plus(ref1, ref2, critical_positions, is_verbose);
-    // long delta_energy = diff_eval(seq, cr_loops, is_verbose, dangle_model);
-    long delta_energy = max_diff(seq.size(), cr_loops, is_verbose, dangle_model);
+    long delta_energy = diff_eval(seq, cr_loops, is_verbose, dangle_model);
+    // long delta_energy = max_diff(seq.size(), cr_loops, is_verbose, dangle_model);
     if (is_verbose){
         printf("delta  : %.2f kcal/mol\n", delta_energy/-100.0);
         printf("critical positions: ");
