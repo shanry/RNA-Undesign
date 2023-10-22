@@ -140,6 +140,7 @@ public:
                   int dangle_model=2); // lisiz, add constraints
 
     DecoderResult parse(std::string& seq, std::vector<int>* cons);
+    DecoderResult parse(std::string& seq, std::vector<int>* cons, std::vector<std::string>& subopts);
     void outside(std::vector<int> next_pair[]); //for zuker subopt
 
 private:

@@ -18,7 +18,7 @@ main: src/main.cpp   $(DEPS)
 
 eval: src/eval.cpp $(DEPS)
 	mkdir -p bin
-	$(CC) src/eval.cpp $(CFLAGS) -Dlv -o bin/eval
+	$(CC) src/eval.cpp $(CFLAGS) -Dlv -Dis_cube_pruning -Dis_candidate_list -o bin/eval
 
 clean:
 	-rm $(objects)
