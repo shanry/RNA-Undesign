@@ -103,7 +103,30 @@ vector<vector<int>> find_critical(string ref1, string ref2, bool is_verbose) {
                     if (critical_loops.find(loop) != critical_loops.end()) {
                         critical_loops.erase(loop);
                     } else {
-                        critical_loops[loop] = make_pair(t, vector<int> {i, j, i+1, j-1});
+                        bool set_hairpin = false;
+#ifdef SPECIAL_HP_3
+                        if (j - i - 1 == 3) {
+                            critical_loops[loop] = make_pair(t, vector<int> {i, j, i+1, i+2, j-1});
+                            set_hairpin = true;
+                        }
+#endif
+
+#ifdef SPECIAL_HP_4
+                        if (j - i - 1 == 4) {
+                            critical_loops[loop] = make_pair(t, vector<int> {i, j, i+1, i+2, i+3, j-1});
+                            set_hairpin = true;
+                        }
+#endif
+
+#ifdef SPECIAL_HP_6
+                        if (j - i - 1 == 6) {
+                            critical_loops[loop] = make_pair(t, vector<int> {i, j, i+1, i+2, i+3, i+4, i+5 j-1});
+                            set_hairpin = true;
+                        }
+#endif
+
+                        if (!set_hairpin)
+                            critical_loops[loop] = make_pair(t, vector<int> {i, j, i+1, j-1});
                     }
                 }
 
@@ -306,7 +329,30 @@ vector<vector<int>> find_critical_plus(string ref1, string ref2, set<int>& criti
                     if (critical_loops.find(loop) != critical_loops.end()) {
                         critical_loops.erase(loop);
                     } else {
-                        critical_loops[loop] = make_pair(t, vector<int> {i, j, i+1, j-1});
+                        bool set_hairpin = false;
+#ifdef SPECIAL_HP_3
+                        if (j - i - 1 == 3) {
+                            critical_loops[loop] = make_pair(t, vector<int> {i, j, i+1, i+2, j-1});
+                            set_hairpin = true;
+                        }
+#endif
+
+#ifdef SPECIAL_HP_4
+                        if (j - i - 1 == 4) {
+                            critical_loops[loop] = make_pair(t, vector<int> {i, j, i+1, i+2, i+3, j-1});
+                            set_hairpin = true;
+                        }
+#endif
+
+#ifdef SPECIAL_HP_6
+                        if (j - i - 1 == 6) {
+                            critical_loops[loop] = make_pair(t, vector<int> {i, j, i+1, i+2, i+3, i+4, i+5 j-1});
+                            set_hairpin = true;
+                        }
+#endif
+
+                        if (!set_hairpin)
+                            critical_loops[loop] = make_pair(t, vector<int> {i, j, i+1, j-1});
                     }
                 }
 

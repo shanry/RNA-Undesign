@@ -77,21 +77,30 @@ inline int v_score_hairpin(int i, int j, int nuci, int nuci1, int nucj_1, int nu
         energy = hairpin37[30] + (int)(lxc37*log((size)/30.));
 
     if(size < 3) return energy; /* should only be the case when folding alignments */
-// #ifdef SPECIAL_HP
-//     // if(special_hp){
-//         if (size == 4 && tetra_hex_tri_index > -1)
-//             return Tetraloop37[tetra_hex_tri_index];
-//         else if (size == 6 && tetra_hex_tri_index > -1)
-//             return Hexaloop37[tetra_hex_tri_index];
-//         else if (size == 3) {
-//             if (tetra_hex_tri_index > -1)
-//                 return Triloop37[tetra_hex_tri_index];
-//             return (energy + (type>2 ? TerminalAU37 : 0));
-//         }
-//     // }
-// #endif
+#ifdef SPECIAL_HP
+    // if(special_hp){
+#ifdef SPECIAL_HP_4
+        if (size == 4 && tetra_hex_tri_index > -1)
+            return Tetraloop37[tetra_hex_tri_index];
+#endif
 
-    energy += mismatchH37[type][nuci1][nucj_1];
+#ifdef SPECIAL_HP_6
+        if (size == 6 && tetra_hex_tri_index > -1)
+            return Hexaloop37[tetra_hex_tri_index];
+#endif
+
+#ifdef SPECIAL_HP_3        
+        if (size == 3) {
+            if (tetra_hex_tri_index > -1)
+                return Triloop37[tetra_hex_tri_index];
+            return (energy + (type>2 ? TerminalAU37 : 0));
+        }
+#endif
+    // }
+#endif
+
+    if (size > 3) // weiyu: should I add this line to avoid the bug
+      energy += mismatchH37[type][nuci1][nucj_1];
 
     return energy;
 }
