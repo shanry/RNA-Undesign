@@ -825,7 +825,7 @@ bool test_diff(string seq, string ref1, string ref2, bool is_verbose, int dangle
     return 1;
 }
 
-int main(int argc, char* argv[]){
+int main2(int argc, char* argv[]){
     // Print the program name (argv[0])
     cout << "Program name: " << argv[0] << endl;
 
