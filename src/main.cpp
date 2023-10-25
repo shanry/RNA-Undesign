@@ -31,11 +31,16 @@ std::string enumerate(std::vector<std::tuple<int, int>>& pairs_diff, ulong order
 struct Constraint {
     std::set<int>* indices;
     std::vector<std::string>* seqs;
+    std::string structure;
 
     // Constructor that accepts two arguments to initialize the members
     Constraint(std::set<int>* index_set, std::vector<std::string>* seq_list){
         indices = index_set;
         seqs = seq_list;
+    }
+
+    void setStructure(std::string& ref){
+        structure = ref;
     }
 
     // ~Constraint(){
@@ -462,6 +467,11 @@ void alg_2(std::string& ref1, std::set<std::string>& refs_checked, std::vector<C
                 std::pair<ulong, std::pair<std::string, std::string>> enum_seq(n_enum, std::make_pair(ref, x));
                 if (n_enum > 0 && n_enum < MAX_ENUM)
                     y_primes.push_back(enum_seq);
+                else{
+                    std::cout<<"seq: "<<x<<std::endl;
+                    std::cout<<"ref: "<<ref<<std::endl;
+                    std::cout<<"enum:"<<n_enum<<std::endl;
+                }
             }
         }
     }
@@ -481,33 +491,40 @@ void alg_2(std::string& ref1, std::set<std::string>& refs_checked, std::vector<C
         std::vector<std::tuple<int, int>> pairs_diff = idx2pair(critical_positions, ref1);
         std::vector<std::string> X_new = alg_1(ref1, y_prime.second.first, cr_loops, pairs_diff, y_prime.second.second, verbose, dangle_model);
         if (X_new.size() == 0){
+            std::cout<<"y :"<<ref1<<std::endl;
+            std::cout<<"y':"<<y_prime.second.first<<std::endl;
             std::cout<<"undesignable!"<<std::endl;
             return;
         }else if (X_new.size() > MAX_CONSTRAINT)
             std::cout<<"too many constraints: "<<X_new.size()<<"\t"<<"out of "<<y_prime.first<<std::endl;
         else{
             Constraint cs_new = Constraint(&critical_positions, &X_new);
+            cs_new.setStructure(y_prime.second.first);
             std::cout<<"number of constraints: "<<X_new.size()<<std::endl;
             for(Constraint& cs_old: cs_vec){
                 // std::cout<<"before intersection: "<<cs_old.seqs->size()<<"\t"<<cs_new.seqs->size()<<std::endl;
                 intersect(cs_old, cs_new);
                 // std::cout<<"after  intersection: "<<cs_old.seqs->size()<<"\t"<<cs_new.seqs->size()<<std::endl;
                 if (cs_old.seqs->empty() || cs_new.seqs->empty()){
-                    std::cout<<"undesignable!"<<std::endl;
-                    std::cout<<"cs_vec.size: "<<cs_vec.size()<<std::endl;
                     for(int i = 0; i<cs_vec.size(); i++)
                         std::cout<<cs_vec[i].seqs->size()<<"\t";
                     std::cout<<std::endl;
+                    for(int i = 0; i<cs_vec.size(); i++)
+                        std::cout<<cs_vec[i].structure<<std::endl;
+                    std::cout<<cs_new.structure<<std::endl;
+                    std::cout<<"undesignable!"<<std::endl;
+                    std::cout<<"cs_vec.size: "<<cs_vec.size()+1<<std::endl;
                     return;
                 }
             }
             std::set<int>* idx_new = new std::set<int>(*cs_new.indices);
             std::vector<std::string>* x_new_copy = new std::vector<std::string>(*cs_new.seqs);
             Constraint* cs_new_copy = new Constraint(idx_new, x_new_copy);
+            cs_new_copy->setStructure(cs_new.structure);
             cs_vec.push_back(*cs_new_copy);
             for(int i = 0; i<cs_vec.size(); i++)
                 std::cout<<cs_vec[i].seqs->size()<<"\t";
-            std::cout<<std::endl;
+            std::cout<<cs_new.seqs->size()<<std::endl;
         }
         refs_checked.insert(y_prime.second.first);
     }
@@ -580,29 +597,36 @@ void alg_2_cs(std::string& ref1, std::set<std::string>& refs_checked, std::vecto
         std::vector<std::tuple<int, int>> pairs_diff = idx2pair(critical_positions, ref1);
         std::vector<std::string> X_new = alg_1(ref1, y_prime.second.first, cr_loops, pairs_diff, y_prime.second.second, verbose, dangle_model);
         if (X_new.size() == 0){
+            std::cout<<"y :"<<ref1<<std::endl;
+            std::cout<<"y':"<<y_prime.second.first<<std::endl;
             std::cout<<"undesignable!"<<std::endl;
             return;
         }else if (X_new.size() > MAX_CONSTRAINT)
             std::cout<<"too many constraints: "<<X_new.size()<<"\t"<<"out of "<<y_prime.first<<std::endl;
         else{
             Constraint cs_new = Constraint(&critical_positions, &X_new);
+            cs_new.setStructure(y_prime.second.first);
             std::cout<<"number of constraints: "<<X_new.size()<<std::endl;
             for(Constraint& cs_old: cs_vec){
                 // std::cout<<"before intersection: "<<cs_old.seqs->size()<<"\t"<<cs_new.seqs->size()<<std::endl;
                 intersect(cs_old, cs_new);
                 // std::cout<<"after  intersection: "<<cs_old.seqs->size()<<"\t"<<cs_new.seqs->size()<<std::endl;
                 if (cs_old.seqs->empty() || cs_new.seqs->empty()){
-                    std::cout<<"undesignable!"<<std::endl;
-                    std::cout<<"cs_vec.size: "<<cs_vec.size()<<std::endl;
                     for(int i = 0; i<cs_vec.size(); i++)
                         std::cout<<cs_vec[i].seqs->size()<<"\t";
-                    std::cout<<std::endl;
+                    std::cout<<cs_new.seqs->size()<<std::endl;
+                    for(int i = 0; i<cs_vec.size(); i++)
+                        std::cout<<cs_vec[i].structure<<std::endl;
+                    std::cout<<cs_new.structure<<std::endl;
+                    std::cout<<"undesignable!"<<std::endl;
+                    std::cout<<"cs_vec.size: "<<cs_vec.size()+1<<std::endl;
                     return;
                 }
             }
             std::set<int>* idx_new = new std::set<int>(*cs_new.indices);
             std::vector<std::string>* x_new_copy = new std::vector<std::string>(*cs_new.seqs);
             Constraint* cs_new_copy = new Constraint(idx_new, x_new_copy);
+            cs_new_copy->setStructure(cs_new.structure);
             cs_vec.push_back(*cs_new_copy);
             for(int i = 0; i<cs_vec.size(); i++)
                 std::cout<<cs_vec[i].seqs->size()<<"\t";
@@ -653,6 +677,7 @@ void alg_2_helper(std::string& ref1, std::string& ref2, std::string& seq, bool v
         refs_checked.insert(ref2);
         std::vector<Constraint> cs_vec;
         Constraint cs_ref2 = Constraint(&critical_positions, &X);
+        cs_ref2.setStructure(ref2);
         cs_vec.push_back(cs_ref2);
         alg_2(ref1, refs_checked, cs_vec, verbose, dangle_model);
         return;
@@ -689,6 +714,7 @@ void alg_2_cs_helper(std::string& ref1, std::string& ref2, std::string& seq, boo
         refs_checked.insert(ref2);
         std::vector<Constraint> cs_vec;
         Constraint cs_ref2 = Constraint(&critical_positions, &X);
+        cs_ref2.setStructure(ref2);
         cs_vec.push_back(cs_ref2);
         alg_2_cs(ref1, refs_checked, cs_vec, verbose, dangle_model);
         return;
