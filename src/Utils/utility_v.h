@@ -93,14 +93,15 @@ inline int v_score_special_hairpin(int i, int j, int nuci, int nuci1, int nucj_1
         if (size == 3) {
             if (tetra_hex_tri_index > -1)
                 return Triloop37[tetra_hex_tri_index];
-            return (energy + (type>2 ? TerminalAU37 : 0));
+            // return (energy + (type>2 ? TerminalAU37 : 0));
         }
 #endif
     // }
 #endif
 
-    if (size > 3) // weiyu: should I add this line to avoid the bug
-      energy += mismatchH37[type][nuci1][nucj_1];
+    if (size == 3)
+        return (energy + (type>2 ? TerminalAU37 : 0));
+    energy += mismatchH37[type][nuci1][nucj_1];
 
     return energy;
 }
@@ -128,11 +129,12 @@ inline int v_score_hairpin(int i, int j, int nuci, int nuci1, int nucj_1, int nu
         else if (size == 3) {
             if (tetra_hex_tri_index > -1)
                 return Triloop37[tetra_hex_tri_index];
-            return (energy + (type>2 ? TerminalAU37 : 0));
+            // return (energy + (type>2 ? TerminalAU37 : 0));
         }
     // }
 #endif
-
+    if (size == 3)
+        return (energy + (type>2 ? TerminalAU37 : 0));
     energy += mismatchH37[type][nuci1][nucj_1];
 
     return energy;
