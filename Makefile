@@ -7,7 +7,7 @@
 
 CC=g++
 DEPS=src/fold.h src/LinearFold.h src/Utils/energy_parameter.h src/Utils/feature_weight.h src/Utils/intl11.h src/Utils/intl21.h src/Utils/intl22.h src/Utils/utility_v.h src/Utils/utility.h 
-CFLAGS=-std=c++11 -O3
+CFLAGS=-std=c++11 -O3 -fopenmp
 objects=bin/eval bin/main
 
 all: main eval
