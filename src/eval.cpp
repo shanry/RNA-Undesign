@@ -120,7 +120,7 @@ vector<vector<int>> find_critical(string ref1, string ref2, bool is_verbose) {
 
 #ifdef SPECIAL_HP_6
                         if (j - i - 1 == 6) {
-                            critical_loops[loop] = make_pair(t, vector<int> {i, j, i+1, i+2, i+3, i+4, i+5 j-1});
+                            critical_loops[loop] = make_pair(t, vector<int> {i, j, i+1, i+2, i+3, i+4, i+5, j-1});
                             set_hairpin = true;
                         }
 #endif
@@ -346,7 +346,7 @@ vector<vector<int>> find_critical_plus(string ref1, string ref2, set<int>& criti
 
 #ifdef SPECIAL_HP_6
                         if (j - i - 1 == 6) {
-                            critical_loops[loop] = make_pair(t, vector<int> {i, j, i+1, i+2, i+3, i+4, i+5 j-1});
+                            critical_loops[loop] = make_pair(t, vector<int> {i, j, i+1, i+2, i+3, i+4, i+5, j-1});
                             set_hairpin = true;
                         }
 #endif
