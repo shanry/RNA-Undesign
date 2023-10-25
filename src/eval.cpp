@@ -529,12 +529,11 @@ vector<vector<int>> find_critical_plus(string ref1, string ref2, set<int>& criti
 long diff_eval(string seq, vector<vector<int>>& cr_loops, bool is_verbose, int dangle_model) {
     int n = seq.length();
     
-    // weiyu: Special Hairpin is currently off
-    // vector<int> if_tetraloops;
-    // vector<int> if_hexaloops;
-    // vector<int> if_triloops;
+    vector<int> if_tetraloops;
+    vector<int> if_hexaloops;
+    vector<int> if_triloops;
 
-    // v_init_tetra_hex_tri(seq, n, if_tetraloops, if_hexaloops, if_triloops); // calculate if_tetraloops, if_hexaloops, if_triloops
+    v_init_tetra_hex_tri(seq, n, if_tetraloops, if_hexaloops, if_triloops); // calculate if_tetraloops, if_hexaloops, if_triloops
     
     vector<int> eval_nucs(n);
     for (int i = 0; i < n; i++) {
@@ -559,14 +558,14 @@ long diff_eval(string seq, vector<vector<int>>& cr_loops, bool is_verbose, int d
         if (type == hairpin) {
             int tetra_hex_tri = -1;
 
-            // if (j-i-1 == 4) // 6:tetra
-            //     tetra_hex_tri = if_tetraloops[i];
-            // else if (j-i-1 == 6) // 8:hexa
-            //     tetra_hex_tri = if_hexaloops[i];
-            // else if (j-i-1 == 3) // 5:tri
-            //     tetra_hex_tri = if_triloops[i];
+            if (j-i-1 == 4) // 6:tetra
+                tetra_hex_tri = if_tetraloops[i];
+            else if (j-i-1 == 6) // 8:hexa
+                tetra_hex_tri = if_hexaloops[i];
+            else if (j-i-1 == 3) // 5:tri
+                tetra_hex_tri = if_triloops[i];
 
-            score = - v_score_hairpin(i, j, nuci, nuci1, nucj_1, nucj, tetra_hex_tri);
+            score = - v_score_special_hairpin(i, j, nuci, nuci1, nucj_1, nucj, tetra_hex_tri);
 
             if (is_verbose)
                 printf("Hairpin loop ( %d, %d) %c%c ref%d: %.2f\n", i, j, seq[i], seq[j], -is_ref1+2, score / -100.0);
@@ -677,7 +676,7 @@ long linear_eval(string& seq, string& ref, bool& is_verbose, int& dangle_model) 
                 else if (j-i-1 == 3) // 5:tri
                     tetra_hex_tri = if_triloops[i];
                 
-                int newscore = - v_score_hairpin(i, j, nuci, nuci1, nucj_1, nucj, tetra_hex_tri);
+                int newscore = - v_score_special_hairpin(i, j, nuci, nuci1, nucj_1, nucj, tetra_hex_tri);
                 if (is_verbose)
                     printf("Hairpin loop ( %d, %d) %c%c : %.2f\n", i+1, j+1, seq[i], seq[j], newscore / -100.0);
                 total_energy += newscore;
@@ -732,6 +731,12 @@ long linear_eval(string& seq, string& ref, bool& is_verbose, int& dangle_model) 
 long max_diff(int n, vector<vector<int>>& cr_loops, bool is_verbose, int dangle_model) {
     long score = 0;
     long energy_ref1 = 0, energy_ref2 = 0;
+
+    // vector<int> if_tetraloops;
+    // vector<int> if_hexaloops;
+    // vector<int> if_triloops;
+
+    // v_init_tetra_hex_tri(seq, seq_length, if_tetraloops, if_hexaloops, if_triloops);
 
     for (auto &item: cr_loops) {
         bool is_ref1 = item[0];
@@ -820,7 +825,7 @@ bool test_diff(string seq, string ref1, string ref2, bool is_verbose, int dangle
     return 1;
 }
 
-int main2(int argc, char* argv[]){
+int main(int argc, char* argv[]){
     // Print the program name (argv[0])
     cout << "Program name: " << argv[0] << endl;
 
