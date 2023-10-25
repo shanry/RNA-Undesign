@@ -11,7 +11,7 @@
 #include <cmath>
 #include <utility>
 #include <algorithm>
-// #include "eval.h"
+#include <omp.h>
 #include "fold.h"
 // #include "LinearFold.h"
 
@@ -408,11 +408,15 @@ std::vector<std::string> alg_1(std::string& y, std::string& y_prime, std::vector
     ulong n_enum = count_enum(pairs_diff);
     std::vector<std::string> X;
     // std::set<std::string> seqs;
+    int flag = 0;
+    #pragma omp parallel for
     for(ulong i=0; i<n_enum; i++){
+        if(flag)
+            continue;
         std::string seq_i = enumerate(pairs_diff, i, seq);
         // printf("%8d, %s\n", i, seq_i.c_str());
         // seqs.insert(seq_i);
-        if ((i+1)%100000 == 0){
+        if ((i+1)%1000000 == 0){
             time_t pauseTime = time(nullptr);
             auto pause = std::chrono::high_resolution_clock::now();
             printf("%8d, %d, %.2f seconds\n", (i+1)/10000, X.size(), std::chrono::duration<double, std::milli>(pause - start)/1000.f);
@@ -423,13 +427,17 @@ std::vector<std::string> alg_1(std::string& y, std::string& y_prime, std::vector
             // long energy_ref2 = -linear_eval(seq_i, y_prime, is_verbose, dangle_model); // not divided by 100
             // long e_diff_2 = energy_ref1 - energy_ref2;
             // assert (e_diff == e_diff_2); // verify diff_eval is correct
-            if(e_diff < 0)
+            if(e_diff < 0){
+                #pragma omp critical
                 X.push_back(seq_i);
+            }
         }else{
+            #pragma omp critical
             X.push_back(seq_i);
         }
         if (X.size() > MAX_CONSTRAINT)
-            break;
+            flag = 1;
+            // break;
     }
     auto stop = std::chrono::high_resolution_clock::now();
     const std::chrono::duration<double, std::milli> fp_ms = stop - start;
