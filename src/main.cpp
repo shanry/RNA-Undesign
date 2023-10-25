@@ -337,6 +337,7 @@ void print(Constraint& cs){
             std::cout<<c<<"\t";
         std::cout<<std::endl;
     }
+    std::cout<<std::endl;
 }
 
 void intersect(Constraint* cs1, Constraint* cs2){
@@ -524,6 +525,105 @@ void alg_2(std::string& ref1, std::set<std::string>& refs_checked, std::vector<C
         std::cout<<"no conclusion!"<<std::endl;
 }
 
+void alg_2_cs(std::string& ref1, std::set<std::string>& refs_checked, std::vector<Constraint>& cs_vec, bool verbose, int dangle_model){ // ref1, ref2, X, is_verbose, dangle_model
+    int count_cs = cs_vec.size();
+    std::vector<std::pair<ulong, std::pair<std::string, std::string>>> y_primes;
+    std::cout<<"inside alg2"<<std::endl;
+    std::vector<std::string> X;
+    for(auto cs: cs_vec){
+        X.insert(X.end(), cs.seqs->begin(), cs.seqs->end());
+        if(X.size() > 500)
+            break;
+    }
+    std::cout<<"X.size: "<<X.size()<<std::endl;
+    std::string constr(ref1.length(), '?');
+    constr[0] = '(';
+    constr[ref1.length()-1] = ')';
+    for(auto x: X){
+        assert (check_compatible(x, ref1));
+        std::vector<std::string> subopts_raw = cs_fold(x, constr, 0, false, verbose, dangle_model);
+        std::vector<std::string> subopts;
+        for(std::string subopt: subopts_raw){
+            if(subopt[ref1.length()-1]==')' && subopt[0]=='(')
+                subopts.push_back(subopt);
+        }
+        if (isUMFE(subopts, ref1)){
+            printf("UMFE found!");
+            std::cout<<x<<std::endl;
+            return;
+        }
+        for(std::string ref: subopts){
+            if(ref != ref1 && !refs_checked.count(ref)){
+                std::set<int> critical_positions;
+                find_critical_plus(ref1, ref, critical_positions, verbose);
+                std::vector<std::tuple<int, int>> pairs_diff = idx2pair(critical_positions, ref1);
+                ulong n_enum = count_enum(pairs_diff);
+                std::pair<ulong, std::pair<std::string, std::string>> enum_seq(n_enum, std::make_pair(ref, x));
+                if (n_enum > 0 && n_enum < MAX_ENUM)
+                    y_primes.push_back(enum_seq);
+            }
+        }
+    }
+    std::sort(y_primes.begin(), y_primes.end());
+    std::vector<std::pair<ulong, std::pair<std::string, std::string>>> y_primes_dedup;
+    for(auto y_prime: y_primes){
+        if (y_primes_dedup.empty() || y_prime.second.first != y_primes_dedup.back().second.first){
+            std::cout<<y_prime.first<<std::endl;
+            std::cout<<y_prime.second.second<<std::endl;
+            std::cout<<y_prime.second.first<<std::endl;
+            y_primes_dedup.push_back(y_prime);
+        }
+    }
+    for (auto y_prime: y_primes_dedup){
+        std::set<int> critical_positions;
+        std::vector<std::vector<int>> cr_loops = find_critical_plus(ref1, y_prime.second.first, critical_positions, verbose);
+        std::vector<std::tuple<int, int>> pairs_diff = idx2pair(critical_positions, ref1);
+        std::vector<std::string> X_new = alg_1(ref1, y_prime.second.first, cr_loops, pairs_diff, y_prime.second.second, verbose, dangle_model);
+        if (X_new.size() == 0){
+            std::cout<<"undesignable!"<<std::endl;
+            return;
+        }else if (X_new.size() > MAX_CONSTRAINT)
+            std::cout<<"too many constraints: "<<X_new.size()<<"\t"<<"out of "<<y_prime.first<<std::endl;
+        else{
+            Constraint cs_new = Constraint(&critical_positions, &X_new);
+            std::cout<<"number of constraints: "<<X_new.size()<<std::endl;
+            for(Constraint& cs_old: cs_vec){
+                // std::cout<<"before intersection: "<<cs_old.seqs->size()<<"\t"<<cs_new.seqs->size()<<std::endl;
+                intersect(cs_old, cs_new);
+                // std::cout<<"after  intersection: "<<cs_old.seqs->size()<<"\t"<<cs_new.seqs->size()<<std::endl;
+                if (cs_old.seqs->empty() || cs_new.seqs->empty()){
+                    std::cout<<"undesignable!"<<std::endl;
+                    std::cout<<"cs_vec.size: "<<cs_vec.size()<<std::endl;
+                    for(int i = 0; i<cs_vec.size(); i++)
+                        std::cout<<cs_vec[i].seqs->size()<<"\t";
+                    std::cout<<std::endl;
+                    return;
+                }
+            }
+            std::set<int>* idx_new = new std::set<int>(*cs_new.indices);
+            std::vector<std::string>* x_new_copy = new std::vector<std::string>(*cs_new.seqs);
+            Constraint* cs_new_copy = new Constraint(idx_new, x_new_copy);
+            cs_vec.push_back(*cs_new_copy);
+            for(int i = 0; i<cs_vec.size(); i++)
+                std::cout<<cs_vec[i].seqs->size()<<"\t";
+            std::cout<<std::endl;
+        }
+        refs_checked.insert(y_prime.second.first);
+    }
+    if (count_cs == cs_vec.size()){
+        std::cout<<"no more new y_prime"<<std::endl;
+        for(auto cs: cs_vec){
+            print(cs);
+            std::cout<<std::endl;
+        }
+        return;
+    }
+    if (cs_vec.size() < 100)
+        alg_2_cs(ref1, refs_checked, cs_vec, verbose, dangle_model);
+    else
+        std::cout<<"no conclusion!"<<std::endl;
+}
+
 void alg_2_helper(std::string& ref1, std::string& ref2, std::string& seq, bool verbose, int dangle_model){
     std::cout << "seq: " << seq << std::endl;
     std::cout << "  y: " << ref1 << std::endl;
@@ -555,6 +655,42 @@ void alg_2_helper(std::string& ref1, std::string& ref2, std::string& seq, bool v
         Constraint cs_ref2 = Constraint(&critical_positions, &X);
         cs_vec.push_back(cs_ref2);
         alg_2(ref1, refs_checked, cs_vec, verbose, dangle_model);
+        return;
+    }
+    std::cout<<"intial y_prime too bad!"<<std::endl;
+}
+
+void alg_2_cs_helper(std::string& ref1, std::string& ref2, std::string& seq, bool verbose, int dangle_model){
+    std::cout << "seq: " << seq << std::endl;
+    std::cout << "  y: " << ref1 << std::endl;
+    std::cout << " y': " << ref2 << std::endl;
+    std::set<int> critical_positions;
+    std::vector<std::vector<int>> cr_loops = find_critical_plus(ref1, ref2, critical_positions, verbose);
+    long delta_energy = diff_eval(seq, cr_loops, verbose, dangle_model);
+    std::vector<std::tuple<int, int>> pairs_diff = idx2pair(critical_positions, ref1);
+    ulong n_enum = count_enum(pairs_diff);
+    std::cout<<"enumeration count: "<<n_enum<<std::endl;
+    if(n_enum > 0 && n_enum < MAX_ENUM){
+        std::cout<<"alg 1"<<std::endl;
+        auto X = alg_1(ref1, ref2, cr_loops, pairs_diff, seq, verbose, dangle_model);
+        printf("X size: %d\n", X.size());
+        if (X.size() == 0){
+            std::cout<<"undesignable!"<<std::endl;
+            return;
+        }
+        // X.push_back("AAAACGGGAACGCUCAACCCGAAGGCCAAAAAGGCCCCGCGACAAUCGACGGCGGGGCGGGGACGAGGAGCGCCAAAAGGACGCCCCGGGGCCAGCACGAGCAAAAGCCGGCCGCCACCGAAAACGAGGAGCGAAGGACCCCCCACGCGAGCGCCGAGCGAGGGAGGGCAAAAGCCCCCCCGCCCGGCGGCAAAGCCAGCACGGACGGCCCG");
+        // X.push_back("AAAAGGCCAACGCCCAACCCCAACGCGAAAAACGCGGGCGGUAACACCAGCCGGGGCCCGGCAGGACGACGGGGCAAGCCACCGCGCCCGGCCACCAGCAGCAAAAGCGCGGGCGCACGCAAAAGCAGGACGCAAGGACCGGCCAGGGGGGCGGCGAGGCAGCCAGCGCAAAAGCGCGGCGCCGCCGCCGGAAACCGAGCAGGCACGCGGCC");
+        // X.push_back("AACACGGGAACGCUCAACCCGAAGGCCAAAAAGGCCCCGCGACAAUCGACGGCGGGGCGGGGACGAGGAGCGCCAAAAGGACGCCCCGGGGCCAGCACGAGCAAAAGCCGGCCGCCAGCGAAAACGAUGAGCGAAGGACCCCCCACGCGAGCGCCGAGCGAUGGAGGGCAAAAGCCCCUACGCCCGGCGGCAAAGCCAGCACGGACGGCCCG");
+        // X.push_back("AAAACUGGAACGCUCAACCCGAAGGCCAUAAAGGCCCCGCGACAAUCGACGGCGGGGCGGGGAGUAGGAGCGCCAAAAGGACGCCCACGGGCCAGCACGAGCAAAAGCCGGCCGCCAUCGAAAACGAAGAGCGAAGGACCCCCCACGCGAGCGCCGAGCGAUGGAGGGCAAAAGCCCCUACGCCCAGCGGCAAAGCCAGCAUGGACGGCCAG");
+        // X.push_back("AGAACGGGAACGCUCAACCCGAAGGCCAAAAAGGCCCCCCGACAAUCGAGGGCGGGGCGGGGACGAGGAGCGCCAAAAGGACGCCCCGGGGCCAGCACGAGGAAAUCCCGGCCGCUAGCGAAAACGACGAGCGAAGGACCCCCCACGCGAGCGCCGAGCGAUGCAGGGCAAAAGCCCGUACGCCCAGCCCCAAAGGGAGCAUGGACGGCCCG");
+        // std::vector<std::string> X_samfeo = readLinesFromFile("design.txt");
+        // X.insert(X.end(), X_samfeo.begin(), X_samfeo.end());
+        std::set<std::string> refs_checked;
+        refs_checked.insert(ref2);
+        std::vector<Constraint> cs_vec;
+        Constraint cs_ref2 = Constraint(&critical_positions, &X);
+        cs_vec.push_back(cs_ref2);
+        alg_2_cs(ref1, refs_checked, cs_vec, verbose, dangle_model);
         return;
     }
     std::cout<<"intial y_prime too bad!"<<std::endl;
@@ -706,7 +842,6 @@ void test_cs(std::string& seq, std::string& ref1, std::string& ref2, bool is_ver
             n_enum = count_enum(pairs_diff);
             std::cout<<ref_new<<"\t"<<n_enum<<std::endl;
         }
-        // alg_2_cs(ref1, ref2, X, is_verbose, dangle_model);
     }
 }
 
@@ -726,8 +861,6 @@ int main(int argc, char* argv[]) {
         {
             std::getline(std::cin, constr);
             auto refs =  cs_fold(seq, constr, beamsize, sharpturn, verbose, dangle);
-            // std::cout<<ref<<std::endl;
-            // std::vector<std::string> refs =  fold(seq, beamsize, sharpturn, verbose, dangle);
             std::cout<<"subopts size: "<<refs.size()<<std::endl;
             for(auto ref: refs)
                 std::cout<<ref<<std::endl;
@@ -789,7 +922,7 @@ int main(int argc, char* argv[]) {
             getline(std::cin, ref2);
             alg_2_helper(ref1, ref2, seq, verbose, dangle);
         }
-    }else if (alg != nullptr && strcmp(alg, "algcs") == 0){ /* constrained alg */
+    }else if (alg != nullptr && strcmp(alg, "alg2cs") == 0){ /* constrained alg */
         std::string seq;
         std::string ref1;
         std::string ref2;
@@ -802,7 +935,7 @@ int main(int argc, char* argv[]) {
             // std::cout<<"got seq"<<std::endl;
             getline(std::cin, ref1);
             getline(std::cin, ref2);
-            test_cs(seq, ref1, ref2, verbose, dangle);
+            alg_2_cs_helper(ref1, ref2, seq, verbose, dangle);
         }
     }
     return 0;

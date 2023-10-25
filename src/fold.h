@@ -20,7 +20,7 @@
 
 #include "LinearFold.h"
 
-#include "LinearFoldEval.h" // adding eval mode: lhuang include .h not .cpp!
+// #include "LinearFoldEval.h" // adding eval mode: lhuang include .h not .cpp!
 
 #ifdef lv
 #include "Utils/utility_v.h"
