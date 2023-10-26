@@ -6,17 +6,13 @@
 ################################
 
 CC=g++
-DEPS=src/Utils/energy_parameter.h src/Utils/feature_weight.h src/Utils/intl11.h src/Utils/intl21.h src/Utils/intl22.h src/Utils/utility_v.h src/Utils/utility.h 
-CFLAGS=-std=c++11 -O3
-objects=bin/eval
+DEPS=src/LinearFold.h src/Utils/energy_parameter.h src/Utils/feature_weight.h src/Utils/intl11.h src/Utils/intl21.h src/Utils/intl22.h src/Utils/utility_v.h  src/Utils/utility_v_max.h src/Utils/utility.h 
+CFLAGS=-std=c++11 -O3 -fopenmp
+objects=bin/main
 
-all: eval main
-
-eval: src/eval.cpp $(DEPS) 
-	mkdir -p bin
-	$(CC) src/eval.cpp $(CFLAGS) -Dlv -o $(objects)
+all: main
 
 main: src/main.cpp #src/eval.cpp $(DEPS)
-	$(CC) src/main.cpp src/eval.cpp $(CFLAGS) -o bin/main
+	$(CC) src/main.cpp  $(CFLAGS) -Dlv -Dis_cube_pruning -Dis_candidate_list -o bin/main
 clean:
 	-rm $(objects)
