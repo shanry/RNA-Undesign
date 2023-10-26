@@ -520,8 +520,8 @@ void alg_2(std::string& ref1, std::set<std::string>& refs_checked, std::vector<C
                     for(int i = 0; i<cs_vec.size(); i++)
                         std::cout<<cs_vec[i].structure<<std::endl;
                     std::cout<<cs_new.structure<<std::endl;
+                    std::cout<<"y_prime count: "<<cs_vec.size()+1<<std::endl;
                     std::cout<<"undesignable!"<<std::endl;
-                    std::cout<<"cs_vec.size: "<<cs_vec.size()+1<<std::endl;
                     return;
                 }
             }
@@ -626,8 +626,8 @@ void alg_2_cs(std::string& ref1, std::set<std::string>& refs_checked, std::vecto
                     for(int i = 0; i<cs_vec.size(); i++)
                         std::cout<<cs_vec[i].structure<<std::endl;
                     std::cout<<cs_new.structure<<std::endl;
+                    std::cout<<"y_prime count: "<<cs_vec.size()+1<<std::endl;
                     std::cout<<"undesignable!"<<std::endl;
-                    std::cout<<"cs_vec.size: "<<cs_vec.size()+1<<std::endl;
                     return;
                 }
             }
@@ -797,7 +797,7 @@ std::vector<std::string> fold(std::string seq, int beamsize, bool sharpturn, boo
 }
 
 
-std::vector<std::string> test(std::string& seq, std::string& ref1, std::string& ref2, bool is_verbose, int dangle_model) {
+std::vector<std::string> alg1_helper(std::string& seq, std::string& ref1, std::string& ref2, bool is_verbose, int dangle_model) {
     std::cout << "seq: " << seq << std::endl;
     std::cout << "  y: " << ref1 << std::endl;
     std::cout << " y': " << ref2 << std::endl;
@@ -821,6 +821,8 @@ std::vector<std::string> test(std::string& seq, std::string& ref1, std::string& 
         std::cout<<"alg 1"<<std::endl;
         auto X = alg_1(ref1, ref2, cr_loops, pairs_diff, seq, is_verbose, dangle_model);
         printf("X size: %d\n", X.size());
+        if (X.size()==0)
+            printf("undesignable!");
         return X;
     }
     std::vector<std::string> X;
@@ -939,7 +941,7 @@ int main(int argc, char* argv[]) {
             // std::cout<<"got seq"<<std::endl;
             getline(std::cin, ref1);
             getline(std::cin, ref2);
-            test(seq, ref1, ref2, verbose, dangle);
+            alg1_helper(seq, ref1, ref2, verbose, dangle);
         }
     }else if (alg != nullptr && strcmp(alg, "alg2") == 0){ /* alg 2 */
         std::string seq;
