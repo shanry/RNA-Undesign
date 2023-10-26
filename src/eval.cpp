@@ -539,7 +539,7 @@ vector<vector<int>> find_critical_plus(string ref1, string ref2, set<int>& criti
     return cr_loops;
 }
 
-long diff_eval(string seq, vector<vector<int>>& cr_loops, bool is_verbose, int dangle_model) {
+long diff_eval(string& seq, vector<vector<int>>& cr_loops, bool& is_verbose, int& dangle_model) {
     int n = seq.length();
     
     vector<int> if_tetraloops;

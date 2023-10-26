@@ -17,7 +17,7 @@
 
 using namespace std;
 
-#define MAX_ENUM 1000000000
+#define MAX_ENUM 10000000000
 #define MAX_CONSTRAINT 100000
 
 char nuc_all[] = "ACGU";
@@ -326,7 +326,7 @@ std::string enumerate(std::vector<std::tuple<int, int>>& pairs_diff, ulong order
     return seq_new;
 }
 
-bool check_compatible(std::string seq, std::string ss){
+bool check_compatible(std::string& seq, std::string& ss){
     int* pairs_list = ref2pairs(ss);
     for(int i=0; i<seq.length(); i++){
         int j = pairs_list[i];
@@ -441,19 +441,13 @@ std::vector<std::string> alg_1(std::string& y, std::string& y_prime, std::vector
         if(flag)
             continue;
         std::string seq_i = enumerate(pairs_diff, i, seq);
-        // printf("%8d, %s\n", i, seq_i.c_str());
-        // seqs.insert(seq_i);
         if ((i+1)%1000000 == 0){
-            time_t pauseTime = time(nullptr);
+            // time_t pauseTime = time(nullptr);
             auto pause = std::chrono::high_resolution_clock::now();
             printf("%8d, %d, %.2f seconds\n", (i+1)/10000, X.size(), std::chrono::duration<double, std::milli>(pause - start)/1000.f);
         }
         if(check_compatible(seq_i, y_prime)){
             long e_diff = -diff_eval(seq_i, cr_loops, is_verbose, dangle_model); // not divided by 100
-            // long energy_ref1 = -linear_eval(seq_i, y, is_verbose, dangle_model); // not divided by 100
-            // long energy_ref2 = -linear_eval(seq_i, y_prime, is_verbose, dangle_model); // not divided by 100
-            // long e_diff_2 = energy_ref1 - energy_ref2;
-            // assert (e_diff == e_diff_2); // verify diff_eval is correct
             if(e_diff < 0){
                 #pragma omp critical
                 X.push_back(seq_i);
@@ -587,6 +581,8 @@ void alg_2_cs(std::string& ref1, std::set<std::string>& refs_checked, std::vecto
         if(X.size() > 500)
             break;
     }
+    if (X.size() > 500)
+        X.resize(500);
     std::cout<<"X.size: "<<X.size()<<std::endl;
     std::string constr(ref1.length(), '?');
     constr[0] = '(';
@@ -672,7 +668,7 @@ void alg_2_cs(std::string& ref1, std::set<std::string>& refs_checked, std::vecto
     if (count_cs == cs_vec.size()){
         std::cout<<"no more new y_prime"<<std::endl;
         for(auto cs: cs_vec){
-            print(cs);
+            std::cout<<cs.seqs->size()<<std::endl;
             std::cout<<std::endl;
         }
         return;
@@ -808,7 +804,7 @@ std::vector<std::string> cs_fold(std::string seq, std::string& constr, int beams
         #else
                 double printscore = result.score;
         #endif
-        printf("%s (%.2f)\n", result.structure.c_str(), printscore);
+        // printf("%s (%.2f)\n", result.structure.c_str(), printscore);
         return subopts;
     }
     return subopts;
@@ -960,6 +956,26 @@ int main(int argc, char* argv[]) {
                 printf("%2d: L=%d\n", i, subrefs[i].first.length());
                 std::cout<<subrefs[i].second<<std::endl;
                 std::cout<<subrefs[i].first<<std::endl;
+
+                std::string constr( subrefs[i].first.length(), '?');
+                constr[0] = '(';
+                constr[subrefs[i].first.length()-1] = ')';
+                std::vector<std::string> subopts_raw = cs_fold(subrefs[i].second, constr, 0, false, false, dangle);
+                std::vector<std::string> subopts;
+                for(std::string subopt: subopts_raw){
+                    if(subopt[subrefs[i].first.length()-1]==')' && subopt[0]=='(')
+                        subopts.push_back(subopt);
+                }
+                if (isUMFE(subopts,  subrefs[i].first)){
+                    printf("(local) UMFE found!");
+                    std::cout<<subrefs[i].second<<std::endl;
+                    std::cout<<subrefs[i].first<<std::endl;
+                }else{
+                    std::string ref_mfe = subopts[0];
+                    if(subopts[0]==subrefs[i].first)
+                        ref_mfe = subopts[1];
+                    alg_2_cs_helper(subrefs[i].first, ref_mfe, subrefs[i].second, verbose, dangle);
+                }
             }
         }
         return 0;
