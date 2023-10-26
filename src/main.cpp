@@ -182,6 +182,29 @@ struct TreeNode {
             children[j]->printTree(ref, seq);
         }       
     }
+
+    void printTree(std::string& ref, std::string& seq, std::vector<std::pair<std::string, std::string>>& subrefs){
+        printf("first: %d, second: %d\n", first, second);
+        if(first >= 0){
+            printf("%s\n", seq.substr(first, second-first+1).c_str());
+            printf("%s\n", ref.substr(first, second-first+1).c_str());
+            if(children.size()&&(ref[first+1]!='('||ref[second-1]!=')'))
+                subrefs.push_back({ref.substr(first, second-first+1), seq.substr(first, second-first+1)});
+        }
+        else{
+            printf("%s\n", seq.c_str());
+            printf("%s\n", ref.c_str());
+            // if(children.size())
+            //     subrefs.push_back({ref, seq});
+        }
+        for(int i = 0; i < children.size(); i++){
+            printf("child[%d]: first: %d, second: %d\n", i, children[i]->first, children[i]->second);
+        }
+        printf("\n");
+        for(int j = 0; j < children.size(); j++){
+            children[j]->printTree(ref, seq, subrefs);
+        }       
+    }
 };
 
 // Function to parse a string of nested pairs into a tree
@@ -203,6 +226,10 @@ TreeNode* parseStringToTree(const std::string& ref) {
     }
     // printf("root: (%d, %d)\n", nodeStack.top()->first, nodeStack.top()->second);
     return root;
+}
+
+bool compareByFirstStringLength(const std::pair<std::string, std::string> &a, const std::pair<std::string, std::string> &b) {
+    return a.first.length() < b.first.length();
 }
 
 bool isMFE(std::vector<std::string>& subopts, std::string& target){
@@ -925,7 +952,15 @@ int main(int argc, char* argv[]) {
         {
             std::getline(std::cin, ref);
             TreeNode* root = parseStringToTree(ref);
-            root->printTree(ref, seq);
+            std::vector<std::pair<std::string, std::string>> subrefs;
+            root->printTree(ref, seq, subrefs);
+            std::cout<<"size of sub refs: "<<subrefs.size()<<std::endl;
+            std::sort(subrefs.begin(), subrefs.end(), compareByFirstStringLength);
+            for(int i = 0; i < subrefs.size(); i++){
+                printf("%2d: L=%d\n", i, subrefs[i].first.length());
+                std::cout<<subrefs[i].second<<std::endl;
+                std::cout<<subrefs[i].first<<std::endl;
+            }
         }
         return 0;
     }else if (alg != nullptr && strcmp(alg, "alg1") == 0){ /* alg 1 */
@@ -983,7 +1018,7 @@ int main(int argc, char* argv[]) {
             getline(std::cin, ref2);
             test_diff(seq, ref1, ref2, verbose, dangle);
         }
-    }else if (strcmp(argv[1], "critical") == 0){
+    }else if (strcmp(argv[1], "critical") == 0){  /* critical positions */ 
         std::string ref1;
         std::string ref2;
         while(std::getline(std::cin, ref1)){
