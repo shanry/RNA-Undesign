@@ -63,6 +63,49 @@ inline void v_init_tetra_hex_tri(std::string& seq, int seq_length, std::vector<i
     return;
 }
 
+inline int v_score_special_hairpin(int i, int j, int nuci, int nuci1, int nucj_1, int nucj, int tetra_hex_tri_index = -1) {
+    int size = j-i-1;
+    int type = NUC_TO_PAIR(nuci, nucj);
+    /* int si1 = NUM_TO_NUC(nuci1); */
+    /* int sj1 = NUM_TO_NUC(nucj_1); */
+
+    int energy;
+
+    if(size <= 30)
+        energy = hairpin37[size];
+    else
+        energy = hairpin37[30] + (int)(lxc37*log((size)/30.));
+
+    if(size < 3) return energy; /* should only be the case when folding alignments */
+#ifdef SPECIAL_HP
+    // if(special_hp){
+#ifdef SPECIAL_HP_4
+        if (size == 4 && tetra_hex_tri_index > -1)
+            return Tetraloop37[tetra_hex_tri_index];
+#endif
+
+#ifdef SPECIAL_HP_6
+        if (size == 6 && tetra_hex_tri_index > -1)
+            return Hexaloop37[tetra_hex_tri_index];
+#endif
+
+#ifdef SPECIAL_HP_3        
+        if (size == 3) {
+            if (tetra_hex_tri_index > -1)
+                return Triloop37[tetra_hex_tri_index];
+            // return (energy + (type>2 ? TerminalAU37 : 0));
+        }
+#endif
+    // }
+#endif
+
+    if (size == 3)
+        return (energy + (type>2 ? TerminalAU37 : 0));
+    energy += mismatchH37[type][nuci1][nucj_1];
+
+    return energy;
+}
+
 inline int v_score_hairpin(int i, int j, int nuci, int nuci1, int nucj_1, int nucj, int tetra_hex_tri_index = -1) {
     int size = j-i-1;
     int type = NUC_TO_PAIR(nuci, nucj);
@@ -77,20 +120,21 @@ inline int v_score_hairpin(int i, int j, int nuci, int nuci1, int nucj_1, int nu
         energy = hairpin37[30] + (int)(lxc37*log((size)/30.));
 
     if(size < 3) return energy; /* should only be the case when folding alignments */
-// #ifdef SPECIAL_HP
-//     // if(special_hp){
-//         if (size == 4 && tetra_hex_tri_index > -1)
-//             return Tetraloop37[tetra_hex_tri_index];
-//         else if (size == 6 && tetra_hex_tri_index > -1)
-//             return Hexaloop37[tetra_hex_tri_index];
-//         else if (size == 3) {
-//             if (tetra_hex_tri_index > -1)
-//                 return Triloop37[tetra_hex_tri_index];
-//             return (energy + (type>2 ? TerminalAU37 : 0));
-//         }
-//     // }
-// #endif
-
+#ifdef SPECIAL_HP
+    // if(special_hp){
+        if (size == 4 && tetra_hex_tri_index > -1)
+            return Tetraloop37[tetra_hex_tri_index];
+        else if (size == 6 && tetra_hex_tri_index > -1)
+            return Hexaloop37[tetra_hex_tri_index];
+        else if (size == 3) {
+            if (tetra_hex_tri_index > -1)
+                return Triloop37[tetra_hex_tri_index];
+            // return (energy + (type>2 ? TerminalAU37 : 0));
+        }
+    // }
+#endif
+    if (size == 3)
+        return (energy + (type>2 ? TerminalAU37 : 0));
     energy += mismatchH37[type][nuci1][nucj_1];
 
     return energy;
