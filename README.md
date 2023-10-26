@@ -2,7 +2,7 @@
 Undesignability of RNA secondary structures
 
 ## Build
-```./make main```
+```$./make main```
 
 ## Energy Evaluation
 ``` 
@@ -13,17 +13,13 @@ CACACGCACUACAAAAUGUCCAAAGGAAAAGGCACCACCAGCAAAGCACCAAAGGUAAGGGGAAAAG
 ```
 ## Critical positions
 ```
-$ ./bin/eval critical
+$./bin/main critical
 ..((((((((.......(.((((((....)))))).(((((((....))))))).).......))))))))..
 ..((((((((.........((((((....)))))).(((((((....))))))).........))))))))..
-multi_outside (9, 63) : 9 10 62 63 
-multi_outside (17, 55) : 17 18 54 55 
-internal (9, 63), (17, 55) : 9 10 16 17 55 56 62 63 
-critical positions: 9, 10, 16, 17, 18, 54, 55, 56, 62, 63, 
 ```
 ## Energy difference
 ```
-$ ./bin/main test_diff
+$./bin/main test_diff
 GGGAGACCCAAAAAAAAGGGCAACUGCAAAAAGGAGACAGCACCCCGAAAAAAGACUGGAAAAAGGGCGAAAAGCUCGAAAAACACGACCAACGGAAAACAGGACGAAAGAGAACAAGCAAGCCAAAGGGAAACAGACUAAAAACGCGAAAGCGACUGCAAAGGGGGAGAAAAAGCGACCCUGAACGAAAAAGGGGCGAAAAAUUGGAACAAAAAAAGGAGGGGGGAAAGGAAAGUCAAAGACACUCGAAACGAGUGAGCGGGCAAAAAAAAAAACGGGGGAUGAAUAACGGACGGAAACGCGGCGGAAAGCGAAAAAAAGAAAAACGUCGUACGGACUACUGGGGUGCAAAAAAAAGGAGGGGCGCAAAAAGGAAAAAACAGGGUCCACUA
 ((..(((((........(.((..((.(.....(....).((((((((.........((......((((.....))))......))...((..((.......(..(......)..)..((..((.....(....).((((.....(((.....(..((.(...).))..).....))).((((...(.......(..(.((...)).)..).......)...))))........)))).....((((((...)))))).))..))...........))..)).........(..((....)((((((.....(........).....))))))..)..)...))))))))........).))..)).).....(.......).)))))..)).
 ((..(((((........(.((..((.(.....(....).((((((((.........((......((((.....))))......))...((..((.......(..(......)..)..((..((............((((.....(((.....(..((.(...).))..).....))).((((...(.......(..(.((...)).)..).......)...))))........)))).....((((((...)))))).))..))...........))..)).........(..((.....((((((.....(........).....)))))).))..)...))))))))........).))..)).).....(.......).)))))..)).
@@ -37,12 +33,12 @@ delta  : 4.50
 ```
 or
 ```
-./bin/main test_diff  < data/seq_refs.txt # batched input
+$./bin/main test_diff  < data/seq_refs.txt # batched input
 ```
 ## Undesignability Alg1
 ```
-export OMP_NUM_THREADS=4 # parallel computing eabled by OpenMP
-./bin/main alg1
+$export OMP_NUM_THREADS=4 # parallel computing eabled by OpenMP
+$./bin/main alg1
 CUAAGGACCACCCGGGAAACCAUAAGGGGCGAGAAAUCGAGGAUCAACAGCGCAGGGAAAACGAACCAUCCGAAAGGAAGCAAGCAAAAAAAGAAAAAAAAAAAA
 .....((((.(((((....))....))).(((....))).)).))....((((.(((....)...)).(((....))).))..))....................
 .....((((.(((((....))....))).(((....))).)).))....((((.((.........)).(((....))).))..))....................
@@ -50,8 +46,8 @@ CUAAGGACCACCCGGGAAACCAUAAGGGGCGAGAAAUCGAGGAUCAACAGCGCAGGGAAAACGAACCAUCCGAAAGGAAG
 
 ## Undesignability Alg2
 ```
-export OMP_NUM_THREADS=4 # parallel computing eabled by OpenMP
-./bin/main alg2
+$export OMP_NUM_THREADS=4 # parallel computing eabled by OpenMP
+$./bin/main alg2
 AAAAUGAGCCCCACGAAAGGAGAGUGCUCACAAA
 ....((((((((.(....)).).).)))))....
 ....(((((((..(....)..).).)))))....
@@ -59,8 +55,8 @@ AAAAUGAGCCCCACGAAAGGAGAGUGCUCACAAA
 
 ## Undesignability Alg2 (constrained)
 ```
-export OMP_NUM_THREADS=4 # parallel computing eabled by OpenMP
-./bin/main alg2
+$export OMP_NUM_THREADS=4 # parallel computing eabled by OpenMP
+$./bin/main alg2
 UUAAGGGAAAAUCUUAGCCGAGAAAUCGGAUCCAAAGCGGCAUAAAAAAGAAAGCGCCGAAAUUCGCAGAAAUGCGAGAAAGGCAAGCAAAGAAUUCGGCAGAAAAAAUGCCGACCGGGCAAUGAAAAUUCGCCCGUGGAGCCAAGCGGG
 ((((((.....)))))(((((....)))).)((...(((((............(((((....((((((....))))))...)))..)).......((((((.......))))))(((((((((....))).))))).)..)))..)))))
 ((((((.....))))).((((....))))..((...(((((............(((((....((((((....))))))...)))..)).......((((((.......))))))(((((((((....))).))))).)..)))..)))))

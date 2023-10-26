@@ -983,6 +983,13 @@ int main(int argc, char* argv[]) {
             getline(std::cin, ref2);
             test_diff(seq, ref1, ref2, verbose, dangle);
         }
+    }else if (strcmp(argv[1], "critical") == 0){
+        std::string ref1;
+        std::string ref2;
+        while(std::getline(std::cin, ref1)){
+            getline(std::cin, ref2);
+            find_critical(ref1, ref2, true);
+        }
     }else if (alg != nullptr && strcmp(alg, "eval") == 0){ /* energy evaluation  */
         std::string seq;
         std::string ref;
