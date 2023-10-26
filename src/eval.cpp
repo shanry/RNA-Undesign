@@ -2288,7 +2288,7 @@ BeamCKYParser::DecoderResult BeamCKYParser::parse(string& seq, vector<int>* cons
             window_size = 9;
         else
             window_size = 12;
-
+        window_size = 0; // Tianshuo: disable window_size
         bestP_beta.clear();
         bestP_beta.resize(seq_length);
         bestM2_beta.clear();
