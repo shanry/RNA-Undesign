@@ -753,9 +753,9 @@ long max_diff(int n, vector<vector<int>>& cr_loops, bool is_verbose, int dangle_
 
         if (type == hairpin) {
             if (is_ref1)
-                score = - v_score_hairpin_min(i, j);
-            else
                 score = - v_score_hairpin_max(i, j);
+            else
+                score = - v_score_hairpin_min(i, j);
 
             if (is_verbose)
                 printf("Hairpin loop ( %d, %d) ref%d: %.2f\n", i, j, -is_ref1+2, score / -100.0);
@@ -764,34 +764,34 @@ long max_diff(int n, vector<vector<int>>& cr_loops, bool is_verbose, int dangle_
             int p = item[4], q = item[5];
 
             if (is_ref1)
-                score = - v_score_single_min(i,j,p,q);
-            else
                 score = - v_score_single_max(i,j,p,q);
+            else
+                score = - v_score_single_min(i,j,p,q);
 
             if (is_verbose)
                 printf("Stacking/Bulge loop ( %d, %d) ; ( %d, %d) ref%d: %.2f\n", i, j, p, q, -is_ref1+2, score / -100.0);
        
         } else if (type == multi_inside) {
             if (is_ref1) 
-                score = - v_score_M1_min(i, j, j, n, dangle_model);
-            else
                 score = - v_score_M1_max(i, j, j, n, dangle_model);
+            else
+                score = - v_score_M1_min(i, j, j, n, dangle_model);
 
             if (is_verbose)
                 printf("Multi Inside (%d, %d) ref%d: %.2f \n", i, j, -is_ref1+2, score / -100.0);
         } else if (type == multi_outside) {
             if (is_ref1)
-                score = - v_score_multi_min(i, j, n, dangle_model);
-            else
                 score = - v_score_multi_max(i, j, n, dangle_model);
+            else
+                score = - v_score_multi_min(i, j, n, dangle_model);
             
             if (is_verbose)
                 printf("Multi Outside (%d, %d) ref%d: %.2f \n", i, j, -is_ref1+2, score / -100.0);
         } else if (type == external) {
             if (is_ref1)
-                score = - v_score_external_paired_min(i, j, n, dangle_model);
-            else
                 score = - v_score_external_paired_max(i, j, n, dangle_model);
+            else
+                score = - v_score_external_paired_min(i, j, n, dangle_model);
 
             if (is_verbose)
                 printf("External loop (%d, %d) ref%d: %.2f \n", i, j, -is_ref1+2, score / -100.0);
