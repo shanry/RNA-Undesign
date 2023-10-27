@@ -745,12 +745,6 @@ long max_diff(int n, vector<vector<int>>& cr_loops, bool is_verbose, int dangle_
     long score = 0;
     long energy_ref1 = 0, energy_ref2 = 0;
 
-    // vector<int> if_tetraloops;
-    // vector<int> if_hexaloops;
-    // vector<int> if_triloops;
-
-    // v_init_tetra_hex_tri(seq, seq_length, if_tetraloops, if_hexaloops, if_triloops);
-
     for (auto &item: cr_loops) {
         bool is_ref1 = item[0];
         loops type = (loops) item[1];
@@ -758,19 +752,10 @@ long max_diff(int n, vector<vector<int>>& cr_loops, bool is_verbose, int dangle_
         int i = item[2], j = item[3];
 
         if (type == hairpin) {
-            int tetra_hex_tri = -1;
-
-            // if (j-i-1 == 4) // 6:tetra
-            //     tetra_hex_tri = if_tetraloops[i];
-            // else if (j-i-1 == 6) // 8:hexa
-            //     tetra_hex_tri = if_hexaloops[i];
-            // else if (j-i-1 == 3) // 5:tri
-            //     tetra_hex_tri = if_triloops[i];
-
             if (is_ref1)
-                score = - v_score_hairpin_max(i, j, tetra_hex_tri);
+                score = - v_score_hairpin_min(i, j);
             else
-                score = - v_score_hairpin_min(i, j, tetra_hex_tri);
+                score = - v_score_hairpin_max(i, j);
 
             if (is_verbose)
                 printf("Hairpin loop ( %d, %d) ref%d: %.2f\n", i, j, -is_ref1+2, score / -100.0);
@@ -779,34 +764,34 @@ long max_diff(int n, vector<vector<int>>& cr_loops, bool is_verbose, int dangle_
             int p = item[4], q = item[5];
 
             if (is_ref1)
-                score = - v_score_single_max(i,j,p,q);
-            else
                 score = - v_score_single_min(i,j,p,q);
+            else
+                score = - v_score_single_max(i,j,p,q);
 
             if (is_verbose)
                 printf("Stacking/Bulge loop ( %d, %d) ; ( %d, %d) ref%d: %.2f\n", i, j, p, q, -is_ref1+2, score / -100.0);
        
         } else if (type == multi_inside) {
             if (is_ref1) 
-                score = - v_score_M1_max(i, j, j, n, dangle_model);
-            else
                 score = - v_score_M1_min(i, j, j, n, dangle_model);
+            else
+                score = - v_score_M1_max(i, j, j, n, dangle_model);
 
             if (is_verbose)
                 printf("Multi Inside (%d, %d) ref%d: %.2f \n", i, j, -is_ref1+2, score / -100.0);
         } else if (type == multi_outside) {
             if (is_ref1)
-                score = - v_score_multi_max(i, j, n, dangle_model);
-            else
                 score = - v_score_multi_min(i, j, n, dangle_model);
+            else
+                score = - v_score_multi_max(i, j, n, dangle_model);
             
             if (is_verbose)
                 printf("Multi Outside (%d, %d) ref%d: %.2f \n", i, j, -is_ref1+2, score / -100.0);
         } else if (type == external) {
             if (is_ref1)
-                score = - v_score_external_paired_max(i, j, n, dangle_model);
-            else
                 score = - v_score_external_paired_min(i, j, n, dangle_model);
+            else
+                score = - v_score_external_paired_max(i, j, n, dangle_model);
 
             if (is_verbose)
                 printf("External loop (%d, %d) ref%d: %.2f \n", i, j, -is_ref1+2, score / -100.0);
@@ -829,6 +814,7 @@ bool test_diff(string seq, string ref1, string ref2, bool is_verbose, int dangle
 
     vector<vector<int>> cr_loops = find_critical(ref1, ref2, is_verbose);
     long delta_energy = diff_eval(seq, cr_loops, is_verbose, dangle_model);
+    // long delta_energy = max_diff(seq.length(), cr_loops, is_verbose, dangle_model);
     // weiyu : changed diff_eval, need to modify test
     // long delta_energy = diff_eval(seq, ref1, ref2, is_verbose, dangle_model);
     bool equal = (energy_ref1 - energy_ref2)==delta_energy;
