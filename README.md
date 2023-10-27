@@ -2,7 +2,10 @@
 Undesignability of RNA secondary structures
 
 ## Build
-```$./make main```
+```
+$./make main  # only turn on special hairpin of triloop
+$./make main4 # also turn on special hairpin of tetraloop
+```
 
 ## Energy Evaluation
 ``` 
@@ -55,9 +58,16 @@ AAAAUGAGCCCCACGAAAGGAGAGUGCUCACAAA
 
 ## Undesignability Alg2 (constrained)
 ```
-$export OMP_NUM_THREADS=4 # parallel computing eabled by OpenMP
+$export OMP_NUM_THREADS=4 # parallel computing eabled by OpenMP, user-defined
 $./bin/main alg2cs
 UUAAGGGAAAAUCUUAGCCGAGAAAUCGGAUCCAAAGCGGCAUAAAAAAGAAAGCGCCGAAAUUCGCAGAAAUGCGAGAAAGGCAAGCAAAGAAUUCGGCAGAAAAAAUGCCGACCGGGCAAUGAAAAUUCGCCCGUGGAGCCAAGCGGG
 ((((((.....)))))(((((....)))).)((...(((((............(((((....((((((....))))))...)))..)).......((((((.......))))))(((((((((....))).))))).)..)))..)))))
 ((((((.....))))).((((....))))..((...(((((............(((((....((((((....))))))...)))..)).......((((((.......))))))(((((((((....))).))))).)..)))..)))))
+```
+## Undesignability Alg3
+```
+$export OMP_NUM_THREADS=4 # parallel computing eabled by OpenMP, user-defined
+$./bin/main tree
+ACUAAAUGGUGAGCAGACCCAGUGGAAACACACGCAGCCGAAAGGUACCCAUCCGAGAGGAAGUCAGGCGAAAGCUAACGGAAAGAACGUAGACAGGGAGCGAGGGACAAAGACUGCAAGGGAAAGUACACAAGACAAAGUAAAAAAAGGUGAGGCAGGGGAAACCCCGGGAAACCGGUCGAAAGACGCCAGCAAACCGCAGAAACAGCCACCCAGCGAGACAGACAAAAGCGGAUACGUAGUCGACGGAAACGUAGUCAGGGGAAACCCACGCAAUCGAAAGAUAGGGAGUCGGUGAAAACCAGAGAAAUCUACUCAAAAGAGGACAGGCAGCGGAACCCCUACACCGAAAAAA
+.......((((.((((.(((.(((....))).(((.(((....))).(((.(((....))).(((.(((....))).(((.......))).))).))).))).))).(...).)))).((((...((.(((...((...))........))).(((.(((....)))(((....)))(((....)))))).))...((((.(...).(((.(((.(((.(((.(((....(((....))).))).(((....))).))).(((....))).))).(((....))).))).((((((....)))(((....))).(((....)))))).))).))))...)))).)))).......
 ```
