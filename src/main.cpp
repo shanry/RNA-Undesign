@@ -248,8 +248,8 @@ bool isUMFE(std::vector<std::string>& subopts, std::string& target){
         return false;
 }
 
-int* ref2pairs(std::string& ref){
-    int* pairs = new int[ref.length()];
+vector<int> ref2pairs(std::string& ref){
+    vector<int> pairs(ref.length(), -1);
     std::stack<int> brackets;
     for(int i = 0; i < ref.length(); i++){
         if(ref[i] == '.')
@@ -267,7 +267,7 @@ int* ref2pairs(std::string& ref){
 }
 
 std::vector<std::tuple<int, int>> idx2pair(std::set<int>& positions, std::string& ref){
-    int* pairs_all = ref2pairs(ref);
+    vector<int> pairs_all = ref2pairs(ref);
     std::vector<std::tuple<int, int>> pairs_diff;
     for(auto& idx: positions){
         if(pairs_all[idx]==idx)
@@ -326,8 +326,8 @@ std::string enumerate(std::vector<std::tuple<int, int>>& pairs_diff, ulong order
     return seq_new;
 }
 
-bool check_compatible(std::string& seq, std::string& ss){
-    int* pairs_list = ref2pairs(ss);
+bool check_compatible(std::string seq, std::string ss){
+    std::vector<int> pairs_list = ref2pairs(ss);
     for(int i=0; i<seq.length(); i++){
         int j = pairs_list[i];
         if(i!=j){
@@ -336,13 +336,10 @@ bool check_compatible(std::string& seq, std::string& ss){
             nuc_ij[1] = seq[j];
             nuc_ij[2] = '\0';
             if( strcmp(nuc_ij, "CG")&&strcmp(nuc_ij, "GC")&&strcmp(nuc_ij, "AU")&&strcmp(nuc_ij, "UA")&&strcmp(nuc_ij, "GU")&&strcmp(nuc_ij, "UG") ){
-                // printf("i=%d, j=%d, %s, %d\n", i, j, nuc_ij, strcmp(nuc_ij, "GC"));
-                free(pairs_list);
                 return false;
             }
         }
     }
-    free(pairs_list);
     return true;
 }
 
@@ -431,20 +428,20 @@ void intersect(Constraint& cs1, Constraint& cs2){
 }
 
 std::vector<std::string> alg_1(std::string& y, std::string& y_prime, std::vector<std::vector<int>>& cr_loops, std::vector<std::tuple<int, int>>& pairs_diff, std::string& seq, bool is_verbose, int dangle_model){
+    std::cout<<"inside alg1"<<std::endl;
     time_t startTime = time(nullptr);
     auto start = std::chrono::high_resolution_clock::now();
-    // std::cout << "Current time in seconds: " << startTime << std::endl;
-    ulong n_enum = count_enum(pairs_diff);
+    ulong nEnum = count_enum(pairs_diff);
+    std::cout<<"count enum: "<<nEnum<<std::endl;
+    std::vector<std::pair<int, std::string>> idX;
     std::vector<std::string> X;
-    // std::set<std::string> seqs;
     int flag = 0;
     #pragma omp parallel for
-    for(ulong i=0; i<n_enum; i++){
+    for(ulong i=0; i < nEnum; i++){
         if(flag)
             continue;
         std::string seq_i = enumerate(pairs_diff, i, seq);
         if ((i+1)%1000000 == 0){
-            // time_t pauseTime = time(nullptr);
             auto pause = std::chrono::high_resolution_clock::now();
             printf("%8d, %d, %.2f seconds\n", (i+1)/10000, X.size(), std::chrono::duration<double, std::milli>(pause - start)/1000.f);
         }
@@ -452,21 +449,26 @@ std::vector<std::string> alg_1(std::string& y, std::string& y_prime, std::vector
             long e_diff = -diff_eval(seq_i, cr_loops, is_verbose, dangle_model); // not divided by 100
             if(e_diff < 0){
                 #pragma omp critical
-                X.push_back(seq_i);
+                idX.push_back({i, seq_i});
+                // X.push_back(seq_i);
             }
         }else{
             #pragma omp critical
-            X.push_back(seq_i);
+            idX.push_back({i, seq_i});
+            // X.push_back(seq_i);
         }
-        if (X.size() > MAX_CONSTRAINT)
-            flag = 1;
-            // break;
+        #pragma omp critical
+        {
+            if (idX.size() > MAX_CONSTRAINT)
+                flag = 1;
+        }
     }
     auto stop = std::chrono::high_resolution_clock::now();
     const std::chrono::duration<double, std::milli> fp_ms = stop - start;
     printf("finished: %.4f seconds\n", fp_ms/1000.f);
-    // printf("finished: %f seconds\n", std::chrono::duration_cast<std::chrono::milliseconds>(stop - start)/1000.f);
-    // printf("seqs size: %d\n", seqs.size());
+    std::sort(idX.begin(), idX.end());
+    for(auto p: idX)
+        X.push_back(p.second);
     return X;
 }
 
@@ -626,17 +628,11 @@ std::string alg_2_cs(std::string& ref1, std::set<std::string>& refs_checked, std
             y_primes_dedup.push_back(y_prime);
         }
     }
-    std::cout<<"checkpoint 1"<<std::endl;
     for (auto y_prime: y_primes_dedup){
-        std::cout<<"checkpoint 9"<<std::endl;
         std::set<int> critical_positions;
-        std::cout<<"checkpoint 10"<<std::endl;
         std::vector<std::vector<int>> cr_loops = find_critical_plus(ref1, y_prime.second.first, critical_positions, verbose);
-        std::cout<<"checkpoint 11"<<std::endl;
         std::vector<std::tuple<int, int>> pairs_diff = idx2pair(critical_positions, ref1);
-        std::cout<<"checkpoint 12"<<std::endl;
         std::vector<std::string> X_new = alg_1(ref1, y_prime.second.first, cr_loops, pairs_diff, y_prime.second.second, verbose, dangle_model);
-        std::cout<<"checkpoint 2"<<std::endl;
         if (X_new.size() == 0){
             std::cout<<"y :"<<ref1<<std::endl;
             std::cout<<"y':"<<y_prime.second.first<<std::endl;
@@ -644,18 +640,14 @@ std::string alg_2_cs(std::string& ref1, std::set<std::string>& refs_checked, std
             return "undesignable";
         }else if (X_new.size() > MAX_CONSTRAINT){
             std::cout<<"too many constraints: "<<X_new.size()<<"\t"<<"out of "<<y_prime.first<<std::endl;
-            std::cout<<"checkpoint 7"<<std::endl;
             refs_checked.insert(y_prime.second.first);
-            std::cout<<"checkpoint 8"<<std::endl;
             continue;
         }else{
             Constraint cs_new = Constraint(&critical_positions, &X_new);
             cs_new.setStructure(y_prime.second.first);
             std::cout<<"number of constraints: "<<X_new.size()<<std::endl;
             for(Constraint& cs_old: cs_vec){
-                // std::cout<<"before intersection: "<<cs_old.seqs->size()<<"\t"<<cs_new.seqs->size()<<std::endl;
                 intersect(cs_old, cs_new);
-                // std::cout<<"after  intersection: "<<cs_old.seqs->size()<<"\t"<<cs_new.seqs->size()<<std::endl;
                 if (cs_old.seqs->empty() || cs_new.seqs->empty()){
                     for(int i = 0; i<cs_vec.size(); i++)
                         std::cout<<cs_vec[i].seqs->size()<<"\t";
@@ -668,7 +660,6 @@ std::string alg_2_cs(std::string& ref1, std::set<std::string>& refs_checked, std
                     return "undesignable";
                 }
             }
-            std::cout<<"checkpoint 3"<<std::endl;
             std::set<int>* idx_new = new std::set<int>(*cs_new.indices);
             std::vector<std::string>* x_new_copy = new std::vector<std::string>(*cs_new.seqs);
             Constraint* cs_new_copy = new Constraint(idx_new, x_new_copy);
@@ -678,11 +669,8 @@ std::string alg_2_cs(std::string& ref1, std::set<std::string>& refs_checked, std
                 std::cout<<cs_vec[i].seqs->size()<<"\t";
             std::cout<<std::endl;
         }
-        std::cout<<"checkpoint 4"<<std::endl;
         refs_checked.insert(y_prime.second.first);
-        std::cout<<"checkpoint 5"<<std::endl;
     }
-    std::cout<<"checkpoint 6"<<std::endl;
     if (count_cs == cs_vec.size()){
         std::cout<<"no more new y_prime"<<std::endl;
         for(auto cs: cs_vec){
@@ -924,9 +912,30 @@ void test_cs(std::string& seq, std::string& ref1, std::string& ref2, bool is_ver
     }
 }
 
+void show_configuration(){
+    #ifdef SPECIAL_HP
+    printf("SPECIAL_HP   defined.\n");
+    #endif
+    #ifdef SPECIAL_HP_3
+    printf("SPECIAL_HP_3 defined.\n");
+    #endif
+    #ifdef SPECIAL_HP_4
+    printf("SPECIAL_HP_4 defined.\n");
+    #endif
+    #ifdef SPECIAL_HP_6
+    printf("SPECIAL_HP_6 defined.\n");
+    #endif
+    return;
+}
+
 int main(int argc, char* argv[]) {
+    show_configuration();
     char* alg = (argc < 2) ? nullptr : argv[1];
     std::cout << "alg: " << ((alg == nullptr) ? "None" : alg) << std::endl;
+    if (alg == nullptr){
+        std::cout<<"no alg was selected!"<<std::endl;
+        return 0;
+    }
     bool verbose = false;
     int dangle = 2;
     if ( alg != nullptr && strcmp(alg, "csfold") == 0 ){  /* constrained folding */
