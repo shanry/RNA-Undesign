@@ -429,7 +429,6 @@ void intersect(Constraint& cs1, Constraint& cs2){
 
 std::vector<std::string> alg_1(std::string& y, std::string& y_prime, std::vector<std::vector<int>>& cr_loops, std::vector<std::tuple<int, int>>& pairs_diff, std::string& seq, bool is_verbose, int dangle_model){
     std::cout<<"inside alg1"<<std::endl;
-    time_t startTime = time(nullptr);
     auto start = std::chrono::high_resolution_clock::now();
     ulong nEnum = count_enum(pairs_diff);
     std::cout<<"count enum: "<<nEnum<<std::endl;
@@ -761,6 +760,42 @@ std::string alg_2_cs_helper(std::string& ref1, std::string& ref2, std::string& s
     return "intial y_prime too bad";
 }
 
+void alg_3_helper(std::string& ref, std::string& seq, bool verbose, int dangle){
+    TreeNode* root = parseStringToTree(ref);
+    std::vector<std::pair<std::string, std::string>> subrefs;
+    root->printTree(ref, seq, subrefs);
+    std::cout<<"size of sub refs: "<<subrefs.size()<<std::endl;
+    std::sort(subrefs.begin(), subrefs.end(), compareByFirstStringLength);
+    for(int i = 0; i < subrefs.size(); i++){
+        printf("%2d: L=%d\n", i, subrefs[i].first.length());
+        std::cout<<subrefs[i].second<<std::endl;
+        std::cout<<subrefs[i].first<<std::endl;
+
+        std::string constr( subrefs[i].first.length(), '?');
+        constr[0] = '(';
+        constr[subrefs[i].first.length()-1] = ')';
+        std::vector<std::string> subopts_raw = cs_fold(subrefs[i].second, constr, 0, false, false, dangle);
+        std::vector<std::string> subopts;
+        for(std::string subopt: subopts_raw){
+            if(subopt[subrefs[i].first.length()-1]==')' && subopt[0]=='(')
+                subopts.push_back(subopt);
+        }
+        if (isUMFE(subopts,  subrefs[i].first)){
+            printf("(local) UMFE found!");
+            std::cout<<subrefs[i].second<<std::endl;
+            std::cout<<subrefs[i].first<<std::endl;
+        }else{
+            std::string ref_mfe = subopts[0];
+            if(subopts[0]==subrefs[i].first)
+                ref_mfe = subopts[1];
+            std::string designability = alg_2_cs_helper(subrefs[i].first, ref_mfe, subrefs[i].second, verbose, dangle);
+            if (designability == "undesignable")
+                break;
+        }
+    }
+    return;
+}
+
 std::vector<std::string> cs_fold(std::string seq, std::string& constr, int beamsize, bool sharpturn, bool verbose, int dangle){
     bool consflag = true;
     std::vector<std::string> subopts;
@@ -848,15 +883,14 @@ std::vector<std::string> alg1_helper(std::string& seq, std::string& ref1, std::s
             std::cout<<std::get<0>(pair)<<"\t"<<std::get<1>(pair)<<std::endl;
     ulong n_enum = count_enum(pairs_diff);
     std::cout<<"enumeration count: "<<n_enum<<std::endl;
+    std::vector<std::string> X;
     if(n_enum > 0 && n_enum < MAX_ENUM){
         std::cout<<"alg 1"<<std::endl;
         auto X = alg_1(ref1, ref2, cr_loops, pairs_diff, seq, is_verbose, dangle_model);
         printf("X size: %d\n", X.size());
         if (X.size()==0)
-            printf("undesignable!");
-        return X;
+            printf("undesignable!\n");
     }
-    std::vector<std::string> X;
     return X;
 }
 
@@ -966,7 +1000,7 @@ int main(int argc, char* argv[]) {
                 std::cout<<ref<<std::endl;
         }
         return 0;
-    }else if (alg != nullptr && strcmp(alg, "tree") == 0){ /* show tree */
+    }else if (alg != nullptr && strcmp(alg, "alg3") == 0){ /* alg 3 */
         std::cout << alg << std::endl;
         int beamsize = 0;
         bool sharpturn = false;
@@ -976,38 +1010,11 @@ int main(int argc, char* argv[]) {
         while (std::getline(std::cin, seq))
         {
             std::getline(std::cin, ref);
-            TreeNode* root = parseStringToTree(ref);
-            std::vector<std::pair<std::string, std::string>> subrefs;
-            root->printTree(ref, seq, subrefs);
-            std::cout<<"size of sub refs: "<<subrefs.size()<<std::endl;
-            std::sort(subrefs.begin(), subrefs.end(), compareByFirstStringLength);
-            for(int i = 0; i < subrefs.size(); i++){
-                printf("%2d: L=%d\n", i, subrefs[i].first.length());
-                std::cout<<subrefs[i].second<<std::endl;
-                std::cout<<subrefs[i].first<<std::endl;
-
-                std::string constr( subrefs[i].first.length(), '?');
-                constr[0] = '(';
-                constr[subrefs[i].first.length()-1] = ')';
-                std::vector<std::string> subopts_raw = cs_fold(subrefs[i].second, constr, 0, false, false, dangle);
-                std::vector<std::string> subopts;
-                for(std::string subopt: subopts_raw){
-                    if(subopt[subrefs[i].first.length()-1]==')' && subopt[0]=='(')
-                        subopts.push_back(subopt);
-                }
-                if (isUMFE(subopts,  subrefs[i].first)){
-                    printf("(local) UMFE found!");
-                    std::cout<<subrefs[i].second<<std::endl;
-                    std::cout<<subrefs[i].first<<std::endl;
-                }else{
-                    std::string ref_mfe = subopts[0];
-                    if(subopts[0]==subrefs[i].first)
-                        ref_mfe = subopts[1];
-                    std::string designability = alg_2_cs_helper(subrefs[i].first, ref_mfe, subrefs[i].second, verbose, dangle);
-                    if (designability == "undesignable")
-                        break;
-                }
-            }
+            auto start_time = std::chrono::high_resolution_clock::now();
+            alg_3_helper(ref, seq, verbose, dangle);
+            auto end_time = std::chrono::high_resolution_clock::now();
+            const std::chrono::duration<double, std::milli> time_ms = end_time - start_time;
+            printf("alg3 time: %.4f seconds\n", time_ms/1000.f);
         }
         return 0;
     }else if (alg != nullptr && strcmp(alg, "alg1") == 0){ /* alg 1 */
@@ -1023,7 +1030,11 @@ int main(int argc, char* argv[]) {
             // std::cout<<"got seq"<<std::endl;
             getline(std::cin, ref1);
             getline(std::cin, ref2);
+            auto start_time = std::chrono::high_resolution_clock::now();
             alg1_helper(seq, ref1, ref2, verbose, dangle);
+            auto end_time = std::chrono::high_resolution_clock::now();
+            const std::chrono::duration<double, std::milli> time_ms = end_time - start_time;
+            printf("alg1 time: %.4f seconds\n", time_ms/1000.f);
         }
     }else if (alg != nullptr && strcmp(alg, "alg2") == 0){ /* alg 2 */
         std::string seq;
@@ -1038,9 +1049,13 @@ int main(int argc, char* argv[]) {
             // std::cout<<"got seq"<<std::endl;
             getline(std::cin, ref1);
             getline(std::cin, ref2);
+            auto start_time = std::chrono::high_resolution_clock::now();
             alg_2_helper(ref1, ref2, seq, verbose, dangle);
+            auto end_time = std::chrono::high_resolution_clock::now();
+            const std::chrono::duration<double, std::milli> time_ms = end_time - start_time;
+            printf("alg2 time: %.4f seconds\n", time_ms/1000.f);
         }
-    }else if (alg != nullptr && strcmp(alg, "alg2cs") == 0){ /* constrained alg */
+    }else if (alg != nullptr && strcmp(alg, "alg2cs") == 0){ /* constrained alg2 */
         std::string seq;
         std::string ref1;
         std::string ref2;
