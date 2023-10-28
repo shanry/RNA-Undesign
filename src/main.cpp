@@ -912,7 +912,24 @@ void test_cs(std::string& seq, std::string& ref1, std::string& ref2, bool is_ver
     }
 }
 
+void show_configuration(){
+    #ifdef SPECIAL_HP
+    printf("SPECIAL_HP   defined.\n");
+    #endif
+    #ifdef SPECIAL_HP_3
+    printf("SPECIAL_HP_3 defined.\n");
+    #endif
+    #ifdef SPECIAL_HP_4
+    printf("SPECIAL_HP_4 defined.\n");
+    #endif
+    #ifdef SPECIAL_HP_6
+    printf("SPECIAL_HP_6 defined.\n");
+    #endif
+    return;
+}
+
 int main(int argc, char* argv[]) {
+    show_configuration();
     char* alg = (argc < 2) ? nullptr : argv[1];
     std::cout << "alg: " << ((alg == nullptr) ? "None" : alg) << std::endl;
     if (alg == nullptr){
