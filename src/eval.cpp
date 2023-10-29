@@ -467,12 +467,12 @@ vector<vector<int>> find_critical_plus(string ref1, string ref2, set<int>& criti
     vector<vector<int>> cr_loops;
     if(is_verbose){
         printf("critical loops start\n");
-        printf("%lu\n", critical_loops.size() + critical_internal.size());
+        printf("%lu\n", critical_loops.size() + critical_bulge.size() + critical_internal.size());
     }
     for (auto &item: critical_loops) {
         // print: is ref1, loop type, indices...
         if(is_verbose)
-            printf("%d %d ", item.second.first, get<2>(item.first));
+            printf("%d %d: ", item.second.first, get<2>(item.first));
         vector<int> indexed_loop = {item.second.first, get<2>(item.first)};
         for (int &x: item.second.second) {
             if(is_verbose)
@@ -487,20 +487,32 @@ vector<vector<int>> find_critical_plus(string ref1, string ref2, set<int>& criti
     for (auto &item: critical_bulge) {
         // print: is ref1, loop type, indices...
         loops type = bulge;
+        if(is_verbose)
+            printf("%d %d: ", item.second.first, type);
         vector<int> indexed_loop = {item.second.first, type};
         for (int &x: item.second.second) {
+            if(is_verbose)
+                printf("%d ", x);
             indexed_loop.push_back(x);
         }
+        if(is_verbose)
+            printf("\n");
         cr_loops.push_back(indexed_loop);
     }
 
     for (auto &item: critical_internal) {
         // print: is ref1, loop type, indices...
         loops type = interior;
+        if(is_verbose)
+            printf("%d %d: ", item.second.first, type);
         vector<int> indexed_loop = {item.second.first, type};
         for (int &x: item.second.second) {
+            if(is_verbose)
+                printf("%d ", x);
             indexed_loop.push_back(x);
         }
+        if(is_verbose)
+            printf("\n");
         cr_loops.push_back(indexed_loop);
     }
 
@@ -530,7 +542,15 @@ vector<vector<int>> find_critical_plus(string ref1, string ref2, set<int>& criti
         }
     }
     if (is_verbose){
-         printf("critical positions: ");
+        printf("critical loops:\n");
+        for(auto cr_loop: cr_loops){
+            for(auto value: cr_loop)
+                printf("%d\t", value);
+            printf("\n");
+        }
+    }
+    if (is_verbose){
+        printf("critical positions: ");
         for (int x: critical_positions) {
             printf("%d, ", x);
         }
