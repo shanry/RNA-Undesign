@@ -22,6 +22,26 @@ using namespace std;
 
 char nuc_all[] = "ACGU";
 char nuc_pair_all[][3] = {"GC", "CG", "AU", "UA", "GU", "UG"};
+std::vector<std::string> TriHP{"", "CAACG", "GUUAC"}; // middle position can't be C or G
+std::vector<std::string> TetraHP{"",
+                                 "CAACGG",
+                                 "CCAAGG",
+                                 "CCACGG",
+                                 "CCCAGG",
+                                 "CCGAGG",
+                                 "CCGCGG",
+                                 "CCUAGG",
+                                 "CCUCGG",
+                                 "CUAAGG",
+                                 "CUACGG",
+                                 "CUCAGG",
+                                 "CUCCGG",
+                                 "CUGCGG",
+                                 "CUUAGG",
+                                 "CUUCGG",
+                                 "CUUUGG"}; // middle positions can't be AG, AU, CG, CU, GG, GU, UG
+// middle positions can be AC(3), AA(2), CA(2), CC(1), GA(1), GC(2), UA(2), UC(2), UU(1)
+
 std::vector<std::string> cs_fold(std::string seq, std::string& constr, int beamsize, bool sharpturn, bool verbose, int dangle);
 std::vector<std::string> fold(std::string seq, int beamsize, bool sharpturn, bool verbose, int dangle, float energy_delta);
 ulong count_enum(std::vector<std::tuple<int, int>>& pairs_diff);
@@ -427,6 +447,133 @@ void intersect(Constraint& cs1, Constraint& cs2){
     *cs2.seqs = seqs_new_2;
 }
 
+std::set<int> loops2positions(std::vector<std::vector<int>>& cr_loops, int length){
+    std::set<int> critical_positions;
+    for(vector<int> cr_loop: cr_loops){
+        for(int i = 2; i < cr_loop.size(); i++)
+            if (cr_loop[i]>=0 && cr_loop[i] < length)
+                critical_positions.insert(cr_loop[i]);
+    }
+    return critical_positions;
+}
+
+std::vector<std::pair<std::string, std::set<int>>> genSeqCritical(std::string seq,  std::set<int> critical_positions, std::vector<std::pair<int, int>> sp_y){
+    std::vector<std::pair<std::string, std::set<int>>> seqCritical;
+    std::vector<std::string> first_sp;
+    std::vector<std::string> second_sp;
+    int L1 = sp_y[0].second - sp_y[0].first - 1;
+    int L2 = sp_y[1].second - sp_y[1].first - 1;
+    assert (L1 == 3 || L1 == 4);
+    assert (L2 == 3 || L2 == 4);
+    if ( L1 == 3)
+        first_sp = TriHP;
+    else{
+        first_sp = TetraHP;
+    }
+    if (L2 == 3)
+        second_sp = TriHP;
+    else{
+        second_sp = TetraHP;
+    }
+    for(auto sp1: first_sp)
+        for(auto sp2: second_sp){
+            std::string seq_new = seq;
+            std::set<int> critical_positions_new = critical_positions;
+            if(sp1 == ""){
+                if(L1 == 3){
+                    seq_new[sp_y[0].first+2] = 'C';
+                    critical_positions_new.erase(sp_y[0].first+2);
+                }else{
+                    seq_new[sp_y[0].first+2] = 'C';
+                    seq_new[sp_y[0].first+3] = 'G';
+                    critical_positions_new.erase(sp_y[0].first+2);
+                    critical_positions_new.erase(sp_y[0].first+3);
+                }
+            }else{
+                if(L1 == 3){
+                    seq_new.replace(sp_y[0].first, sp1.length(), sp1);
+                    for(int i = 0; i < 5; i++)
+                        critical_positions_new.erase(sp_y[0].first+i);
+                }else{
+                    seq_new.replace(sp_y[0].first, sp1.length(), sp1);
+                    for(int i = 0; i < 6; i++)
+                        critical_positions_new.erase(sp_y[0].first+i);
+                }
+            }
+
+            if(sp2 == ""){
+                if(L2 == 3){
+                    seq_new[sp_y[1].first+2] = 'C';
+                    critical_positions_new.erase(sp_y[1].first+2);
+                }else{
+                    seq_new[sp_y[1].first+2] = 'C';
+                    seq_new[sp_y[1].first+3] = 'G';
+                    critical_positions_new.erase(sp_y[1].first+2);
+                    critical_positions_new.erase(sp_y[1].first+3);
+                }
+            }else{
+                if(L2 == 3){
+                    seq_new.replace(sp_y[1].first, sp2.length(), sp2);
+                    for(int i = 0; i < 5; i++)
+                        critical_positions_new.erase(sp_y[1].first+i);
+                }else{
+                    seq_new.replace(sp_y[1].first, sp2.length(), sp2);
+                    for(int i = 0; i < 6; i++)
+                        critical_positions_new.erase(sp_y[1].first+i);
+                }
+            }
+
+            seqCritical.push_back({seq_new, critical_positions_new});
+        }
+    return seqCritical;
+}
+
+std::vector<std::pair<int, int>> loops2specialhp(std::vector<std::vector<int>>& cr_loops, int length){
+    std::vector<std::pair<int, int>> sp_y;
+    std::set<int> critical_positions_1; // y
+    std::set<int> critical_positions_0; // y'
+    for(vector<int> cr_loop: cr_loops){
+        if (cr_loop[0] == 0){  // y'
+            for(int i = 2; i < cr_loop.size(); i++){
+                if (cr_loop[i]>=0 && cr_loop[i] < length)
+                    critical_positions_0.insert(cr_loop[i]);
+            }
+        }
+    }
+    for(vector<int> cr_loop: cr_loops){
+        if (cr_loop[0] == 1 && cr_loop[1] == 0){ // sp in crloop of y
+            int lenHP = cr_loop[3] - cr_loop[2] - 1;
+            #ifdef SPECIAL_HP_3
+            if(lenHP==3){
+                set<int> indices_hp;
+                for(int i = 4; i < cr_loop.size(); i++){
+                    indices_hp.insert(cr_loop[i]);
+                }
+                std::set<int> intersection = setIntersection(indices_hp,critical_positions_0);
+                if (intersection.empty())
+                {
+                    sp_y.push_back({cr_loop[2], cr_loop[3]});
+                }
+            }
+            #endif
+            #ifdef SPECIAL_HP_4
+            if(lenHP==4){
+                set<int> indices_hp;
+                for(int i = 4; i < cr_loop.size(); i++){
+                    indices_hp.insert(cr_loop[i]);
+                }
+                std::set<int> intersection = setIntersection(indices_hp,critical_positions_0);
+                if (intersection.empty())
+                {
+                    sp_y.push_back({cr_loop[2], cr_loop[3]});
+                }
+            }
+            #endif
+        }
+    }
+    return sp_y;
+}
+
 std::vector<std::string> alg_1(std::string& y, std::string& y_prime, std::vector<std::vector<int>>& cr_loops, std::vector<std::tuple<int, int>>& pairs_diff, std::string& seq, bool is_verbose, int dangle_model){
     std::cout<<"inside alg1"<<std::endl;
     auto start = std::chrono::high_resolution_clock::now();
@@ -434,6 +581,116 @@ std::vector<std::string> alg_1(std::string& y, std::string& y_prime, std::vector
     std::cout<<"count enum: "<<nEnum<<std::endl;
     std::vector<std::pair<int, std::string>> idX;
     std::vector<std::string> X;
+    int flag = 0;
+    #pragma omp parallel for
+    for(ulong i=0; i < nEnum; i++){
+        if(flag)
+            continue;
+        std::string seq_i = enumerate(pairs_diff, i, seq);
+        if ((i+1)%1000000 == 0){
+            auto pause = std::chrono::high_resolution_clock::now();
+            printf("%8d, %d, %.2f seconds\n", (i+1)/10000, X.size(), std::chrono::duration<double, std::milli>(pause - start)/1000.f);
+        }
+        if(check_compatible(seq_i, y_prime)){
+            long e_diff = -diff_eval(seq_i, cr_loops, is_verbose, dangle_model); // not divided by 100
+            if(e_diff < 0){
+                #pragma omp critical
+                idX.push_back({i, seq_i});
+                // X.push_back(seq_i);
+            }
+        }else{
+            #pragma omp critical
+            idX.push_back({i, seq_i});
+            // X.push_back(seq_i);
+        }
+        #pragma omp critical
+        {
+            if (idX.size() > MAX_CONSTRAINT)
+                flag = 1;
+        }
+    }
+    auto stop = std::chrono::high_resolution_clock::now();
+    const std::chrono::duration<double, std::milli> fp_ms = stop - start;
+    printf("finished: %.4f seconds\n", fp_ms/1000.f);
+    std::sort(idX.begin(), idX.end());
+    for(auto p: idX)
+        X.push_back(p.second);
+    return X;
+}
+
+std::vector<std::string> alg_1_v2(std::string& y, std::string& y_prime, std::string& seq, bool is_verbose, int dangle_model){
+    std::cout<<"inside alg1_v2"<<std::endl;
+    std::set<int> critical_positions;
+    std::vector<std::vector<int>> cr_loops = find_critical_plus(y, y_prime, critical_positions, is_verbose);
+    std::set<int> critical_positions_v2 = loops2positions(cr_loops, y.length());
+    assert(critical_positions == critical_positions_v2);
+    
+    std::vector<std::pair<int, int>> sh_y = loops2specialhp(cr_loops, y.length());
+    if (sh_y.size() == 2){
+        std::vector<std::string> X;
+        std::vector<std::pair<int, std::string>> idX;
+        auto seqCriticals = genSeqCritical(seq, critical_positions, sh_y);
+        auto start = std::chrono::high_resolution_clock::now();
+        for(int j = 0; j < seqCriticals.size(); j++){
+            std::cout<<"SH:"<<j<<"\t"<<seqCriticals[j].first<<"\t"<<seqCriticals[j].second.size()<<std::endl;
+            std::cout<<"SH:"<<j<<"\t"<<y<<std::endl;
+            std::vector<std::string> X;
+            std::vector<std::tuple<int, int>> pairs_diff = idx2pair(seqCriticals[j].second, y);
+            if (is_verbose)
+                for(auto& pair: pairs_diff)
+                    std::cout<<std::get<0>(pair)<<"\t"<<std::get<1>(pair)<<std::endl;
+            auto start = std::chrono::high_resolution_clock::now();
+            ulong nEnum = count_enum(pairs_diff);
+            std::cout<<"count enum: "<<nEnum<<std::endl;
+            int flag = 0;
+            #pragma omp parallel for
+            for(ulong i=0; i < nEnum; i++){
+                if(flag)
+                    continue;
+                std::string seq_i = enumerate(pairs_diff, i, seqCriticals[j].first);
+                if ((i+1)%1000000 == 0){
+                    auto pause = std::chrono::high_resolution_clock::now();
+                    printf("%8d, %d, %.2f seconds\n", (i+1)/10000, X.size(), std::chrono::duration<double, std::milli>(pause - start)/1000.f);
+                }
+                if(check_compatible(seq_i, y_prime)){
+                    long e_diff = -diff_eval(seq_i, cr_loops, is_verbose, dangle_model); // not divided by 100
+                    if(e_diff < 0){
+                        #pragma omp critical
+                        idX.push_back({i, seq_i});
+                        // X.push_back(seq_i);
+                    }
+                }else{
+                    #pragma omp critical
+                    idX.push_back({i, seq_i});
+                    // X.push_back(seq_i);
+                }
+                #pragma omp critical
+                {
+                    if (idX.size() > MAX_CONSTRAINT)
+                        flag = 1;
+                }
+            }
+        }
+        auto stop = std::chrono::high_resolution_clock::now();
+        const std::chrono::duration<double, std::milli> fp_ms = stop - start;
+        printf("finished: %.4f seconds\n", fp_ms/1000.f);
+        std::sort(idX.begin(), idX.end());
+        for(auto p: idX)
+        X.push_back(p.second);
+        return X;
+    }
+    std::vector<std::string> X;
+    auto start = std::chrono::high_resolution_clock::now();
+    std::vector<std::tuple<int, int>> pairs_diff = idx2pair(critical_positions, y);
+    ulong nEnum = count_enum(pairs_diff);
+    std::cout<<"count enum: "<<nEnum<<std::endl;
+    std::vector<std::pair<int, std::string>> idX;
+
+    // if(nEnum <= 0 || nEnum >= MAX_ENUM){
+    //     printf("too many enumeration needed!");
+    //     return X;
+    // }
+
     int flag = 0;
     #pragma omp parallel for
     for(ulong i=0; i < nEnum; i++){
@@ -521,7 +778,8 @@ std::string alg_2(std::string& ref1, std::set<std::string>& refs_checked, std::v
         std::set<int> critical_positions;
         std::vector<std::vector<int>> cr_loops = find_critical_plus(ref1, y_prime.second.first, critical_positions, verbose);
         std::vector<std::tuple<int, int>> pairs_diff = idx2pair(critical_positions, ref1);
-        std::vector<std::string> X_new = alg_1(ref1, y_prime.second.first, cr_loops, pairs_diff, y_prime.second.second, verbose, dangle_model);
+        // std::vector<std::string> X_new = alg_1(ref1, y_prime.second.first, cr_loops, pairs_diff, y_prime.second.second, verbose, dangle_model);
+        std::vector<std::string> X_new = alg_1_v2(ref1, y_prime.second.first, y_prime.second.second, verbose, dangle_model);
         if (X_new.size() == 0){
             std::cout<<"y :"<<ref1<<std::endl;
             std::cout<<"y':"<<y_prime.second.first<<std::endl;
@@ -631,7 +889,8 @@ std::string alg_2_cs(std::string& ref1, std::set<std::string>& refs_checked, std
         std::set<int> critical_positions;
         std::vector<std::vector<int>> cr_loops = find_critical_plus(ref1, y_prime.second.first, critical_positions, verbose);
         std::vector<std::tuple<int, int>> pairs_diff = idx2pair(critical_positions, ref1);
-        std::vector<std::string> X_new = alg_1(ref1, y_prime.second.first, cr_loops, pairs_diff, y_prime.second.second, verbose, dangle_model);
+        // std::vector<std::string> X_new = alg_1(ref1, y_prime.second.first, cr_loops, pairs_diff, y_prime.second.second, verbose, dangle_model);
+        std::vector<std::string> X_new = alg_1_v2(ref1, y_prime.second.first, y_prime.second.second, verbose, dangle_model);
         if (X_new.size() == 0){
             std::cout<<"y :"<<ref1<<std::endl;
             std::cout<<"y':"<<y_prime.second.first<<std::endl;
@@ -698,7 +957,8 @@ std::string alg_2_helper(std::string& ref1, std::string& ref2, std::string& seq,
     std::cout<<"enumeration count: "<<n_enum<<std::endl;
     if(n_enum > 0 && n_enum < MAX_ENUM){
         std::cout<<"alg 1"<<std::endl;
-        auto X = alg_1(ref1, ref2, cr_loops, pairs_diff, seq, verbose, dangle_model);
+        // auto X = alg_1(ref1, ref2, cr_loops, pairs_diff, seq, verbose, dangle_model);
+        auto X = alg_1_v2(ref1, ref2, seq, verbose, dangle_model);
         printf("X size: %d\n", X.size());
         if (X.size() == 0){
             std::cout<<"undesignable!"<<std::endl;
@@ -735,7 +995,8 @@ std::string alg_2_cs_helper(std::string& ref1, std::string& ref2, std::string& s
     std::cout<<"enumeration count: "<<n_enum<<std::endl;
     if(n_enum > 0 && n_enum < MAX_ENUM){
         std::cout<<"alg 1"<<std::endl;
-        auto X = alg_1(ref1, ref2, cr_loops, pairs_diff, seq, verbose, dangle_model);
+        // auto X = alg_1(ref1, ref2, cr_loops, pairs_diff, seq, verbose, dangle_model);
+        auto X = alg_1_v2(ref1, ref2, seq, verbose, dangle_model);
         printf("X size: %d\n", X.size());
         if (X.size() == 0){
             std::cout<<"undesignable!"<<std::endl;
@@ -869,6 +1130,12 @@ std::vector<std::string> alg1_helper(std::string& seq, std::string& ref1, std::s
     std::cout << " y': " << ref2 << std::endl;
     std::set<int> critical_positions;
     std::vector<std::vector<int>> cr_loops = find_critical_plus(ref1, ref2, critical_positions, is_verbose);
+    std::set<int> critical_positions_v2 = loops2positions(cr_loops, ref1.length());
+    if(critical_positions != critical_positions_v2){
+        std::cout<<critical_positions.size()<<std::endl;
+        std::cout<<critical_positions_v2.size()<<std::endl;
+        assert (critical_positions == critical_positions_v2);
+    }
     long delta_energy = diff_eval(seq, cr_loops, is_verbose, dangle_model);
     if (is_verbose){
         printf("delta  : %.2f kcal/mol\n", delta_energy/-100.0);
@@ -1036,6 +1303,28 @@ int main(int argc, char* argv[]) {
             const std::chrono::duration<double, std::milli> time_ms = end_time - start_time;
             printf("alg1 time: %.4f seconds\n", time_ms/1000.f);
         }
+    }else if(alg != nullptr && strcmp(alg, "alg1v2") == 0){ /* alg 1 version 2 */
+        std::string seq;
+        std::string ref1;
+        std::string ref2;
+
+        std::string line;
+
+        // Read input line by line until EOF (end of file) is reached
+        while (std::getline(std::cin, seq)) {
+            // Process the line as needed
+            // std::cout<<"got seq"<<std::endl;
+            getline(std::cin, ref1);
+            getline(std::cin, ref2);
+            auto start_time = std::chrono::high_resolution_clock::now();
+            std::vector<std::string> X = alg_1_v2(ref1, ref2, seq, verbose, dangle);
+            auto end_time = std::chrono::high_resolution_clock::now();
+            const std::chrono::duration<double, std::milli> time_ms = end_time - start_time;
+            printf("X size: %d\n", X.size());
+            if (X.size()==0)
+                printf("undesignable!\n");
+            printf("alg1(v2) time: %.4f seconds\n", time_ms/1000.f);
+        }
     }else if (alg != nullptr && strcmp(alg, "alg2") == 0){ /* alg 2 */
         std::string seq;
         std::string ref1;
@@ -1070,7 +1359,8 @@ int main(int argc, char* argv[]) {
             getline(std::cin, ref2);
             alg_2_cs_helper(ref1, ref2, seq, verbose, dangle);
         }
-    }else if (alg != nullptr && strcmp(alg, "test_diff") == 0){ /* can the function test_diff  */
+    }else if (alg != nullptr && strcmp(alg, "test_diff") == 0){ /* call the function test_diff  */
+        verbose = true;
         std::string seq;
         std::string ref1;
         std::string ref2;
@@ -1085,9 +1375,15 @@ int main(int argc, char* argv[]) {
         std::string ref2;
         while(std::getline(std::cin, ref1)){
             getline(std::cin, ref2);
-            find_critical(ref1, ref2, true);
+            std::set<int> critical_positions;
+            auto cr_loops = find_critical_plus(ref1, ref2, critical_positions, true);
+            auto sp_y = loops2specialhp(cr_loops, ref1.length());
+            for(auto sp: sp_y){
+                    std::cout<<sp.first<<"\t"<<sp.second<<std::endl;
+            }
         }
     }else if (alg != nullptr && strcmp(alg, "eval") == 0){ /* energy evaluation  */
+        verbose = true;
         std::string seq;
         std::string ref;
         // Read input line by line until EOF (end of file) is reached
