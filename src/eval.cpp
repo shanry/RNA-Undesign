@@ -749,14 +749,17 @@ long linear_eval(string& seq, string& ref, bool& is_verbose, int& dangle_model) 
                 int k = i - 1;
                 int nuck = k > -1 ? eval_nucs[k] : -1;
                 int nuck1 = eval_nucs[k+1];
-                external_energy +=  - v_score_external_paired(k+1, j, nuck, nuck1,
+                int energy_k1_j = - v_score_external_paired(k+1, j, nuck, nuck1,
                                                             nucj, nucj1, seq_length, dangle_model);
+                external_energy +=  energy_k1_j;
                 // external_energy += 0; currently external unpaired is 0
+                if (is_verbose)
+                    printf("External loop (%d, %d) : %.2f\n", k+1, j, energy_k1_j / -100.0);
             }
         }
     }
     if (is_verbose)
-        printf("External loop : %.2f\n", external_energy / -100.0);
+        printf("External energy: %.2f\n", external_energy / -100.0);
     total_energy += external_energy;
     return total_energy;
 }

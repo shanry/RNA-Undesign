@@ -1359,7 +1359,8 @@ int main(int argc, char* argv[]) {
             getline(std::cin, ref2);
             alg_2_cs_helper(ref1, ref2, seq, verbose, dangle);
         }
-    }else if (alg != nullptr && strcmp(alg, "test_diff") == 0){ /* can the function test_diff  */
+    }else if (alg != nullptr && strcmp(alg, "test_diff") == 0){ /* call the function test_diff  */
+        verbose = true;
         std::string seq;
         std::string ref1;
         std::string ref2;
@@ -1382,6 +1383,7 @@ int main(int argc, char* argv[]) {
             }
         }
     }else if (alg != nullptr && strcmp(alg, "eval") == 0){ /* energy evaluation  */
+        verbose = true;
         std::string seq;
         std::string ref;
         // Read input line by line until EOF (end of file) is reached
