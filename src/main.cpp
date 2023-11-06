@@ -59,6 +59,12 @@ struct Constraint {
         seqs = seq_list;
     }
 
+    Constraint(std::set<int>* index_set, std::vector<std::string>* seq_list, std::string& ref){
+        indices = index_set;
+        seqs = seq_list;
+        structure = ref;
+    }
+
     void setStructure(std::string& ref){
         structure = ref;
     }
@@ -796,8 +802,10 @@ std::string alg_2(std::string& ref1, std::set<std::string>& refs_checked, std::v
                 intersect(cs_old, cs_new);
                 // std::cout<<"after  intersection: "<<cs_old.seqs->size()<<"\t"<<cs_new.seqs->size()<<std::endl;
                 if (cs_old.seqs->empty() || cs_new.seqs->empty()){
+                    std::cout<<"constraint counts:\t"<<cs_vec.size()+1<<std::endl; // the latest one was not added to cs_vec
                     for(int i = 0; i<cs_vec.size(); i++)
                         std::cout<<cs_vec[i].seqs->size()<<"\t";
+                    std::cout<<cs_new.seqs->size()<<"\t";
                     std::cout<<std::endl;
                     for(int i = 0; i<cs_vec.size(); i++)
                         std::cout<<cs_vec[i].structure<<std::endl;
@@ -812,9 +820,10 @@ std::string alg_2(std::string& ref1, std::set<std::string>& refs_checked, std::v
             Constraint* cs_new_copy = new Constraint(idx_new, x_new_copy);
             cs_new_copy->setStructure(cs_new.structure);
             cs_vec.push_back(*cs_new_copy);
+            std::cout<<"constraint counts:\t"<<cs_vec.size()<<std::endl;
             for(int i = 0; i<cs_vec.size(); i++)
                 std::cout<<cs_vec[i].seqs->size()<<"\t";
-            std::cout<<cs_new.seqs->size()<<std::endl;
+            std::cout<<std::endl;
         }
         refs_checked.insert(y_prime.second.first);
     }
@@ -1050,8 +1059,19 @@ void alg_3_helper(std::string& ref, std::string& seq, bool verbose, int dangle){
             if(subopts[0]==subrefs[i].first)
                 ref_mfe = subopts[1];
             std::string designability = alg_2_cs_helper(subrefs[i].first, ref_mfe, subrefs[i].second, verbose, dangle);
-            if (designability == "undesignable")
+            if (designability == "undesignable"){
+                size_t found = ref.find(subrefs[i].first);
+                if (found != std::string::npos) {
+                    printf("y*: %s\n", ref.c_str());
+                    printf("context-constrained undesignable structure y*[%d: %d]\n", found, found+subrefs[i].first.length());
+                    std::cout<<subrefs[i].first<<std::endl;
+                    std::cout << "Found at position: " << found << std::endl;
+                    std::cout<<"substr indices:"<<found<<","<<found+subrefs[i].first.length()<<std::endl;
+                } else {
+                    std::cout << "substr indices not found." << std::endl;
+                }
                 break;
+            }
         }
     }
     return;
@@ -1157,6 +1177,10 @@ std::vector<std::string> alg1_helper(std::string& seq, std::string& ref1, std::s
         printf("X size: %d\n", X.size());
         if (X.size()==0)
             printf("undesignable!\n");
+        else{
+            Constraint cs(&critical_positions, &X);
+            printf("constraint size: %d\n", cs.seqs->size());
+        }
     }
     return X;
 }

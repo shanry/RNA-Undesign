@@ -3,8 +3,8 @@ Undesignability of RNA secondary structures
 
 ## Build
 ```
-$./make main  # only turn on special hairpin of triloop
-$./make main4 # also turn on special hairpin of tetraloop
+$./make main
+$./make main0  # only turn on special hairpin of triloop
 ```
 
 ## Energy Evaluation
@@ -42,9 +42,9 @@ $./bin/main test_diff  < data/seq_refs.txt # batched input
 ```
 $export OMP_NUM_THREADS=4 # parallel computing eabled by OpenMP
 $./bin/main alg1
-CUAAGGACCACCCGGGAAACCAUAAGGGGCGAGAAAUCGAGGAUCAACAGCGCAGGGAAAACGAACCAUCCGAAAGGAAGCAAGCAAAAAAAGAAAAAAAAAAAA
-.....((((.(((((....))....))).(((....))).)).))....((((.(((....)...)).(((....))).))..))....................
-.....((((.(((((....))....))).(((....))).)).))....((((.((.........)).(((....))).))..))....................
+AUAAGCGGUAAAAAAAGUGCGAAAAGCAUGAAAAAAAACAGAAAAAAAAAAAAAAAAAAAA
+......(.........((((.....)))).........)......................
+................((((.....))))................................
 ```
 
 ## Undesignability Alg2
