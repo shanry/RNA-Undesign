@@ -749,7 +749,7 @@ std::string alg_2(std::string& ref1, std::set<std::string>& refs_checked, std::v
         assert (check_compatible(x, ref1));
         std::vector<std::string> subopts = fold(x, 0, false, verbose, dangle_model, 0.0);
         if (isUMFE(subopts, ref1)){
-            printf("UMFE found!");
+            printf("UMFE found!\n");
             std::cout<<x<<std::endl;
             return "UMFE";
         }
