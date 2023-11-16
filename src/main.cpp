@@ -46,7 +46,6 @@ std::vector<std::string> cs_fold(std::string seq, std::string& constr, int beams
 std::vector<std::string> fold(std::string seq, int beamsize, bool sharpturn, bool verbose, int dangle, float energy_delta);
 ulong count_enum(std::vector<std::tuple<int, int>>& pairs_diff);
 std::string enumerate(std::vector<std::tuple<int, int>>& pairs_diff, ulong order, std::string& seq);
-
 // Define a basic constraint structure
 struct Constraint {
     std::set<int>* indices;
@@ -75,11 +74,21 @@ struct Constraint {
     // }
 };
 
+// Define input for decomposition algs
+
+struct LoopComplex {
+    int count_uk;
+    std::string ref;
+    std::string constr;
+    int start;
+    int end;
+};
+
 // Define a basic TreeNode structure
 struct TreeNode {
     int first; // root: -1
     int second; // 
-    // Bracket br;
+    TreeNode* parent = NULL;
     std::vector<TreeNode*> children;
 
     TreeNode(int first_val, int second_val){
@@ -233,6 +242,8 @@ struct TreeNode {
     }
 };
 
+std::string removeNodeFromTree(TreeNode* node, std::string ref);
+
 // Function to parse a string of nested pairs into a tree
 TreeNode* parseStringToTree(const std::string& ref) {
     std::stack<TreeNode*> nodeStack;
@@ -243,6 +254,7 @@ TreeNode* parseStringToTree(const std::string& ref) {
         if (c == '(') {
             TreeNode* node = new TreeNode(i, -2);
             nodeStack.top()->children.push_back(node);
+            node->parent = nodeStack.top();
             nodeStack.push(node);
         } else if (c == ')') {
             nodeStack.top()->second = i;
@@ -252,6 +264,91 @@ TreeNode* parseStringToTree(const std::string& ref) {
     }
     // printf("root: (%d, %d)\n", nodeStack.top()->first, nodeStack.top()->second);
     return root;
+}
+
+void tree2Loops(TreeNode* root, std::string& ref, std::vector<LoopComplex>& lc_list){
+    if (root->first == -1){
+        printf("external: first: %d, second: %d; children: %d\n", root->first, root->second, root->children.size());
+    }else if (root->children.size() == 0){
+        printf("haiprin: first: %d, second: %d; children: %d\n", root->first, root->second, root->children.size());
+    }else if(root->children.size() == 1){
+        printf("internal: first: %d, second: %d; children: %d\n", root->first, root->second, root->children.size());
+    }else if(root->children.size() > 1){
+        printf("multi-loop: first: %d, second: %d; children: %d\n", root->first, root->second, root->children.size());
+    }
+    if (root->parent != NULL){
+        printf("parent: first: %d, second: %d; children: %d\n", root->parent->first, root->parent->second, root->parent->children.size());
+        printf("   ref: %s\n", ref.c_str());
+        std::string constr = removeNodeFromTree(root, ref);
+        printf("constr: %s\n", constr.c_str());
+        std::string cref = constr;
+        std::replace(cref.begin(), cref.end(), '?', '.');
+        printf("  cref: %s\n", cref.c_str());
+        int count_unknown = 0;
+        for(auto ch: constr){
+            if (ch == '?')
+                count_unknown += 1;
+        }
+        printf("? count: %d\n", count_unknown);
+        int start = root->parent->first;
+        int end = root->parent->second;
+        if (root->parent->first < 0){
+            start = 0;
+            end = ref.length() - 1;
+        }
+        LoopComplex lc = {count_unknown, cref, constr, start, end};
+        lc_list.push_back(lc);
+    }
+    printf("\n");
+    for(auto child: root->children){
+        tree2Loops(child, ref, lc_list);
+    }
+    return;
+}
+
+std::string removeNodeFromTree(TreeNode* node, std::string ref){
+    std::string constr(ref.length(), '?');
+    int len_p = node->parent->second - node->parent->first + 1;
+    if (node->parent->first >= 0){
+        printf("first: %d, second: %d\n", node->parent->first, node->parent->second);
+        printf(" len_p: %d\n", len_p);
+        printf("   ref: %s\n", ref.substr(node->parent->first, len_p).c_str());
+        constr[node->parent->first] = '(';
+        constr[node->parent->second] = ')';
+        printf("constr: %s\n", constr.substr(node->parent->first, len_p).c_str());
+    }else{
+        printf(" len_p: %d\n", ref.length());
+        printf("   ref: %s\n", ref.c_str());
+        printf("constr: %s\n", constr.c_str());
+    }
+    // for(int i = 0; i < ref.length(); i++){
+    //     if(i <= node->parent->first || i >= node->parent->second)
+    //         constr[i] = ref[i];
+    // }
+    for(auto child: node->children){
+        if (child->children.size()){
+            for(auto grandchild: child->children){
+                for(int i = grandchild->first; i <= grandchild->second; i++){
+                    constr[i] = ref[i];
+                }
+            }
+        }
+    }
+    if (node->parent->first >= 0)
+        printf("constr: %s\n", constr.substr(node->parent->first, len_p).c_str());
+    else
+        printf("constr: %s\n", constr.c_str());
+    for(auto sibling: node->parent->children){
+        if (sibling != node){
+            for(int i = sibling->first; i <= sibling->second; i++){
+                constr[i] = ref[i];
+            }
+        }
+    }
+    if (node->parent->first >= 0)
+        return constr.substr(node->parent->first, len_p);
+    else
+        return constr;
 }
 
 bool compareByFirstStringLength(const std::pair<std::string, std::string> &a, const std::pair<std::string, std::string> &b) {
@@ -1077,6 +1174,158 @@ void alg_3_helper(std::string& ref, std::string& seq, bool verbose, int dangle){
     return;
 }
 
+std::string alg_5_cs(std::string& ref1, std::set<std::string>& refs_checked, std::vector<Constraint>& cs_vec, std::string& constr, bool verbose, int dangle_model){ // ref1, ref2, X, is_verbose, dangle_model
+    int count_cs = cs_vec.size();
+    std::vector<std::pair<ulong, std::pair<std::string, std::string>>> y_primes;
+    std::cout<<"inside alg5cs"<<std::endl;
+    std::vector<std::string> X;
+    for(auto cs: cs_vec){
+        X.insert(X.end(), cs.seqs->begin(), cs.seqs->end());
+        if(X.size() > 500)
+            break;
+    }
+    if (X.size() > 500)
+        X.resize(500);
+    std::cout<<"X.size: "<<X.size()<<std::endl;
+    // std::string constr(ref1.length(), '?');
+    // constr[0] = '(';
+    // constr[ref1.length()-1] = ')';
+    for(auto x: X){
+        assert (check_compatible(x, ref1));
+        std::vector<std::string> subopts_raw = cs_fold(x, constr, 0, false, verbose, dangle_model);
+        std::vector<std::string> subopts;
+        for(std::string subopt: subopts_raw){
+            bool flag = true;
+            for(int idx = 0; idx < subopt.length(); idx++){
+                if (constr[idx]!='?'&&constr[idx]!=subopt[idx]){
+                    flag = false;
+                    break;
+                }
+            }
+            if(flag)
+                subopts.push_back(subopt);
+        }
+        assert (subopts.size() > 0);
+        if (isUMFE(subopts, ref1)){
+            printf("UMFE found!");
+            std::cout<<x<<std::endl;
+            return "UMFE";
+        }
+        for(std::string ref: subopts){
+            if(ref != ref1 && !refs_checked.count(ref)){
+                std::set<int> critical_positions;
+                find_critical_plus(ref1, ref, critical_positions, verbose);
+                std::vector<std::tuple<int, int>> pairs_diff = idx2pair(critical_positions, ref1);
+                ulong n_enum = count_enum(pairs_diff);
+                std::pair<ulong, std::pair<std::string, std::string>> enum_seq(n_enum, std::make_pair(ref, x));
+                if (n_enum > 0 && n_enum < MAX_ENUM)
+                    y_primes.push_back(enum_seq);
+            }
+        }
+    }
+    std::sort(y_primes.begin(), y_primes.end());
+    std::vector<std::pair<ulong, std::pair<std::string, std::string>>> y_primes_dedup;
+    for(auto y_prime: y_primes){
+        if (y_primes_dedup.empty() || y_prime.second.first != y_primes_dedup.back().second.first){
+            std::cout<<y_prime.first<<std::endl;
+            std::cout<<y_prime.second.second<<std::endl;
+            std::cout<<y_prime.second.first<<std::endl;
+            y_primes_dedup.push_back(y_prime);
+        }
+    }
+    for (auto y_prime: y_primes_dedup){
+        std::set<int> critical_positions;
+        std::vector<std::vector<int>> cr_loops = find_critical_plus(ref1, y_prime.second.first, critical_positions, verbose);
+        std::vector<std::tuple<int, int>> pairs_diff = idx2pair(critical_positions, ref1);
+        // std::vector<std::string> X_new = alg_1(ref1, y_prime.second.first, cr_loops, pairs_diff, y_prime.second.second, verbose, dangle_model);
+        std::vector<std::string> X_new = alg_1_v2(ref1, y_prime.second.first, y_prime.second.second, verbose, dangle_model);
+        if (X_new.size() == 0){
+            std::cout<<"y :"<<ref1<<std::endl;
+            std::cout<<"y':"<<y_prime.second.first<<std::endl;
+            std::cout<<"undesignable!"<<std::endl;
+            return "undesignable";
+        }else if (X_new.size() > MAX_CONSTRAINT){
+            std::cout<<"too many constraints: "<<X_new.size()<<"\t"<<"out of "<<y_prime.first<<std::endl;
+            refs_checked.insert(y_prime.second.first);
+            continue;
+        }else{
+            Constraint cs_new = Constraint(&critical_positions, &X_new);
+            cs_new.setStructure(y_prime.second.first);
+            std::cout<<"number of constraints: "<<X_new.size()<<std::endl;
+            for(Constraint& cs_old: cs_vec){
+                intersect(cs_old, cs_new);
+                if (cs_old.seqs->empty() || cs_new.seqs->empty()){
+                    for(int i = 0; i<cs_vec.size(); i++)
+                        std::cout<<cs_vec[i].seqs->size()<<"\t";
+                    std::cout<<cs_new.seqs->size()<<std::endl;
+                    for(int i = 0; i<cs_vec.size(); i++)
+                        std::cout<<cs_vec[i].structure<<std::endl;
+                    std::cout<<cs_new.structure<<std::endl;
+                    std::cout<<"y_prime count: "<<cs_vec.size()+1<<std::endl;
+                    std::cout<<"undesignable!"<<std::endl;
+                    return "undesignable";
+                }
+            }
+            std::set<int>* idx_new = new std::set<int>(*cs_new.indices);
+            std::vector<std::string>* x_new_copy = new std::vector<std::string>(*cs_new.seqs);
+            Constraint* cs_new_copy = new Constraint(idx_new, x_new_copy);
+            cs_new_copy->setStructure(cs_new.structure);
+            cs_vec.push_back(*cs_new_copy);
+            for(int i = 0; i<cs_vec.size(); i++)
+                std::cout<<cs_vec[i].seqs->size()<<"\t";
+            std::cout<<std::endl;
+        }
+        refs_checked.insert(y_prime.second.first);
+    }
+    if (count_cs == cs_vec.size()){
+        std::cout<<"no more new y_prime"<<std::endl;
+        for(auto cs: cs_vec){
+            std::cout<<cs.seqs->size()<<std::endl;
+            std::cout<<std::endl;
+        }
+        return "no more new y_prime";
+    }
+    if (cs_vec.size() < 100)
+        return alg_5_cs(ref1, refs_checked, cs_vec, constr, verbose, dangle_model);
+    else{
+        std::cout<<"no conclusion!"<<std::endl;
+        return "no conclusion";
+    }
+}
+
+
+std::string alg_5_helper(std::string& ref1, std::string& ref2, std::string&constr, std::string& seq, bool verbose, int dangle_model){
+    std::cout << "seq: " << seq << std::endl;
+    std::cout << "  y: " << ref1 << std::endl;
+    std::cout << " y': " << ref2 << std::endl;
+    std::cout << "cst: " << constr << std::endl;
+    std::set<int> critical_positions;
+    std::vector<std::vector<int>> cr_loops = find_critical_plus(ref1, ref2, critical_positions, verbose);
+    long delta_energy = diff_eval(seq, cr_loops, verbose, dangle_model);
+    std::vector<std::tuple<int, int>> pairs_diff = idx2pair(critical_positions, ref1);
+    ulong n_enum = count_enum(pairs_diff);
+    std::cout<<"enumeration count: "<<n_enum<<std::endl;
+    if(n_enum > 0 && n_enum < MAX_ENUM){
+        std::cout<<"alg 1"<<std::endl;
+        // auto X = alg_1(ref1, ref2, cr_loops, pairs_diff, seq, verbose, dangle_model);
+        auto X = alg_1_v2(ref1, ref2, seq, verbose, dangle_model);
+        printf("X size: %d\n", X.size());
+        if (X.size() == 0){
+            std::cout<<"undesignable!"<<std::endl;
+            return "undesignable";
+        }
+        std::set<std::string> refs_checked;
+        refs_checked.insert(ref2);
+        std::vector<Constraint> cs_vec;
+        Constraint cs_ref2 = Constraint(&critical_positions, &X);
+        cs_ref2.setStructure(ref2);
+        cs_vec.push_back(cs_ref2);
+        return alg_5_cs(ref1, refs_checked, cs_vec, constr, verbose, dangle_model);
+    }
+    std::cout<<"intial y_prime too bad!"<<std::endl;
+    return "intial y_prime too bad";
+}
+
 std::vector<std::string> cs_fold(std::string seq, std::string& constr, int beamsize, bool sharpturn, bool verbose, int dangle){
     bool consflag = true;
     std::vector<std::string> subopts;
@@ -1415,6 +1664,37 @@ int main(int argc, char* argv[]) {
             getline(std::cin, ref);
             long energy = linear_eval(seq, ref, verbose, dangle);
             printf("total energy: %.2f\n", energy/-100.0);
+        }
+    }else if (alg != nullptr && strcmp(alg, "loops") == 0){ /* loops evaluation  */
+        verbose = false;
+        std::string seq;
+        std::string ref;
+        // Read input line by line until EOF (end of file) is reached
+        while (std::getline(std::cin, seq)) {
+            getline(std::cin, ref);
+            std::vector<LoopComplex> lc_list;
+            TreeNode* root = parseStringToTree(ref);
+            tree2Loops(root, ref, lc_list);
+            printf("lc_list size: %d\n", lc_list.size());
+            // Sort the vector using a lambda expression
+            std::sort(lc_list.begin(), lc_list.end(), [](const LoopComplex &a, const LoopComplex &b) {
+                return a.count_uk < b.count_uk;});
+            for (auto lc: lc_list){
+                std::string target = ref.substr(lc.start, lc.end-lc.start+1);
+                std::string subseq = seq.substr(lc.start, lc.end-lc.start+1);
+                printf(" count: %d\n", lc.count_uk);
+                printf("target: %s\n", target.c_str());
+                printf("   ref: %s\n", lc.ref.c_str());
+                printf("constr: %s\n", lc.constr.c_str());
+
+                if (true){
+                    std::string result = alg_5_helper(target, lc.ref, lc.constr, subseq, verbose, dangle);
+                    if (result == "undesignable")
+                        break;
+                }
+
+                printf("\n");
+            }
         }
     }
     return 0;
