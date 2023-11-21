@@ -9,20 +9,20 @@ $./make main0  # only turn on special hairpin of triloop
 
 ## Energy Evaluation
 ``` 
-$./bin/main eval
+$./bin/main --alg eval
 CACACGCACUACAAAAUGUCCAAAGGAAAAGGCACCACCAGCAAAGCACCAAAGGUAAGGGGAAAAG
 .....((.((.((...)).((...))...)))).((.((.((...)).((...))...)))).....
 (output)total energy: -3.00
 ```
-## Critical positions
+## Differential positions
 ```
-$./bin/main critical
+$./bin/main --alg dp
 ..((((((((.......(.((((((....)))))).(((((((....))))))).).......))))))))..
 ..((((((((.........((((((....)))))).(((((((....))))))).........))))))))..
 ```
 ## Energy difference
 ```
-$./bin/main test_diff
+$./bin/main --alg ed
 GGGAGACCCAAAAAAAAGGGCAACUGCAAAAAGGAGACAGCACCCCGAAAAAAGACUGGAAAAAGGGCGAAAAGCUCGAAAAACACGACCAACGGAAAACAGGACGAAAGAGAACAAGCAAGCCAAAGGGAAACAGACUAAAAACGCGAAAGCGACUGCAAAGGGGGAGAAAAAGCGACCCUGAACGAAAAAGGGGCGAAAAAUUGGAACAAAAAAAGGAGGGGGGAAAGGAAAGUCAAAGACACUCGAAACGAGUGAGCGGGCAAAAAAAAAAACGGGGGAUGAAUAACGGACGGAAACGCGGCGGAAAGCGAAAAAAAGAAAAACGUCGUACGGACUACUGGGGUGCAAAAAAAAGGAGGGGCGCAAAAAGGAAAAAACAGGGUCCACUA
 ((..(((((........(.((..((.(.....(....).((((((((.........((......((((.....))))......))...((..((.......(..(......)..)..((..((.....(....).((((.....(((.....(..((.(...).))..).....))).((((...(.......(..(.((...)).)..).......)...))))........)))).....((((((...)))))).))..))...........))..)).........(..((....)((((((.....(........).....))))))..)..)...))))))))........).))..)).).....(.......).)))))..)).
 ((..(((((........(.((..((.(.....(....).((((((((.........((......((((.....))))......))...((..((.......(..(......)..)..((..((............((((.....(((.....(..((.(...).))..).....))).((((...(.......(..(.((...)).)..).......)...))))........)))).....((((((...)))))).))..))...........))..)).........(..((.....((((((.....(........).....)))))).))..)...))))))))........).))..)).).....(.......).)))))..)).
@@ -41,7 +41,7 @@ $./bin/main test_diff  < data/seq_refs.txt # batched input
 ## Undesignability Alg1
 ```
 $export OMP_NUM_THREADS=4 # parallel computing eabled by OpenMP
-$./bin/main alg1
+$./bin/main --alg 1
 AUAAGCGGUAAAAAAAGUGCGAAAAGCAUGAAAAAAAACAGAAAAAAAAAAAAAAAAAAAA
 ......(.........((((.....)))).........)......................
 ................((((.....))))................................
@@ -50,7 +50,7 @@ AUAAGCGGUAAAAAAAGUGCGAAAAGCAUGAAAAAAAACAGAAAAAAAAAAAAAAAAAAAA
 ## Undesignability Alg2
 ```
 $export OMP_NUM_THREADS=4 # parallel computing eabled by OpenMP
-$./bin/main alg2
+$./bin/main --alg 2
 AAAAUGAGCCCCACGAAAGGAGAGUGCUCACAAA
 ....((((((((.(....)).).).)))))....
 ....(((((((..(....)..).).)))))....
@@ -59,7 +59,7 @@ AAAAUGAGCCCCACGAAAGGAGAGUGCUCACAAA
 ## Undesignability Alg2 (constrained)
 ```
 $export OMP_NUM_THREADS=4 # parallel computing eabled by OpenMP, user-defined
-$./bin/main alg2cs
+$./bin/main --alg 2c
 UUAAGGGAAAAUCUUAGCCGAGAAAUCGGAUCCAAAGCGGCAUAAAAAAGAAAGCGCCGAAAUUCGCAGAAAUGCGAGAAAGGCAAGCAAAGAAUUCGGCAGAAAAAAUGCCGACCGGGCAAUGAAAAUUCGCCCGUGGAGCCAAGCGGG
 ((((((.....)))))(((((....)))).)((...(((((............(((((....((((((....))))))...)))..)).......((((((.......))))))(((((((((....))).))))).)..)))..)))))
 ((((((.....))))).((((....))))..((...(((((............(((((....((((((....))))))...)))..)).......((((((.......))))))(((((((((....))).))))).)..)))..)))))
@@ -67,7 +67,7 @@ UUAAGGGAAAAUCUUAGCCGAGAAAUCGGAUCCAAAGCGGCAUAAAAAAGAAAGCGCCGAAAUUCGCAGAAAUGCGAGAA
 ## Undesignability Alg3
 ```
 $export OMP_NUM_THREADS=4 # parallel computing eabled by OpenMP, user-defined
-$./bin/main alg3
+$./bin/main --alg 3
 ACUAAAUGGUGAGCAGACCCAGUGGAAACACACGCAGCCGAAAGGUACCCAUCCGAGAGGAAGUCAGGCGAAAGCUAACGGAAAGAACGUAGACAGGGAGCGAGGGACAAAGACUGCAAGGGAAAGUACACAAGACAAAGUAAAAAAAGGUGAGGCAGGGGAAACCCCGGGAAACCGGUCGAAAGACGCCAGCAAACCGCAGAAACAGCCACCCAGCGAGACAGACAAAAGCGGAUACGUAGUCGACGGAAACGUAGUCAGGGGAAACCCACGCAAUCGAAAGAUAGGGAGUCGGUGAAAACCAGAGAAAUCUACUCAAAAGAGGACAGGCAGCGGAACCCCUACACCGAAAAAA
 .......((((.((((.(((.(((....))).(((.(((....))).(((.(((....))).(((.(((....))).(((.......))).))).))).))).))).(...).)))).((((...((.(((...((...))........))).(((.(((....)))(((....)))(((....)))))).))...((((.(...).(((.(((.(((.(((.(((....(((....))).))).(((....))).))).(((....))).))).(((....))).))).((((((....)))(((....))).(((....)))))).))).))))...)))).)))).......
 ```
