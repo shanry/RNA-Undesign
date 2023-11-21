@@ -14,7 +14,7 @@
 #include <omp.h>
 
 #include "eval.cpp"
-
+#include "cxxopts.hpp"
 using namespace std;
 
 #define MAX_ENUM 10000000000
@@ -243,6 +243,7 @@ struct TreeNode {
 };
 
 std::string removeNodeFromTree(TreeNode* node, std::string ref);
+std::string removeEdgeFromTree(TreeNode* node, std::string ref);
 
 // Function to parse a string of nested pairs into a tree
 TreeNode* parseStringToTree(const std::string& ref) {
@@ -332,6 +333,83 @@ std::string removeNodeFromTree(TreeNode* node, std::string ref){
                     constr[i] = ref[i];
                 }
             }
+        }
+    }
+    if (node->parent->first >= 0)
+        printf("constr: %s\n", constr.substr(node->parent->first, len_p).c_str());
+    else
+        printf("constr: %s\n", constr.c_str());
+    for(auto sibling: node->parent->children){
+        if (sibling != node){
+            for(int i = sibling->first; i <= sibling->second; i++){
+                constr[i] = ref[i];
+            }
+        }
+    }
+    if (node->parent->first >= 0)
+        return constr.substr(node->parent->first, len_p);
+    else
+        return constr;
+}
+
+void tree2Edges(TreeNode* root, std::string& ref, std::vector<LoopComplex>& lc_list){
+    if (root->first == -1){
+        printf("external: first: %d, second: %d; children: %d\n", root->first, root->second, root->children.size());
+    }else if (root->children.size() == 0){
+        printf("haiprin: first: %d, second: %d; children: %d\n", root->first, root->second, root->children.size());
+    }else if(root->children.size() == 1){
+        printf("internal: first: %d, second: %d; children: %d\n", root->first, root->second, root->children.size());
+    }else if(root->children.size() > 1){
+        printf("multi-loop: first: %d, second: %d; children: %d\n", root->first, root->second, root->children.size());
+    }
+    if (root->parent != NULL){
+        printf("parent: first: %d, second: %d; children: %d\n", root->parent->first, root->parent->second, root->parent->children.size());
+        printf("   ref: %s\n", ref.c_str());
+        std::string constr = removeEdgeFromTree(root, ref);
+        printf("constr: %s\n", constr.c_str());
+        std::string cref = constr;
+        std::replace(cref.begin(), cref.end(), '?', '.');
+        printf("  cref: %s\n", cref.c_str());
+        int count_unknown = 0;
+        for(auto ch: constr){
+            if (ch == '?')
+                count_unknown += 1;
+        }
+        printf("? count: %d\n", count_unknown);
+        int start = root->parent->first;
+        int end = root->parent->second;
+        if (root->parent->first < 0){
+            start = 0;
+            end = ref.length() - 1;
+        }
+        LoopComplex lc = {count_unknown, cref, constr, start, end};
+        lc_list.push_back(lc);
+    }
+    printf("\n");
+    for(auto child: root->children){
+        tree2Edges(child, ref, lc_list);
+    }
+    return;
+}
+
+std::string removeEdgeFromTree(TreeNode* node, std::string ref){
+    std::string constr(ref.length(), '?');
+    int len_p = node->parent->second - node->parent->first + 1;
+    if (node->parent->first >= 0){
+        printf("first: %d, second: %d\n", node->parent->first, node->parent->second);
+        printf(" len_p: %d\n", len_p);
+        printf("   ref: %s\n", ref.substr(node->parent->first, len_p).c_str());
+        constr[node->parent->first] = '(';
+        constr[node->parent->second] = ')';
+        printf("constr: %s\n", constr.substr(node->parent->first, len_p).c_str());
+    }else{
+        printf(" len_p: %d\n", ref.length());
+        printf("   ref: %s\n", ref.c_str());
+        printf("constr: %s\n", constr.c_str());
+    }
+    for(auto child: node->children){
+        for(int i = child->first; i <= child->second; i++){
+            constr[i] = ref[i];
         }
     }
     if (node->parent->first >= 0)
@@ -1378,6 +1456,11 @@ std::vector<std::string> cs_fold(std::string seq, std::string& constr, int beams
                 double printscore = result.score;
         #endif
         // printf("%s (%.2f)\n", result.structure.c_str(), printscore);
+
+        // Use std::find to search for the value
+        if (std::find(subopts.begin(), subopts.end(), result.structure) == subopts.end()){
+            subopts.push_back(result.structure);
+        } 
         return subopts;
     }
     return subopts;
@@ -1503,16 +1586,26 @@ void show_configuration(){
 }
 
 int main(int argc, char* argv[]) {
+    cxxopts::Options options("MyProgram", "One line description of MyProgram");
+    options.add_options()
+    ("a,alg", "Algorithm", cxxopts::value<std::string>()->default_value("0"))
+    ("d,dangle", "Dangle mode", cxxopts::value<int>()->default_value("2"))
+    ("v,verbose", "Verbose output", cxxopts::value<bool>()->default_value("false"))
+    ;
+
+    auto result = options.parse(argc, argv);
+    std::string alg = result["alg"].as<std::string>();
+    bool verbose = result["verbose"].as<bool>();
+    int dangle = result["dangle"].as<int>();
+    printf("alg: %s, verbose: %d, dangle: %d\n", alg.c_str(), verbose, dangle);
     show_configuration();
-    char* alg = (argc < 2) ? nullptr : argv[1];
-    std::cout << "alg: " << ((alg == nullptr) ? "None" : alg) << std::endl;
-    if (alg == nullptr){
+
+    if (alg == "0"){
         std::cout<<"no alg was selected!"<<std::endl;
         return 0;
     }
-    bool verbose = false;
-    int dangle = 2;
-    if ( alg != nullptr && strcmp(alg, "csfold") == 0 ){  /* constrained folding */
+
+    if ( alg == "csfold" ){  /* constrained folding */
         std::cout << alg << std::endl;
         int beamsize = 0;
         bool sharpturn = false;
@@ -1528,7 +1621,7 @@ int main(int argc, char* argv[]) {
                 std::cout<<ref<<std::endl;
         }
         return 0;
-    }else if (alg != nullptr && strcmp(alg, "fold") == 0){ /* fold */
+    }else if (alg == "fold"){ /* fold */
         int beamsize = 0;
         bool sharpturn = false;
         std::string seq;
@@ -1540,7 +1633,7 @@ int main(int argc, char* argv[]) {
                 std::cout<<ref<<std::endl;
         }
         return 0;
-    }else if (alg != nullptr && strcmp(alg, "alg3") == 0){ /* alg 3 */
+    }else if (alg == "3"){ /* alg 3 */
         std::cout << alg << std::endl;
         int beamsize = 0;
         bool sharpturn = false;
@@ -1557,7 +1650,7 @@ int main(int argc, char* argv[]) {
             printf("alg3 time: %.4f seconds\n", time_ms/1000.f);
         }
         return 0;
-    }else if (alg != nullptr && strcmp(alg, "alg1") == 0){ /* alg 1 */
+    }else if (alg == "-1"){ /* alg 1 (deprecated)*/
         std::string seq;
         std::string ref1;
         std::string ref2;
@@ -1576,7 +1669,7 @@ int main(int argc, char* argv[]) {
             const std::chrono::duration<double, std::milli> time_ms = end_time - start_time;
             printf("alg1 time: %.4f seconds\n", time_ms/1000.f);
         }
-    }else if(alg != nullptr && strcmp(alg, "alg1v2") == 0){ /* alg 1 version 2 */
+    }else if(alg == "1"){ /* alg 1 version 2 */
         std::string seq;
         std::string ref1;
         std::string ref2;
@@ -1598,7 +1691,7 @@ int main(int argc, char* argv[]) {
                 printf("undesignable!\n");
             printf("alg1(v2) time: %.4f seconds\n", time_ms/1000.f);
         }
-    }else if (alg != nullptr && strcmp(alg, "alg2") == 0){ /* alg 2 */
+    }else if (alg == "2"){ /* alg 2 */
         std::string seq;
         std::string ref1;
         std::string ref2;
@@ -1617,7 +1710,7 @@ int main(int argc, char* argv[]) {
             const std::chrono::duration<double, std::milli> time_ms = end_time - start_time;
             printf("alg2 time: %.4f seconds\n", time_ms/1000.f);
         }
-    }else if (alg != nullptr && strcmp(alg, "alg2cs") == 0){ /* constrained alg2 */
+    }else if (alg == "2c"){ /* constrained alg2 */
         std::string seq;
         std::string ref1;
         std::string ref2;
@@ -1632,7 +1725,7 @@ int main(int argc, char* argv[]) {
             getline(std::cin, ref2);
             alg_2_cs_helper(ref1, ref2, seq, verbose, dangle);
         }
-    }else if (alg != nullptr && strcmp(alg, "test_diff") == 0){ /* call the function test_diff  */
+    }else if (alg == "ed"){ /* energy difference: call the function test_diff  */
         verbose = true;
         std::string seq;
         std::string ref1;
@@ -1643,7 +1736,7 @@ int main(int argc, char* argv[]) {
             getline(std::cin, ref2);
             test_diff(seq, ref1, ref2, verbose, dangle);
         }
-    }else if (strcmp(argv[1], "critical") == 0){  /* critical positions */ 
+    }else if (alg == "dp"){  /* differential positions */ 
         std::string ref1;
         std::string ref2;
         while(std::getline(std::cin, ref1)){
@@ -1655,8 +1748,7 @@ int main(int argc, char* argv[]) {
                     std::cout<<sp.first<<"\t"<<sp.second<<std::endl;
             }
         }
-    }else if (alg != nullptr && strcmp(alg, "eval") == 0){ /* energy evaluation  */
-        verbose = true;
+    }else if (alg == "eval"){ /* energy evaluation  */
         std::string seq;
         std::string ref;
         // Read input line by line until EOF (end of file) is reached
@@ -1665,8 +1757,7 @@ int main(int argc, char* argv[]) {
             long energy = linear_eval(seq, ref, verbose, dangle);
             printf("total energy: %.2f\n", energy/-100.0);
         }
-    }else if (alg != nullptr && strcmp(alg, "loops") == 0){ /* loops evaluation  */
-        verbose = false;
+    }else if (alg == "loop"){ /* loops evaluation  */
         std::string seq;
         std::string ref;
         // Read input line by line until EOF (end of file) is reached
@@ -1675,6 +1766,36 @@ int main(int argc, char* argv[]) {
             std::vector<LoopComplex> lc_list;
             TreeNode* root = parseStringToTree(ref);
             tree2Loops(root, ref, lc_list);
+            printf("lc_list size: %d\n", lc_list.size());
+            // Sort the vector using a lambda expression
+            std::sort(lc_list.begin(), lc_list.end(), [](const LoopComplex &a, const LoopComplex &b) {
+                return a.count_uk < b.count_uk;});
+            for (auto lc: lc_list){
+                std::string target = ref.substr(lc.start, lc.end-lc.start+1);
+                std::string subseq = seq.substr(lc.start, lc.end-lc.start+1);
+                printf(" count: %d\n", lc.count_uk);
+                printf("target: %s\n", target.c_str());
+                printf("   ref: %s\n", lc.ref.c_str());
+                printf("constr: %s\n", lc.constr.c_str());
+
+                if (true){
+                    std::string result = alg_5_helper(target, lc.ref, lc.constr, subseq, verbose, dangle);
+                    if (result == "undesignable")
+                        break;
+                }
+
+                printf("\n");
+            }
+        }
+    }else if (alg == "edge"){ /* edges evaluation  */
+        std::string seq;
+        std::string ref;
+        // Read input line by line until EOF (end of file) is reached
+        while (std::getline(std::cin, seq)) {
+            getline(std::cin, ref);
+            std::vector<LoopComplex> lc_list;
+            TreeNode* root = parseStringToTree(ref);
+            tree2Edges(root, ref, lc_list);
             printf("lc_list size: %d\n", lc_list.size());
             // Sort the vector using a lambda expression
             std::sort(lc_list.begin(), lc_list.end(), [](const LoopComplex &a, const LoopComplex &b) {
