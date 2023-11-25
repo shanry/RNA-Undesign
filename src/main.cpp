@@ -14,12 +14,15 @@
 #include <omp.h>
 
 #include "eval.cpp"
+#include "csv.cpp"
+
 #include "cxxopts.hpp"
 using namespace std;
 
 #define MAX_ENUM 10000000000
 #define MAX_CONSTRAINT 100000
 
+// global variables
 char nuc_all[] = "ACGU";
 char nuc_pair_all[][3] = {"GC", "CG", "AU", "UA", "GU", "UG"};
 std::vector<std::string> TriHP{"", "CAACG", "GUUAC"}; // middle position can't be C or G
@@ -41,6 +44,9 @@ std::vector<std::string> TetraHP{"",
                                  "CUUCGG",
                                  "CUUUGG"}; // middle positions can't be AG, AU, CG, CU, GG, GU, UG
 // middle positions can be AC(3), AA(2), CA(2), CC(1), GA(1), GC(2), UA(2), UC(2), UU(1)
+
+bool verbose = false;
+int dangle = 2;
 
 std::vector<std::string> cs_fold(std::string seq, std::string& constr, int beamsize, bool sharpturn, bool verbose, int dangle);
 std::vector<std::string> fold(std::string seq, int beamsize, bool sharpturn, bool verbose, int dangle, float energy_delta);
@@ -72,16 +78,6 @@ struct Constraint {
     //     delete indices;
     //     delete seqs;
     // }
-};
-
-// Define input for decomposition algs
-
-struct LoopComplex {
-    int count_uk;
-    std::string ref;
-    std::string constr;
-    int start;
-    int end;
 };
 
 // Define a basic TreeNode structure
@@ -242,6 +238,17 @@ struct TreeNode {
     }
 };
 
+// Define input for decomposition algs
+
+struct LoopComplex {
+    int count_uk;
+    std::string ref;
+    std::string constr;
+    int start;
+    int end;
+    TreeNode* node;
+};
+
 std::string removeNodeFromTree(TreeNode* node, std::string ref);
 std::string removeEdgeFromTree(TreeNode* node, std::string ref);
 
@@ -297,7 +304,7 @@ void tree2Loops(TreeNode* root, std::string& ref, std::vector<LoopComplex>& lc_l
             start = 0;
             end = ref.length() - 1;
         }
-        LoopComplex lc = {count_unknown, cref, constr, start, end};
+        LoopComplex lc = {count_unknown, cref, constr, start, end, root};
         lc_list.push_back(lc);
     }
     printf("\n");
@@ -382,7 +389,7 @@ void tree2Edges(TreeNode* root, std::string& ref, std::vector<LoopComplex>& lc_l
             start = 0;
             end = ref.length() - 1;
         }
-        LoopComplex lc = {count_unknown, cref, constr, start, end};
+        LoopComplex lc = {count_unknown, cref, constr, start, end, root};
         lc_list.push_back(lc);
     }
     printf("\n");
@@ -1476,7 +1483,7 @@ std::vector<std::string> fold(std::string seq, int beamsize, bool sharpturn, boo
 }
 
 
-std::vector<std::string> alg1_helper(std::string& seq, std::string& ref1, std::string& ref2, bool is_verbose, int dangle_model) {
+std::string alg1_helper(std::string& seq, std::string& ref1, std::string& ref2, bool is_verbose, int dangle_model) {
     std::cout << "seq: " << seq << std::endl;
     std::cout << "  y: " << ref1 << std::endl;
     std::cout << " y': " << ref2 << std::endl;
@@ -1505,16 +1512,21 @@ std::vector<std::string> alg1_helper(std::string& seq, std::string& ref1, std::s
     std::vector<std::string> X;
     if(n_enum > 0 && n_enum < MAX_ENUM){
         std::cout<<"alg 1"<<std::endl;
-        auto X = alg_1(ref1, ref2, cr_loops, pairs_diff, seq, is_verbose, dangle_model);
+        // auto X = alg_1(ref1, ref2, cr_loops, pairs_diff, seq, is_verbose, dangle_model);
+        auto X = alg_1_v2(ref1, ref2, seq, verbose, dangle_model);
         printf("X size: %d\n", X.size());
-        if (X.size()==0)
+        if (X.size()==0){
             printf("undesignable!\n");
+            return "undesignable";
+        }
         else{
             Constraint cs(&critical_positions, &X);
             printf("constraint size: %d\n", cs.seqs->size());
+            return "unknown";
         }
     }
-    return X;
+    std::cout<<"intial y_prime too bad!"<<std::endl;
+    return "intial y_prime too bad";
 }
 
 void test_cs(std::string& seq, std::string& ref1, std::string& ref2, bool is_verbose, int dangle_model) {
@@ -1569,6 +1581,39 @@ void test_cs(std::string& seq, std::string& ref1, std::string& ref2, bool is_ver
     }
 }
 
+void csv_process(std::string csv, std::string alg){
+    auto df = read_csv(csv.c_str());
+    printf("df shape: %d, %d\n", df.size(), df[0].size());
+    std::vector<std::string> records;
+    for(int i = 1; i < df.size(); i++){
+        auto row = df[i];
+        if (row[7] != "None"){
+            std::cout<<"Puzzle ID: "<<row[1]<<std::endl;
+            std::cout<<"Puzzle name: "<<row[2]<<std::endl;
+            std::cout<<row[8]<<std::endl;
+            std::cout<<row[4]<<std::endl;
+            std::cout<<row[7]<<std::endl;
+            std::cout<<std::endl;
+
+            std::string seq = row[8];
+            std::string y_star = row[4];
+            std::string y_prim = row[7];
+
+            if (alg == "1"){
+                auto start_time = std::chrono::high_resolution_clock::now();
+                std::string result = alg1_helper(seq, y_star, y_prim, verbose, dangle);
+                auto end_time = std::chrono::high_resolution_clock::now();
+                const std::chrono::duration<double, std::milli> time_ms = end_time - start_time;
+                printf("alg1(v2) time: %.4f seconds\n", time_ms/1000.f);
+                if (result == "undesignable")
+                    records.push_back(row[1]+","+y_star+","+y_prim);
+            }
+        }
+    }
+    for (auto r: records)
+        std::cout<<r<<std::endl;
+}
+
 void show_configuration(){
     #ifdef SPECIAL_HP
     printf("SPECIAL_HP   defined.\n");
@@ -1589,19 +1634,26 @@ int main(int argc, char* argv[]) {
     cxxopts::Options options("MyProgram", "One line description of MyProgram");
     options.add_options()
     ("a,alg", "Algorithm", cxxopts::value<std::string>()->default_value("0"))
+    ("c,csv", "csv file", cxxopts::value<std::string>()->default_value(""))
     ("d,dangle", "Dangle mode", cxxopts::value<int>()->default_value("2"))
     ("v,verbose", "Verbose output", cxxopts::value<bool>()->default_value("false"))
     ;
 
     auto result = options.parse(argc, argv);
     std::string alg = result["alg"].as<std::string>();
-    bool verbose = result["verbose"].as<bool>();
-    int dangle = result["dangle"].as<int>();
+    std::string csv = result["csv"].as<std::string>();
+    verbose = result["verbose"].as<bool>();
+    dangle = result["dangle"].as<int>();
     printf("alg: %s, verbose: %d, dangle: %d\n", alg.c_str(), verbose, dangle);
     show_configuration();
 
     if (alg == "0"){
         std::cout<<"no alg was selected!"<<std::endl;
+        return 0;
+    }
+
+    if (!csv.empty()){
+        csv_process(csv, alg);
         return 0;
     }
 
@@ -1683,12 +1735,13 @@ int main(int argc, char* argv[]) {
             getline(std::cin, ref1);
             getline(std::cin, ref2);
             auto start_time = std::chrono::high_resolution_clock::now();
-            std::vector<std::string> X = alg_1_v2(ref1, ref2, seq, verbose, dangle);
+            // std::vector<std::string> X = alg_1_v2(ref1, ref2, seq, verbose, dangle);
+            alg1_helper(seq, ref1, ref2, verbose, dangle);
             auto end_time = std::chrono::high_resolution_clock::now();
             const std::chrono::duration<double, std::milli> time_ms = end_time - start_time;
-            printf("X size: %d\n", X.size());
-            if (X.size()==0)
-                printf("undesignable!\n");
+            // printf("X size: %d\n", X.size());
+            // if (X.size()==0)
+            //     printf("undesignable!\n");
             printf("alg1(v2) time: %.4f seconds\n", time_ms/1000.f);
         }
     }else if (alg == "2"){ /* alg 2 */
@@ -1780,8 +1833,14 @@ int main(int argc, char* argv[]) {
 
                 if (true){
                     std::string result = alg_5_helper(target, lc.ref, lc.constr, subseq, verbose, dangle);
-                    if (result == "undesignable")
+                    if (result == "undesignable"){
+                        printf("undesignable span: %d\t", lc.node->first);
+                        for(auto child: lc.node->children){
+                            printf("%d\t%d\t", child->first, child->second);
+                        }
+                        printf("%d\n", lc.node->second);
                         break;
+                    }
                 }
 
                 printf("\n");
