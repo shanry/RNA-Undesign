@@ -12,6 +12,8 @@
 #include <utility>
 #include <algorithm>
 #include <omp.h>
+#include <iomanip>
+#include <sstream>
 
 #include "eval.cpp"
 #include "csv.cpp"
@@ -47,6 +49,11 @@ std::vector<std::string> TetraHP{"",
 
 bool verbose = false;
 int dangle = 2;
+
+std::string y_sub;
+int y_sub_start;
+int y_sub_end;
+std::vector<std::string> y_rivals;
 
 std::vector<std::string> cs_fold(std::string seq, std::string& constr, int beamsize, bool sharpturn, bool verbose, int dangle);
 std::vector<std::string> fold(std::string seq, int beamsize, bool sharpturn, bool verbose, int dangle, float energy_delta);
@@ -274,6 +281,28 @@ TreeNode* parseStringToTree(const std::string& ref) {
     return root;
 }
 
+std::string getCurrentTimestamp() {
+    // Get the current time point
+    auto currentTime = std::chrono::system_clock::now();
+
+    // Convert the time point to a time_t object
+    std::time_t currentTime_t = std::chrono::system_clock::to_time_t(currentTime);
+
+    // Convert the time_t to a std::tm structure
+    std::tm* timeInfo = std::localtime(&currentTime_t);
+
+    // Create a stringstream to format the timestamp
+    std::stringstream timestampStream;
+    
+    // Use strftime to format the timestamp
+    timestampStream << std::put_time(timeInfo, "%Y%m%d%H%M%S");
+
+    // Convert the stringstream to a string
+    std::string timestamp = timestampStream.str();
+
+    return timestamp;
+}
+
 void tree2Loops(TreeNode* root, std::string& ref, std::vector<LoopComplex>& lc_list){
     if (root->first == -1){
         printf("external: first: %d, second: %d; children: %d\n", root->first, root->second, root->children.size());
@@ -440,6 +469,17 @@ bool compareByFirstStringLength(const std::pair<std::string, std::string> &a, co
     return a.first.length() < b.first.length();
 }
 
+std::vector<int> findAllOccurrences(const std::string& mainString, const std::string& subString) {
+    std::vector<int> pos_vec;
+    size_t pos = mainString.find(subString); // Find the first occurrence
+    while (pos != std::string::npos) {
+        // std::cout << "Substring found at index: " << pos << std::endl;
+        pos_vec.push_back(pos);
+        pos = mainString.find(subString, pos + 1); // Find the next occurrence
+    }
+    return pos_vec;
+}
+
 bool isMFE(std::vector<std::string>& subopts, std::string& target){
     auto it = std::find(subopts.begin(), subopts.end(), target);
     if (it != subopts.end())
@@ -472,6 +512,21 @@ vector<int> ref2pairs(std::string& ref){
         }
     }
     return pairs;
+}
+
+std::set<std::pair<int, int>> ref2pairset(std::string& ref){
+    std::set<std::pair<int, int>> pairset;
+    std::stack<int> brackets;
+    for(int i = 0; i < ref.length(); i++){
+        if (ref[i] == '(')
+            brackets.push(i);
+        else if (ref[i] == ')'){
+            int j = brackets.top();
+            pairset.insert(std::make_pair(j, i));
+            brackets.pop();
+        }
+    }
+    return pairset;
 }
 
 std::vector<std::tuple<int, int>> idx2pair(std::set<int>& positions, std::string& ref){
@@ -972,6 +1027,8 @@ std::string alg_2(std::string& ref1, std::set<std::string>& refs_checked, std::v
             std::cout<<"y :"<<ref1<<std::endl;
             std::cout<<"y':"<<y_prime.second.first<<std::endl;
             std::cout<<"undesignable!"<<std::endl;
+            y_rivals.clear();
+            y_rivals.push_back(y_prime.second.first);
             return "undesignable";
         }else if (X_new.size() > MAX_CONSTRAINT)
             std::cout<<"too many constraints: "<<X_new.size()<<"\t"<<"out of "<<y_prime.first<<std::endl;
@@ -989,9 +1046,13 @@ std::string alg_2(std::string& ref1, std::set<std::string>& refs_checked, std::v
                         std::cout<<cs_vec[i].seqs->size()<<"\t";
                     std::cout<<cs_new.seqs->size()<<"\t";
                     std::cout<<std::endl;
-                    for(int i = 0; i<cs_vec.size(); i++)
+                    y_rivals.clear();
+                    for(int i = 0; i<cs_vec.size(); i++){
                         std::cout<<cs_vec[i].structure<<std::endl;
+                        y_rivals.push_back(cs_vec[i].structure);
+                    }
                     std::cout<<cs_new.structure<<std::endl;
+                    y_rivals.push_back(cs_new.structure);
                     std::cout<<"y_prime count: "<<cs_vec.size()+1<<std::endl;
                     std::cout<<"undesignable!"<<std::endl;
                     return "undesignable";
@@ -1054,7 +1115,9 @@ std::string alg_2_cs(std::string& ref1, std::set<std::string>& refs_checked, std
             std::cout<<x<<std::endl;
             return "UMFE";
         }
+        std::cout<<x<<std::endl;
         for(std::string ref: subopts){
+            std::cout<<ref<<std::endl;
             if(ref != ref1 && !refs_checked.count(ref)){
                 std::set<int> critical_positions;
                 find_critical_plus(ref1, ref, critical_positions, verbose);
@@ -1086,6 +1149,9 @@ std::string alg_2_cs(std::string& ref1, std::set<std::string>& refs_checked, std
             std::cout<<"y :"<<ref1<<std::endl;
             std::cout<<"y':"<<y_prime.second.first<<std::endl;
             std::cout<<"undesignable!"<<std::endl;
+            y_sub = ref1;
+            y_rivals.clear();
+            y_rivals.push_back(y_prime.second.first);
             return "undesignable";
         }else if (X_new.size() > MAX_CONSTRAINT){
             std::cout<<"too many constraints: "<<X_new.size()<<"\t"<<"out of "<<y_prime.first<<std::endl;
@@ -1101,9 +1167,14 @@ std::string alg_2_cs(std::string& ref1, std::set<std::string>& refs_checked, std
                     for(int i = 0; i<cs_vec.size(); i++)
                         std::cout<<cs_vec[i].seqs->size()<<"\t";
                     std::cout<<cs_new.seqs->size()<<std::endl;
-                    for(int i = 0; i<cs_vec.size(); i++)
+                    y_sub = ref1;
+                    y_rivals.clear();
+                    for(int i = 0; i<cs_vec.size(); i++){
                         std::cout<<cs_vec[i].structure<<std::endl;
+                        y_rivals.push_back(cs_vec[i].structure);
+                    }
                     std::cout<<cs_new.structure<<std::endl;
+                    y_rivals.push_back(cs_new.structure);
                     std::cout<<"y_prime count: "<<cs_vec.size()+1<<std::endl;
                     std::cout<<"undesignable!"<<std::endl;
                     return "undesignable";
@@ -1151,9 +1222,23 @@ std::string alg_2_helper(std::string& ref1, std::string& ref2, std::string& seq,
         // auto X = alg_1(ref1, ref2, cr_loops, pairs_diff, seq, verbose, dangle_model);
         auto X = alg_1_v2(ref1, ref2, seq, verbose, dangle_model);
         printf("X size: %d\n", X.size());
+        std::set<std::string> refs_checked;
+        std::vector<Constraint> cs_vec;
         if (X.size() == 0){
+            std::cout<<"y :"<<ref1<<std::endl;
+            std::cout<<"y':"<<ref2<<std::endl;
             std::cout<<"undesignable!"<<std::endl;
+            y_rivals.clear();
+            y_rivals.push_back(ref2);
             return "undesignable";
+        }else if (X.size() > MAX_CONSTRAINT){
+            std::cout<<"too many constraints: "<<X.size()<<"\t"<<"out of "<<ref2<<std::endl;
+        }
+        else{
+            refs_checked.insert(ref2);
+            Constraint cs_ref2 = Constraint(&critical_positions, &X);
+            cs_ref2.setStructure(ref2);
+            cs_vec.push_back(cs_ref2);
         }
         // X.push_back("AAAACGGGAACGCUCAACCCGAAGGCCAAAAAGGCCCCGCGACAAUCGACGGCGGGGCGGGGACGAGGAGCGCCAAAAGGACGCCCCGGGGCCAGCACGAGCAAAAGCCGGCCGCCACCGAAAACGAGGAGCGAAGGACCCCCCACGCGAGCGCCGAGCGAGGGAGGGCAAAAGCCCCCCCGCCCGGCGGCAAAGCCAGCACGGACGGCCCG");
         // X.push_back("AAAAGGCCAACGCCCAACCCCAACGCGAAAAACGCGGGCGGUAACACCAGCCGGGGCCCGGCAGGACGACGGGGCAAGCCACCGCGCCCGGCCACCAGCAGCAAAAGCGCGGGCGCACGCAAAAGCAGGACGCAAGGACCGGCCAGGGGGGCGGCGAGGCAGCCAGCGCAAAAGCGCGGCGCCGCCGCCGGAAACCGAGCAGGCACGCGGCC");
@@ -1162,12 +1247,12 @@ std::string alg_2_helper(std::string& ref1, std::string& ref2, std::string& seq,
         // X.push_back("AGAACGGGAACGCUCAACCCGAAGGCCAAAAAGGCCCCCCGACAAUCGAGGGCGGGGCGGGGACGAGGAGCGCCAAAAGGACGCCCCGGGGCCAGCACGAGGAAAUCCCGGCCGCUAGCGAAAACGACGAGCGAAGGACCCCCCACGCGAGCGCCGAGCGAUGCAGGGCAAAAGCCCGUACGCCCAGCCCCAAAGGGAGCAUGGACGGCCCG");
         // std::vector<std::string> X_samfeo = readLinesFromFile("design.txt");
         // X.insert(X.end(), X_samfeo.begin(), X_samfeo.end());
-        std::set<std::string> refs_checked;
-        refs_checked.insert(ref2);
-        std::vector<Constraint> cs_vec;
-        Constraint cs_ref2 = Constraint(&critical_positions, &X);
-        cs_ref2.setStructure(ref2);
-        cs_vec.push_back(cs_ref2);
+        // std::set<std::string> refs_checked;
+        // refs_checked.insert(ref2);
+        // std::vector<Constraint> cs_vec;
+        // Constraint cs_ref2 = Constraint(&critical_positions, &X);
+        // cs_ref2.setStructure(ref2);
+        // cs_vec.push_back(cs_ref2);
         return alg_2(ref1, refs_checked, cs_vec, verbose, dangle_model);
     }
     std::cout<<"intial y_prime too bad!"<<std::endl;
@@ -1189,30 +1274,36 @@ std::string alg_2_cs_helper(std::string& ref1, std::string& ref2, std::string& s
         // auto X = alg_1(ref1, ref2, cr_loops, pairs_diff, seq, verbose, dangle_model);
         auto X = alg_1_v2(ref1, ref2, seq, verbose, dangle_model);
         printf("X size: %d\n", X.size());
+        std::set<std::string> refs_checked;
+        std::vector<Constraint> cs_vec;
         if (X.size() == 0){
             std::cout<<"undesignable!"<<std::endl;
+            y_sub = ref1;
+            y_rivals.clear();
+            y_rivals.push_back(ref2);
             return "undesignable";
+        }else if (X.size() > MAX_CONSTRAINT){
+            std::cout<<"too many constraints: "<<X.size()<<"\t"<<"out of "<<ref2<<std::endl;
         }
-        // X.push_back("AAAACGGGAACGCUCAACCCGAAGGCCAAAAAGGCCCCGCGACAAUCGACGGCGGGGCGGGGACGAGGAGCGCCAAAAGGACGCCCCGGGGCCAGCACGAGCAAAAGCCGGCCGCCACCGAAAACGAGGAGCGAAGGACCCCCCACGCGAGCGCCGAGCGAGGGAGGGCAAAAGCCCCCCCGCCCGGCGGCAAAGCCAGCACGGACGGCCCG");
-        // X.push_back("AAAAGGCCAACGCCCAACCCCAACGCGAAAAACGCGGGCGGUAACACCAGCCGGGGCCCGGCAGGACGACGGGGCAAGCCACCGCGCCCGGCCACCAGCAGCAAAAGCGCGGGCGCACGCAAAAGCAGGACGCAAGGACCGGCCAGGGGGGCGGCGAGGCAGCCAGCGCAAAAGCGCGGCGCCGCCGCCGGAAACCGAGCAGGCACGCGGCC");
-        // X.push_back("AACACGGGAACGCUCAACCCGAAGGCCAAAAAGGCCCCGCGACAAUCGACGGCGGGGCGGGGACGAGGAGCGCCAAAAGGACGCCCCGGGGCCAGCACGAGCAAAAGCCGGCCGCCAGCGAAAACGAUGAGCGAAGGACCCCCCACGCGAGCGCCGAGCGAUGGAGGGCAAAAGCCCCUACGCCCGGCGGCAAAGCCAGCACGGACGGCCCG");
-        // X.push_back("AAAACUGGAACGCUCAACCCGAAGGCCAUAAAGGCCCCGCGACAAUCGACGGCGGGGCGGGGAGUAGGAGCGCCAAAAGGACGCCCACGGGCCAGCACGAGCAAAAGCCGGCCGCCAUCGAAAACGAAGAGCGAAGGACCCCCCACGCGAGCGCCGAGCGAUGGAGGGCAAAAGCCCCUACGCCCAGCGGCAAAGCCAGCAUGGACGGCCAG");
-        // X.push_back("AGAACGGGAACGCUCAACCCGAAGGCCAAAAAGGCCCCCCGACAAUCGAGGGCGGGGCGGGGACGAGGAGCGCCAAAAGGACGCCCCGGGGCCAGCACGAGGAAAUCCCGGCCGCUAGCGAAAACGACGAGCGAAGGACCCCCCACGCGAGCGCCGAGCGAUGCAGGGCAAAAGCCCGUACGCCCAGCCCCAAAGGGAGCAUGGACGGCCCG");
-        // std::vector<std::string> X_samfeo = readLinesFromFile("design.txt");
-        // X.insert(X.end(), X_samfeo.begin(), X_samfeo.end());
-        std::set<std::string> refs_checked;
-        refs_checked.insert(ref2);
-        std::vector<Constraint> cs_vec;
-        Constraint cs_ref2 = Constraint(&critical_positions, &X);
-        cs_ref2.setStructure(ref2);
-        cs_vec.push_back(cs_ref2);
+        else{
+            refs_checked.insert(ref2);
+            Constraint cs_ref2 = Constraint(&critical_positions, &X);
+            cs_ref2.setStructure(ref2);
+            cs_vec.push_back(cs_ref2);
+        }
+        // std::set<std::string> refs_checked;
+        // refs_checked.insert(ref2);
+        // std::vector<Constraint> cs_vec;
+        // Constraint cs_ref2 = Constraint(&critical_positions, &X);
+        // cs_ref2.setStructure(ref2);
+        // cs_vec.push_back(cs_ref2);
         return alg_2_cs(ref1, refs_checked, cs_vec, verbose, dangle_model);
     }
     std::cout<<"intial y_prime too bad!"<<std::endl;
     return "intial y_prime too bad";
 }
 
-void alg_3_helper(std::string& ref, std::string& seq, bool verbose, int dangle){
+std::string alg_3_helper(std::string& ref, std::string& seq, bool verbose, int dangle){
     TreeNode* root = parseStringToTree(ref);
     std::vector<std::pair<std::string, std::string>> subrefs;
     root->printTree(ref, seq, subrefs);
@@ -1252,11 +1343,58 @@ void alg_3_helper(std::string& ref, std::string& seq, bool verbose, int dangle){
                 } else {
                     std::cout << "substr indices not found." << std::endl;
                 }
-                break;
+                return "undesignable";
             }
         }
     }
-    return;
+    return "unknown";
+}
+
+std::string alg_3_span_helper(std::string& ref, std::string& seq, std::vector<std::pair<std::string, std::string>>& subrefs, int i, bool verbose, int dangle){
+    // TreeNode* root = parseStringToTree(ref);
+    // std::vector<std::pair<std::string, std::string>> subrefs;
+    // root->printTree(ref, seq, subrefs);
+    // std::cout<<"size of sub refs: "<<subrefs.size()<<std::endl;
+    // std::sort(subrefs.begin(), subrefs.end(), compareByFirstStringLength);
+    // for(int i = 0; i < subrefs.size(); i++){
+        printf("%2d: L=%d\n", i, subrefs[i].first.length());
+        std::cout<<subrefs[i].second<<std::endl;
+        std::cout<<subrefs[i].first<<std::endl;
+
+        std::string constr( subrefs[i].first.length(), '?');
+        constr[0] = '(';
+        constr[subrefs[i].first.length()-1] = ')';
+        std::vector<std::string> subopts_raw = cs_fold(subrefs[i].second, constr, 0, false, false, dangle);
+        std::vector<std::string> subopts;
+        for(std::string subopt: subopts_raw){
+            if(subopt[subrefs[i].first.length()-1]==')' && subopt[0]=='(')
+                subopts.push_back(subopt);
+        }
+        if (isUMFE(subopts,  subrefs[i].first)){
+            printf("(local) UMFE found!");
+            std::cout<<subrefs[i].second<<std::endl;
+            std::cout<<subrefs[i].first<<std::endl;
+        }else{
+            std::string ref_mfe = subopts[0];
+            if(subopts[0]==subrefs[i].first)
+                ref_mfe = subopts[1];
+            std::string designability = alg_2_cs_helper(subrefs[i].first, ref_mfe, subrefs[i].second, verbose, dangle);
+            if (designability == "undesignable"){
+                size_t found = ref.find(subrefs[i].first);
+                if (found != std::string::npos) {
+                    printf("y*: %s\n", ref.c_str());
+                    printf("context-constrained undesignable structure y*[%d: %d]\n", found, found+subrefs[i].first.length());
+                    std::cout<<subrefs[i].first<<std::endl;
+                    std::cout << "Found at position: " << found << std::endl;
+                    std::cout<<"substr indices:"<<found<<","<<found+subrefs[i].first.length()<<std::endl;
+                } else {
+                    std::cout << "substr indices not found." << std::endl;
+                }
+                return "undesignable";
+            }
+        }
+    // }
+    return "unknown";
 }
 
 std::string alg_5_cs(std::string& ref1, std::set<std::string>& refs_checked, std::vector<Constraint>& cs_vec, std::string& constr, bool verbose, int dangle_model){ // ref1, ref2, X, is_verbose, dangle_model
@@ -1328,6 +1466,9 @@ std::string alg_5_cs(std::string& ref1, std::set<std::string>& refs_checked, std
             std::cout<<"y :"<<ref1<<std::endl;
             std::cout<<"y':"<<y_prime.second.first<<std::endl;
             std::cout<<"undesignable!"<<std::endl;
+            y_sub = ref1;
+            y_rivals.clear();
+            y_rivals.push_back(y_prime.second.first);
             return "undesignable";
         }else if (X_new.size() > MAX_CONSTRAINT){
             std::cout<<"too many constraints: "<<X_new.size()<<"\t"<<"out of "<<y_prime.first<<std::endl;
@@ -1348,6 +1489,14 @@ std::string alg_5_cs(std::string& ref1, std::set<std::string>& refs_checked, std
                     std::cout<<cs_new.structure<<std::endl;
                     std::cout<<"y_prime count: "<<cs_vec.size()+1<<std::endl;
                     std::cout<<"undesignable!"<<std::endl;
+                    y_sub = ref1;
+                    y_rivals.clear();
+                    for(int i = 0; i<cs_vec.size(); i++){
+                        std::cout<<cs_vec[i].structure<<std::endl;
+                        y_rivals.push_back(cs_vec[i].structure);
+                    }
+                    std::cout<<cs_new.structure<<std::endl;
+                    y_rivals.push_back(cs_new.structure);
                     return "undesignable";
                 }
             }
@@ -1395,16 +1544,23 @@ std::string alg_5_helper(std::string& ref1, std::string& ref2, std::string&const
         // auto X = alg_1(ref1, ref2, cr_loops, pairs_diff, seq, verbose, dangle_model);
         auto X = alg_1_v2(ref1, ref2, seq, verbose, dangle_model);
         printf("X size: %d\n", X.size());
+        std::set<std::string> refs_checked;
+        std::vector<Constraint> cs_vec;
         if (X.size() == 0){
             std::cout<<"undesignable!"<<std::endl;
+            y_sub = ref1;
+            y_rivals.clear();
+            y_rivals.push_back(ref2);
             return "undesignable";
+        }else if (X.size() > MAX_CONSTRAINT){
+            std::cout<<"too many constraints: "<<X.size()<<"\t"<<"out of "<<ref2<<std::endl;
         }
-        std::set<std::string> refs_checked;
-        refs_checked.insert(ref2);
-        std::vector<Constraint> cs_vec;
-        Constraint cs_ref2 = Constraint(&critical_positions, &X);
-        cs_ref2.setStructure(ref2);
-        cs_vec.push_back(cs_ref2);
+        else{
+            refs_checked.insert(ref2);
+            Constraint cs_ref2 = Constraint(&critical_positions, &X);
+            cs_ref2.setStructure(ref2);
+            cs_vec.push_back(cs_ref2);
+        }
         return alg_5_cs(ref1, refs_checked, cs_vec, constr, verbose, dangle_model);
     }
     std::cout<<"intial y_prime too bad!"<<std::endl;
@@ -1585,6 +1741,17 @@ void csv_process(std::string csv, std::string alg){
     auto df = read_csv(csv.c_str());
     printf("df shape: %d, %d\n", df.size(), df[0].size());
     std::vector<std::string> records;
+    // Specify the file name
+    std::string fileName = csv + "." + alg + ".log."+getCurrentTimestamp()+".txt";
+    // Open the file for writing
+    std::ofstream outputFile(fileName);
+
+    // Check if the file is open
+    if (!outputFile.is_open()) {
+        std::cerr << "Error opening the file: " << fileName << std::endl;
+        return;
+    }
+    
     for(int i = 1; i < df.size(); i++){
         auto row = df[i];
         if (row[7] != "None"){
@@ -1595,6 +1762,7 @@ void csv_process(std::string csv, std::string alg){
             std::cout<<row[7]<<std::endl;
             std::cout<<std::endl;
 
+            std::string puzzle_id = row[1];
             std::string seq = row[8];
             std::string y_star = row[4];
             std::string y_prim = row[7];
@@ -1605,13 +1773,180 @@ void csv_process(std::string csv, std::string alg){
                 auto end_time = std::chrono::high_resolution_clock::now();
                 const std::chrono::duration<double, std::milli> time_ms = end_time - start_time;
                 printf("alg1(v2) time: %.4f seconds\n", time_ms/1000.f);
-                if (result == "undesignable")
-                    records.push_back(row[1]+","+y_star+","+y_prim);
+                if (result == "undesignable"){
+                    std::string r = row[1]+","+y_star+","+y_prim;
+                    std::set<std::pair<int, int>> pairset_star = ref2pairset(y_star);
+                    std::set<std::pair<int, int>> pairset_prim = ref2pairset(y_prim);
+                    for (std::pair<int, int> p: pairset_prim){
+                        assert (pairset_star.find(p) != pairset_star.end());
+                    }
+
+                    std::set<std::pair<int, int>> pairset_diff;
+                    std::set_difference(pairset_star.begin(), pairset_star.end(), pairset_prim.begin(), pairset_prim.end(),
+                    std::inserter(pairset_diff, pairset_diff.begin()));
+                    r += ","+std::to_string(pairset_diff.size());
+                    for (auto pair: pairset_diff)
+                        r += ","+std::to_string(pair.first)+","+std::to_string(pair.second);
+                    records.push_back(r);
+                } 
+            }
+            if (alg == "2"){ // && (puzzle_id == "60" || puzzle_id == "88")
+                auto start_time = std::chrono::high_resolution_clock::now();
+                std::string result = alg_2_helper(y_star, y_prim, seq, verbose, dangle);
+                auto end_time = std::chrono::high_resolution_clock::now();
+                const std::chrono::duration<double, std::milli> time_ms = end_time - start_time;
+                printf("alg2 time: %.4f seconds\n", time_ms/1000.f);
+                if (result == "undesignable"){
+                    std::string r = row[1]+","+y_star+","+std::to_string(y_rivals.size());
+                    for(auto rival: y_rivals)
+                        r += ","+rival;
+                    records.push_back(r);
+                }
+            }
+            if (alg == "3"){
+                auto start_time = std::chrono::high_resolution_clock::now();
+                std::string result = alg_3_helper(y_star, seq, verbose, dangle);
+                auto end_time = std::chrono::high_resolution_clock::now();
+                const std::chrono::duration<double, std::milli> time_ms = end_time - start_time;
+                printf("alg3 time: %.4f seconds\n", time_ms/1000.f);
+                if (result == "undesignable"){
+                    size_t found = y_star.find(y_sub);
+                    assert (found != std::string::npos);
+                    printf("y*: %s\n", y_star.c_str());
+                    printf("context-constrained undesignable structure y*[%d: %d]\n", found, found+y_sub.length());
+                    std::cout<<y_sub<<std::endl;
+                    std::cout << "Found at position: " << found << std::endl;
+                    std::cout<<"substr indices:"<<found<<","<<found+y_sub.length()<<std::endl;
+
+                    std::string r = row[1]+","+y_star+","+std::to_string(found)+","+std::to_string(found+y_sub.length())+","+y_sub+","+std::to_string(y_rivals.size());
+                    for(auto rival: y_rivals)
+                        r += ","+rival;
+                    records.push_back(r);
+                }
+            }
+            if (alg == "3_v2"){
+                TreeNode* root = parseStringToTree(y_star);
+                std::vector<std::pair<std::string, std::string>> subrefs;
+                root->printTree(y_star, seq, subrefs);
+                std::cout<<"size of sub refs: "<<subrefs.size()<<std::endl;
+                std::sort(subrefs.begin(), subrefs.end(), compareByFirstStringLength);
+                std::vector<std::pair<int, int>> span_vec;
+                for(int i = 0; i < subrefs.size(); i++){
+                    auto start_time = std::chrono::high_resolution_clock::now();
+                    std::string result = alg_3_span_helper(y_star, seq, subrefs, i, verbose, dangle);
+                    auto end_time = std::chrono::high_resolution_clock::now();
+                    const std::chrono::duration<double, std::milli> time_ms = end_time - start_time;
+                    printf("alg3(v2) time: %.4f seconds\n", time_ms/1000.f);
+                    if (result == "undesignable"){
+                        std::vector<int> pos_vec = findAllOccurrences(y_star, y_sub);
+                        for (auto found: pos_vec){
+                            // size_t found = y_star.find(y_sub);
+                            assert (found != std::string::npos);
+                            int found_end = found+y_sub.length();
+                            bool duplicate = false;
+                            for (int j = 0; j < span_vec.size(); j++){
+                                if ( found <= span_vec[j].first && found_end >= span_vec[j].second ){  // the equality may be worth a double-check
+                                    duplicate = true;
+                                    break;
+                                }else if ( found >= span_vec[j].first && found_end <= span_vec[j].second ){  // the equality may be worth a double-check
+                                    assert (false); // subref is ordered by length from short to long
+                                }
+                            }
+                            if (!duplicate){
+                                printf("y*: %s\n", y_star.c_str());
+                                printf("context-constrained undesignable structure y*[%d: %d]\n", found, found+y_sub.length());
+                                std::cout<<y_sub<<std::endl;
+                                std::cout << "Found at position: " << found << std::endl;
+                                std::cout<<"substr indices:"<<found<<","<<found+y_sub.length()<<std::endl;
+
+                                std::string r = row[1]+","+y_star+","+std::to_string(found)+","+std::to_string(found+y_sub.length())+","+y_sub+","+std::to_string(y_rivals.size());
+                                for(auto rival: y_rivals)
+                                    r += ","+rival;
+                                records.push_back(r);
+                                outputFile << r << std::endl;
+                                span_vec.push_back(std::make_pair(found, found_end));
+                            }
+                        }
+                    }
+                }
+            }
+            if (alg == "edge"){
+                std::vector<LoopComplex> lc_list;
+                TreeNode* root = parseStringToTree(y_star);
+                tree2Edges(root, y_star, lc_list);
+                printf("lc_list size: %d\n", lc_list.size());
+                // Sort the vector using a lambda expression
+                std::sort(lc_list.begin(), lc_list.end(), [](const LoopComplex &a, const LoopComplex &b) {
+                    return a.count_uk < b.count_uk;});
+                for (auto lc: lc_list){
+                    std::string target = y_star.substr(lc.start, lc.end-lc.start+1);
+                    std::string subseq = seq.substr(lc.start, lc.end-lc.start+1);
+                    printf(" count: %d\n", lc.count_uk);
+                    printf("target: %s\n", target.c_str());
+                    printf("   ref: %s\n", lc.ref.c_str());
+                    printf("constr: %s\n", lc.constr.c_str());
+
+                    std::string result = alg_5_helper(target, lc.ref, lc.constr, subseq, verbose, dangle);
+                    if (result == "undesignable"){
+                        std::cout<<"undesignable!"<<std::endl;
+                        size_t found = y_star.find(y_sub);
+                        assert (found != std::string::npos);
+                        int found_end = found+y_sub.length();
+                        std::string r = row[1]+","+y_star+",1,"+std::to_string(lc.node->first)+","+std::to_string(lc.node->second)+","+y_sub+","+std::to_string(y_rivals.size());
+                        for(auto rival: y_rivals)
+                            r += ","+rival;
+                        std::cout<<r<<std::endl;
+                        records.push_back(r);
+                        outputFile << r << std::endl;
+                        // break;
+                    }
+                    printf("\n");
+                }
+            }
+            if (alg == "loop"){
+                std::vector<LoopComplex> lc_list;
+                TreeNode* root = parseStringToTree(y_star);
+                tree2Loops(root, y_star, lc_list);
+                printf("lc_list size: %d\n", lc_list.size());
+
+                // Sort the vector using a lambda expression
+                std::sort(lc_list.begin(), lc_list.end(), [](const LoopComplex &a, const LoopComplex &b) {
+                    return a.count_uk < b.count_uk;});
+                for (auto lc: lc_list){
+                    std::string target = y_star.substr(lc.start, lc.end-lc.start+1);
+                    std::string subseq = seq.substr(lc.start, lc.end-lc.start+1);
+                    printf(" count: %d\n", lc.count_uk);
+                    printf("target: %s\n", target.c_str());
+                    printf("   ref: %s\n", lc.ref.c_str());
+                    printf("constr: %s\n", lc.constr.c_str());
+
+                    std::string result = alg_5_helper(target, lc.ref, lc.constr, subseq, verbose, dangle);
+                    if (result == "undesignable"){
+                        std::cout<<"undesignable!"<<std::endl;
+                        int count_pairs = lc.node->children.size() + 1;
+                        std::string r = row[1]+","+y_star+","+y_prim+","+std::to_string(count_pairs)+","+std::to_string(lc.node->first)+","+std::to_string(lc.node->second);
+                        for(auto child: lc.node->children)
+                            r += ","+std::to_string(child->first)+","+std::to_string(child->second);
+                        r = r + ","+y_sub+","+std::to_string(y_rivals.size());
+                        for(auto rival: y_rivals)
+                            r += ","+rival;
+                        std::cout<<r<<std::endl;
+                        records.push_back(r);
+                        outputFile << r << std::endl;
+                        // break;
+                        // return;
+                    }
+                    printf("\n");
+                }
             }
         }
     }
     for (auto r: records)
         std::cout<<r<<std::endl;
+    
+    // Close the file
+    outputFile.close();
+    std::cout << "Strings written to file: " << fileName << std::endl;
 }
 
 void show_configuration(){
