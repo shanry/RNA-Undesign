@@ -1235,11 +1235,11 @@ std::string alg_2_helper(std::string& ref1, std::string& ref2, std::string& seq,
             std::cout<<"too many constraints: "<<X.size()<<"\t"<<"out of "<<ref2<<std::endl;
         }
         else{
-            refs_checked.insert(ref2);
             Constraint cs_ref2 = Constraint(&critical_positions, &X);
             cs_ref2.setStructure(ref2);
             cs_vec.push_back(cs_ref2);
         }
+        refs_checked.insert(ref2);
         // X.push_back("AAAACGGGAACGCUCAACCCGAAGGCCAAAAAGGCCCCGCGACAAUCGACGGCGGGGCGGGGACGAGGAGCGCCAAAAGGACGCCCCGGGGCCAGCACGAGCAAAAGCCGGCCGCCACCGAAAACGAGGAGCGAAGGACCCCCCACGCGAGCGCCGAGCGAGGGAGGGCAAAAGCCCCCCCGCCCGGCGGCAAAGCCAGCACGGACGGCCCG");
         // X.push_back("AAAAGGCCAACGCCCAACCCCAACGCGAAAAACGCGGGCGGUAACACCAGCCGGGGCCCGGCAGGACGACGGGGCAAGCCACCGCGCCCGGCCACCAGCAGCAAAAGCGCGGGCGCACGCAAAAGCAGGACGCAAGGACCGGCCAGGGGGGCGGCGAGGCAGCCAGCGCAAAAGCGCGGCGCCGCCGCCGGAAACCGAGCAGGCACGCGGCC");
         // X.push_back("AACACGGGAACGCUCAACCCGAAGGCCAAAAAGGCCCCGCGACAAUCGACGGCGGGGCGGGGACGAGGAGCGCCAAAAGGACGCCCCGGGGCCAGCACGAGCAAAAGCCGGCCGCCAGCGAAAACGAUGAGCGAAGGACCCCCCACGCGAGCGCCGAGCGAUGGAGGGCAAAAGCCCCUACGCCCGGCGGCAAAGCCAGCACGGACGGCCCG");
@@ -1282,15 +1282,17 @@ std::string alg_2_cs_helper(std::string& ref1, std::string& ref2, std::string& s
             y_rivals.clear();
             y_rivals.push_back(ref2);
             return "undesignable";
-        }else if (X.size() > MAX_CONSTRAINT){
-            std::cout<<"too many constraints: "<<X.size()<<"\t"<<"out of "<<ref2<<std::endl;
         }
+        // (IMPORTANT) need to be optimized later
+        // else if (X.size() > MAX_CONSTRAINT){  
+        //     std::cout<<"too many constraints: "<<X.size()<<"\t"<<"out of "<<ref2<<std::endl;
+        // }
         else{
-            refs_checked.insert(ref2);
             Constraint cs_ref2 = Constraint(&critical_positions, &X);
             cs_ref2.setStructure(ref2);
             cs_vec.push_back(cs_ref2);
         }
+        refs_checked.insert(ref2);
         // std::set<std::string> refs_checked;
         // refs_checked.insert(ref2);
         // std::vector<Constraint> cs_vec;
@@ -1556,11 +1558,11 @@ std::string alg_5_helper(std::string& ref1, std::string& ref2, std::string&const
             std::cout<<"too many constraints: "<<X.size()<<"\t"<<"out of "<<ref2<<std::endl;
         }
         else{
-            refs_checked.insert(ref2);
             Constraint cs_ref2 = Constraint(&critical_positions, &X);
             cs_ref2.setStructure(ref2);
             cs_vec.push_back(cs_ref2);
         }
+        refs_checked.insert(ref2);
         return alg_5_cs(ref1, refs_checked, cs_vec, constr, verbose, dangle_model);
     }
     std::cout<<"intial y_prime too bad!"<<std::endl;
