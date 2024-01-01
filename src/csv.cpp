@@ -38,7 +38,7 @@ std::vector<std::vector<std::string>> read_csv(const char* file){
             // std::cout << j << ": " << tokens[j] << std::endl;
             row.push_back(tokens[j]);
         }
-        std::cout << std::endl;
+        // std::cout << std::endl;
         df.push_back(row);
     }
 
