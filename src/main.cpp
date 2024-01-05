@@ -257,6 +257,7 @@ struct LoopComplex {
 };
 
 std::string removeNodeFromTree(TreeNode* node, std::string ref);
+std::string removeMNodeFromTree(TreeNode* node, std::string ref);
 std::string removeEdgeFromTree(TreeNode* node, std::string ref);
 
 // Function to parse a string of nested pairs into a tree
@@ -461,6 +462,96 @@ std::string removeEdgeFromTree(TreeNode* node, std::string ref){
     }
     if (node->parent->first >= 0)
         return constr.substr(node->parent->first, len_p);
+    else
+        return constr;
+}
+
+void tree2MLoops(TreeNode* root, std::string& ref, std::vector<LoopComplex>& lc_list){
+    printf("inside tree2MLoops\n");
+    if (root->first == -1){
+        printf("external: first: %d, second: %d; children: %d\n", root->first, root->second, root->children.size());
+    }else if (root->children.size() == 0){
+        printf("haiprin: first: %d, second: %d; children: %d\n", root->first, root->second, root->children.size());
+    }else if(root->children.size() == 1){
+        printf("internal: first: %d, second: %d; children: %d\n", root->first, root->second, root->children.size());
+    }else if(root->children.size() > 1){
+        printf("multi-loop: first: %d, second: %d; children: %d\n", root->first, root->second, root->children.size());
+    }
+    printf("before if\n");
+    if (root != NULL && root->children.size() > 1){
+        printf("in if\n");
+        printf("parent: first: %d, second: %d; children: %d\n", root->first, root->second, root->children.size());
+        printf("   ref: %s\n", ref.c_str());
+        std::string constr = removeMNodeFromTree(root, ref);
+        printf("constr: %s\n", constr.c_str());
+        std::string cref = constr;
+        std::replace(cref.begin(), cref.end(), '?', '.');
+        printf("  cref: %s\n", cref.c_str());
+        int count_unknown = 0;
+        for(auto ch: constr){
+            if (ch == '?')
+                count_unknown += 1;
+        }
+        printf("? count: %d\n", count_unknown);
+        int start = root->first;
+        int end = root->second;
+        if (root->first < 0){
+            start = 0;
+            end = ref.length() - 1;
+        }
+        LoopComplex lc = {count_unknown, cref, constr, start, end, root};
+        lc_list.push_back(lc);
+    }
+    printf("\n");
+    for(auto child: root->children){
+        tree2MLoops(child, ref, lc_list);
+    }
+    return;
+}
+
+std::string removeMNodeFromTree(TreeNode* node, std::string ref){
+    std::string constr(ref.length(), '?');
+    int len_p = node->second - node->first + 1;
+    if (node->first >= 0){
+        printf("first: %d, second: %d\n", node->first, node->second);
+        printf(" len_p: %d\n", len_p);
+        printf("   ref: %s\n", ref.substr(node->first, len_p).c_str());
+        constr[node->first] = '(';
+        constr[node->second] = ')';
+        printf("constr: %s\n", constr.substr(node->parent->first, len_p).c_str());
+    }else{
+        printf(" len_p: %d\n", ref.length());
+        printf("   ref: %s\n", ref.c_str());
+        printf("constr: %s\n", constr.c_str());
+    }
+    // for(int i = 0; i < ref.length(); i++){
+    //     if(i <= node->parent->first || i >= node->parent->second)
+    //         constr[i] = ref[i];
+    // }
+    for (auto sibling: node->children){
+        for(auto child: sibling->children){
+            if (child->children.size()){
+                for(auto grandchild: child->children){
+                    for(int i = grandchild->first; i <= grandchild->second; i++){
+                        constr[i] = ref[i];
+                    }
+                }
+            }
+        }
+    }
+    if (node->first >= 0)
+        printf("constr: %s\n", constr.substr(node->first, len_p).c_str());
+    else
+        printf("constr: %s\n", constr.c_str());
+    // for(auto sibling: node->parent->children){
+    //     if (sibling != node){
+    //         for(int i = sibling->first; i <= sibling->second; i++){
+    //             constr[i] = ref[i];
+    //         }
+    //     }
+    // }
+    if (node->first >= 0)
+        return constr.substr(node->first, len_p);
     else
         return constr;
 }
@@ -1936,6 +2027,42 @@ void csv_process(std::string csv, std::string alg){
                     printf("\n");
                 }
             }
+            if (alg == "mloop"){
+                std::vector<LoopComplex> lc_list;
+                TreeNode* root = parseStringToTree(y_star);
+                tree2MLoops(root, y_star, lc_list);
+                printf("lc_list size: %d\n", lc_list.size());
+
+                // Sort the vector using a lambda expression
+                std::sort(lc_list.begin(), lc_list.end(), [](const LoopComplex &a, const LoopComplex &b) {
+                    return a.count_uk < b.count_uk;});
+                for (auto lc: lc_list){
+                    std::string target = y_star.substr(lc.start, lc.end-lc.start+1);
+                    std::string subseq = seq.substr(lc.start, lc.end-lc.start+1);
+                    printf(" count: %d\n", lc.count_uk);
+                    printf("target: %s\n", target.c_str());
+                    printf("   ref: %s\n", lc.ref.c_str());
+                    printf("constr: %s\n", lc.constr.c_str());
+
+                    std::string result = alg_5_helper(target, lc.ref, lc.constr, subseq, verbose, dangle);
+                    if (result == "undesignable"){
+                        std::cout<<"undesignable!"<<std::endl;
+                        int count_pairs = lc.node->children.size() + 1;
+                        std::string r = row[1]+","+y_star+","+y_prim+","+std::to_string(count_pairs)+","+std::to_string(lc.node->first)+","+std::to_string(lc.node->second);
+                        for(auto child: lc.node->children)
+                            r += ","+std::to_string(child->first)+","+std::to_string(child->second);
+                        r = r + ","+y_sub+","+std::to_string(y_rivals.size());
+                        for(auto rival: y_rivals)
+                            r += ","+rival;
+                        std::cout<<r<<std::endl;
+                        records.push_back(r);
+                        outputFile << r << std::endl;
+                        // break;
+                        // return;
+                    }
+                    printf("\n");
+                }
+            }
         }
     }
     for (auto r: records)
@@ -2203,6 +2330,42 @@ int main(int argc, char* argv[]) {
                     std::string result = alg_5_helper(target, lc.ref, lc.constr, subseq, verbose, dangle);
                     if (result == "undesignable")
                         break;
+                }
+
+                printf("\n");
+            }
+        }
+    }else if (alg == "mloop"){ /* loops evaluation  */
+        std::string seq;
+        std::string ref;
+        // Read input line by line until EOF (end of file) is reached
+        while (std::getline(std::cin, seq)) {
+            getline(std::cin, ref);
+            std::vector<LoopComplex> lc_list;
+            TreeNode* root = parseStringToTree(ref);
+            tree2MLoops(root, ref, lc_list);
+            printf("lc_list size: %d\n", lc_list.size());
+            // Sort the vector using a lambda expression
+            std::sort(lc_list.begin(), lc_list.end(), [](const LoopComplex &a, const LoopComplex &b) {
+                return a.count_uk < b.count_uk;});
+            for (auto lc: lc_list){
+                std::string target = ref.substr(lc.start, lc.end-lc.start+1);
+                std::string subseq = seq.substr(lc.start, lc.end-lc.start+1);
+                printf(" count: %d\n", lc.count_uk);
+                printf("target: %s\n", target.c_str());
+                printf("   ref: %s\n", lc.ref.c_str());
+                printf("constr: %s\n", lc.constr.c_str());
+
+                if (true){
+                    std::string result = alg_5_helper(target, lc.ref, lc.constr, subseq, verbose, dangle);
+                    if (result == "undesignable"){
+                        printf("undesignable span: %d\t", lc.node->first);
+                        for(auto child: lc.node->children){
+                            printf("%d\t%d\t", child->first, child->second);
+                        }
+                        printf("%d\n", lc.node->second);
+                        break;
+                    }
                 }
 
                 printf("\n");
