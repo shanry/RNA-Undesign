@@ -11,6 +11,9 @@
 #include <string>
 #include <utility>
 #include <set>
+#include <ctime>
+#include <stack>
+#include <cassert>
 #include <algorithm>
 
 bool isMFE(std::vector<std::string>& subopts, std::string& target){
@@ -104,6 +107,27 @@ std::vector<std::string> subopt(std::string& seq, std::string constr){
         structures.push_back(split_string(array[i], ' ')[0]);
     }
     return structures;
+}
+
+std::string tg_init(std::string& y){
+    std::string x(y.length(), 'A');
+    std::vector<int> pair_map = ref2pairs(y);
+    assert(pair_map.size() == y.length());
+    // Seed the random number generator with the current time
+    std::srand(static_cast<unsigned int>(std::time(nullptr)));
+    for(int i = 0; i < pair_map.size(); i ++){
+        int j = pair_map[i];
+        if(i < j){
+            if(rand()%2){
+                x[i] = 'C';
+                x[j] = 'G';
+            }else{
+                x[i] = 'G';
+                x[j] = 'C';
+            }
+        }
+    }
+    return x;
 }
 
 #endif
