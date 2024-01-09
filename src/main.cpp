@@ -19,6 +19,7 @@
 #include "csv.cpp"
 
 #include "cxxopts.hpp"
+#include "utils.hpp"
 using namespace std;
 
 #define MAX_ENUM 10000000000
@@ -569,55 +570,6 @@ std::vector<int> findAllOccurrences(const std::string& mainString, const std::st
         pos = mainString.find(subString, pos + 1); // Find the next occurrence
     }
     return pos_vec;
-}
-
-bool isMFE(std::vector<std::string>& subopts, std::string& target){
-    auto it = std::find(subopts.begin(), subopts.end(), target);
-    if (it != subopts.end())
-        return true;
-    else
-        return false;
-}
-
-bool isUMFE(std::vector<std::string>& subopts, std::string& target){
-    auto it = std::find(subopts.begin(), subopts.end(), target);
-    if (it != subopts.end() and subopts.size() == 1)
-        return true;
-    else
-        return false;
-}
-
-vector<int> ref2pairs(std::string& ref){
-    vector<int> pairs(ref.length(), -1);
-    std::stack<int> brackets;
-    for(int i = 0; i < ref.length(); i++){
-        if(ref[i] == '.')
-            pairs[i] = i;
-        else if (ref[i] == '(')
-            brackets.push(i);
-        else{
-            int j = brackets.top();
-            pairs[j] = i;
-            pairs[i] = j;
-            brackets.pop();
-        }
-    }
-    return pairs;
-}
-
-std::set<std::pair<int, int>> ref2pairset(std::string& ref){
-    std::set<std::pair<int, int>> pairset;
-    std::stack<int> brackets;
-    for(int i = 0; i < ref.length(); i++){
-        if (ref[i] == '(')
-            brackets.push(i);
-        else if (ref[i] == ')'){
-            int j = brackets.top();
-            pairset.insert(std::make_pair(j, i));
-            brackets.pop();
-        }
-    }
-    return pairset;
 }
 
 std::vector<std::tuple<int, int>> idx2pair(std::set<int>& positions, std::string& ref){
@@ -1656,6 +1608,7 @@ std::string alg_5_helper(std::string& ref1, std::string& ref2, std::string&const
 }
 
 std::vector<std::string> cs_fold(std::string seq, std::string& constr, int beamsize, bool sharpturn, bool verbose, int dangle){
+    return subopt(seq, constr);
     bool consflag = true;
     std::vector<std::string> subopts;
     std::set<char> consSet {'?', '.', '(', ')'};
