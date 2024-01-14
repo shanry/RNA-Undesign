@@ -24,7 +24,7 @@ using namespace std;
 
 #define MAX_ENUM 10000000000
 #define MAX_CONSTRAINT 100000
-
+#define MAX_SEQ 500
 // global variables
 char nuc_all[] = "ACGU";
 char nuc_pair_all[][3] = {"GC", "CG", "AU", "UA", "GU", "UG"};
@@ -255,6 +255,8 @@ struct LoopComplex {
     int start;
     int end;
     TreeNode* node;
+    int left;
+    int right;
 };
 
 std::string removeNodeFromTree(TreeNode* node, std::string ref);
@@ -335,7 +337,7 @@ void tree2Loops(TreeNode* root, std::string& ref, std::vector<LoopComplex>& lc_l
             start = 0;
             end = ref.length() - 1;
         }
-        LoopComplex lc = {count_unknown, cref, constr, start, end, root};
+        LoopComplex lc = {count_unknown, cref, constr, start, end, root, root->first, root->second};
         lc_list.push_back(lc);
     }
     printf("\n");
@@ -420,7 +422,7 @@ void tree2Edges(TreeNode* root, std::string& ref, std::vector<LoopComplex>& lc_l
             start = 0;
             end = ref.length() - 1;
         }
-        LoopComplex lc = {count_unknown, cref, constr, start, end, root};
+        LoopComplex lc = {count_unknown, cref, constr, start, end, root, root->first, root->second};
         lc_list.push_back(lc);
     }
     printf("\n");
@@ -500,7 +502,7 @@ void tree2MLoops(TreeNode* root, std::string& ref, std::vector<LoopComplex>& lc_
             start = 0;
             end = ref.length() - 1;
         }
-        LoopComplex lc = {count_unknown, cref, constr, start, end, root};
+        LoopComplex lc = {count_unknown, cref, constr, start, end, root, root->first, root->second};
         lc_list.push_back(lc);
     }
     printf("\n");
@@ -1021,9 +1023,11 @@ std::string alg_2(std::string& ref1, std::set<std::string>& refs_checked, std::v
     std::vector<std::string> X;
     for(auto cs: cs_vec){
         X.insert(X.end(), cs.seqs->begin(), cs.seqs->end());
-        if(X.size() > 500)
+        if(X.size() > MAX_SEQ)
             break;
     }
+    if (X.size() > MAX_SEQ)
+        X.resize(MAX_SEQ);
     std::cout<<"X.size: "<<X.size()<<std::endl;
     for(auto x: X){
         assert (check_compatible(x, ref1));
@@ -1136,11 +1140,11 @@ std::string alg_2_cs(std::string& ref1, std::set<std::string>& refs_checked, std
     std::vector<std::string> X;
     for(auto cs: cs_vec){
         X.insert(X.end(), cs.seqs->begin(), cs.seqs->end());
-        if(X.size() > 500)
+        if(X.size() > MAX_SEQ)
             break;
     }
-    if (X.size() > 500)
-        X.resize(500);
+    if (X.size() > MAX_SEQ)
+        X.resize(MAX_SEQ);
     std::cout<<"X.size: "<<X.size()<<std::endl;
     std::string constr(ref1.length(), '?');
     constr[0] = '(';
@@ -1436,11 +1440,11 @@ std::string alg_5_cs(std::string& ref1, std::set<std::string>& refs_checked, std
     std::vector<std::string> X;
     for(auto cs: cs_vec){
         X.insert(X.end(), cs.seqs->begin(), cs.seqs->end());
-        if(X.size() > 500)
+        if(X.size() > MAX_SEQ)
             break;
     }
-    if (X.size() > 500)
-        X.resize(500);
+    if (X.size() > MAX_SEQ)
+        X.resize(MAX_SEQ);
     std::cout<<"X.size: "<<X.size()<<std::endl;
     // std::string constr(ref1.length(), '?');
     // constr[0] = '(';
@@ -1770,6 +1774,32 @@ void test_cs(std::string& seq, std::string& ref1, std::string& ref2, bool is_ver
     }
 }
 
+int max_single(TreeNode* root){
+    int maxlen = 0;
+    if (root->first!=-1&&root->children.size()==1){
+        maxlen = (root->children[0]->first - root->first) + (root->second - root->children[0]->second)-2;
+    }
+    for(TreeNode* child: root->children){
+        int maxlen_child = max_single(child);
+        maxlen = max(maxlen, maxlen_child);
+    }
+    return maxlen;
+}
+
+std::string ml_degree(TreeNode* root){
+    std::string ml_str = "";
+    if (root->children.size() > 1){
+        ml_str += std::to_string(root->children.size()) + ":" + std::to_string(root->first) + "," + std::to_string(root->second) + ";";
+         for(TreeNode* child: root->children){
+            ml_str += std::to_string(child->first) + "," + std::to_string(child->second) + ";";
+         }
+    }
+    for(TreeNode* child: root->children){
+        ml_str += ml_degree(child);
+    } 
+    return ml_str;
+}
+
 void csv_process(std::string csv, std::string alg){
     auto df = read_csv(csv.c_str());
     printf("df shape: %d, %d\n", df.size(), df[0].size());
@@ -2033,7 +2063,7 @@ void txt_process(std::string txt, std::string alg){
         return;
     }
     std::vector<std::string> records;
-    for(int i = 1; i < lines.size(); i++){
+    for(int i = 0; i < lines.size(); i++){
         if (true){
             std::cout<<"Puzzle ID: "<<i<<std::endl;
             std::cout<<"Puzzle name: "<<i<<std::endl;
@@ -2043,9 +2073,30 @@ void txt_process(std::string txt, std::string alg){
             std::string seq = tg_init(y_star);
             // std::string y_prim = row[7];
 
+            if (alg == "inspect"){
+                 TreeNode* root = parseStringToTree(y_star);
+                 int max_internal = max_single(root);
+                 std::string r = puzzle_id+","+std::to_string(max_internal);
+                 records.push_back(r);
+                 outputFile << r << std::endl;
+            }
+            if (alg == "mdegree"){
+                 TreeNode* root = parseStringToTree(y_star);
+                 std::string mloops = ml_degree(root);
+                 std::string r = puzzle_id + "," + y_star + ";" + mloops;
+                 records.push_back(r);
+                 outputFile << r << std::endl;
+            }
             if (alg == "edge"){
                 std::vector<LoopComplex> lc_list;
                 TreeNode* root = parseStringToTree(y_star);
+                int max_internal = max_single(root);
+                if(max_internal > 30){
+                    std::string r = puzzle_id+","+std::to_string(max_internal);
+                    records.push_back(r);
+                    outputFile << r << std::endl;
+                    continue;
+                }
                 tree2Edges(root, y_star, lc_list);
                 printf("lc_list size: %d\n", lc_list.size());
                 // Sort the vector using a lambda expression
@@ -2076,9 +2127,52 @@ void txt_process(std::string txt, std::string alg){
                     printf("\n");
                 }
             }
+            if (alg == "dsedge"){
+                std::vector<LoopComplex> lc_list;
+                TreeNode* root = parseStringToTree(y_star);
+                int max_internal = max_single(root);
+                if(max_internal > 30){
+                    std::string r = puzzle_id+","+std::to_string(max_internal);
+                    records.push_back(r);
+                    outputFile << r << std::endl;
+                    continue;
+                }
+                tree2Edges(root, y_star, lc_list);
+                printf("lc_list size: %d\n", lc_list.size());
+                // Sort the vector using a lambda expression
+                std::sort(lc_list.begin(), lc_list.end(), [](const LoopComplex &a, const LoopComplex &b) {
+                    return a.count_uk < b.count_uk;});
+                std::string r = puzzle_id+";"+y_star+";";
+                for (auto lc: lc_list){
+                    std::string target = y_star.substr(lc.start, lc.end-lc.start+1);
+                    std::string subseq = seq.substr(lc.start, lc.end-lc.start+1);
+                    printf(" count: %d\n", lc.count_uk);
+                    printf("target: %s\n", target.c_str());
+                    printf("   ref: %s\n", lc.ref.c_str());
+                    printf("constr: %s\n", lc.constr.c_str());
+                    std::string result = alg_5_helper(target, lc.ref, lc.constr, subseq, verbose, dangle);
+                    if (result == "UMFE"){
+                        std::cout<<"UMFE!"<<std::endl;
+                        r += std::to_string(lc.left) + "," + std::to_string(lc.right) + ";";
+                        // break;
+                    }
+                    printf("\n");
+                }
+                std::cout<<r<<std::endl;
+                records.push_back(r);
+                outputFile << r;
+                outputFile << std::endl;
+            }
             if (alg == "loop"){
                 std::vector<LoopComplex> lc_list;
                 TreeNode* root = parseStringToTree(y_star);
+                int max_internal = max_single(root);
+                if(max_internal > 30){
+                    std::string r = puzzle_id+","+std::to_string(max_internal);
+                    records.push_back(r);
+                    outputFile << r << std::endl;
+                    continue;
+                }
                 tree2Loops(root, y_star, lc_list);
                 printf("lc_list size: %d\n", lc_list.size());
 
