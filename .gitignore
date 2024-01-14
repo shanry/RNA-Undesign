@@ -161,3 +161,11 @@ cython_debug/
 
 # c/c++ binary
 bin/
+
+# user defined
+txts/
+csvs/
+logs/
+cpps/
+.vscode/
+algs_inout/
