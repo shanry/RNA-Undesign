@@ -130,4 +130,56 @@ std::string tg_init(std::string& y){
     return x;
 }
 
+int countOccurrences(const std::string& str, char target) {
+    int count = 0;
+    for (char c : str) {
+        if (c == target) {
+            count++;
+        }
+    }
+    return count;
+}
+
+std::string compose_args4plot(std::string id, std::string y, std::vector<std::pair<int, int>>& pairs_outside, std::vector<std::pair<int, int>>& pairs_inside){
+    std::string prestring;
+    // color the outside span
+    if(pairs_outside[0].first >= 0)
+        prestring += std::to_string(pairs_outside[0].first+1) + " " + std::to_string(pairs_outside[0].second+1) + " GREEN Fomark ";
+    else
+        prestring += std::to_string(1) + " " + std::to_string(y.length()) + " GREEN Fomark ";
+    // uncolor inside spans
+    for(int i = 1; i < pairs_outside.size(); i++){
+        prestring += std::to_string(pairs_outside[i].first+1) + " " + std::to_string(pairs_outside[i].second+1) + " WHITE Fomark ";
+    }
+    // color outside pairs
+    for(int i = 0; i < pairs_outside.size(); i++){
+        std::pair<int, int> pair = pairs_outside[i];
+        if(i == 0){
+            if (pair.first >=0)
+                prestring += std::to_string(pair.first+1) + " " + std::to_string(pair.second+1) + " 0.70 0.5 colorpair ";
+        }else{
+            prestring += std::to_string(pair.first+1) + " " + std::to_string(pair.second+1) + " 0.667 0.5 colorpair ";
+        }
+    }
+    // color inside pairs
+    for(std::pair<int, int> pair: pairs_inside)
+        prestring += std::to_string(pair.first+1) + " " + std::to_string(pair.second+1) + " 0.1667 1.0 colorpair ";
+        
+    return "\"" + id + "," + y + "," + prestring + "\"";
+}
+
+std::string compose_pairsplot(std::string id, std::string y, std::vector<std::pair<int, int>>& pairs_ds, std::vector<std::pair<int, int>>& pairs_ud){
+    std::string prestring;
+    // color designable pairs
+    for(int i = 0; i < pairs_ds.size(); i++){
+        std::pair<int, int> pair = pairs_ds[i];
+        prestring += std::to_string(pair.first+1) + " " + std::to_string(pair.second+1) + " 0.0 0.5 colorpair ";
+    }
+    // color undesignable pairs
+    for(std::pair<int, int> pair: pairs_ud)
+        prestring += std::to_string(pair.first+1) + " " + std::to_string(pair.second+1) + " 0.6667 0.5 colorpair ";
+
+    return "\"" + id + "," + y + "," + prestring + "\"";
+}
+
 #endif
