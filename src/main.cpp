@@ -299,7 +299,7 @@ std::string getCurrentTimestamp() {
     std::stringstream timestampStream;
     
     // Use strftime to format the timestamp
-    timestampStream << std::put_time(timeInfo, "%Y%m%d%H%M%S");
+    // timestampStream << std::put_time(timeInfo, "%Y%m%d%H%M%S");
 
     // Convert the stringstream to a string
     std::string timestamp = timestampStream.str();
@@ -1604,7 +1604,7 @@ std::string alg_5_helper(std::string& ref1, std::string& ref2, std::string&const
 }
 
 std::vector<std::string> cs_fold(std::string seq, std::string& constr, int beamsize, bool sharpturn, bool verbose, int dangle){
-    return subopt(seq, constr);
+    // return subopt(seq, constr);
     bool consflag = true;
     std::vector<std::string> subopts;
     std::set<char> consSet {'?', '.', '(', ')'};
@@ -1645,7 +1645,7 @@ std::vector<std::string> cs_fold(std::string seq, std::string& constr, int beams
         // printf("%s\n", constr.c_str());
         
         // lhuang: moved inside loop, fixing an obscure but crucial bug in initialization
-        BeamCKYParser parser(beamsize, !sharpturn, verbose, true, true, 0.0, "", false, dangle);
+        BeamCKYParser parser(beamsize, !sharpturn, verbose, true, false, true, 0.0, "", false, dangle);
         
         BeamCKYParser::DecoderResult result = parser.parse(seq, &cons, subopts);
         // BeamCKYParser::DecoderResult result = parser.parse(seq, &cons);
@@ -1658,9 +1658,9 @@ std::vector<std::string> cs_fold(std::string seq, std::string& constr, int beams
         // printf("%s (%.2f)\n", result.structure.c_str(), printscore);
 
         // Use std::find to search for the value
-        if (std::find(subopts.begin(), subopts.end(), result.structure) == subopts.end()){
-            subopts.push_back(result.structure);
-        } 
+        // if (std::find(subopts.begin(), subopts.end(), result.structure) == subopts.end()){
+        //     subopts.push_back(result.structure);
+        // } 
         return subopts;
     }
     return subopts;
@@ -1669,7 +1669,7 @@ std::vector<std::string> cs_fold(std::string seq, std::string& constr, int beams
 
 std::vector<std::string> fold(std::string seq, int beamsize, bool sharpturn, bool verbose, int dangle, float energy_delta = 0.){
         // lhuang: moved inside loop, fixing an obscure but crucial bug in initialization
-        BeamCKYParser parser(beamsize, !sharpturn, verbose, false, true, energy_delta, "", false, dangle);
+        BeamCKYParser parser(beamsize, !sharpturn, verbose, false, false, true, energy_delta, "", false, dangle);
         std::vector<std::string> subopts;
         BeamCKYParser::DecoderResult result = parser.parse(seq, NULL, subopts);
         return subopts;

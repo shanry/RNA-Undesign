@@ -2345,9 +2345,9 @@ BeamCKYParser::DecoderResult BeamCKYParser::parse(string& seq, vector<int>* cons
                 value_type alpha_inside = bestP[j][i].score;
                 value_type beta_outside = bestP_beta[j][i].score;
 #ifdef lv
-                if (abs(alpha_inside + beta_outside - float(viterbi.score))/100. > zuker_energy_delta)
+                if (abs(alpha_inside + beta_outside - float(viterbi.score))/100. > subopt_energy_delta)
 #else
-                if (abs(alpha_inside + beta_outside - float(viterbi.score)) > zuker_energy_delta)
+                if (abs(alpha_inside + beta_outside - float(viterbi.score)) > subopt_energy_delta)
 #endif
                 {
                     continue;
@@ -3134,9 +3134,9 @@ BeamCKYParser::DecoderResult BeamCKYParser::parse(string& seq, vector<int>* cons
                 value_type alpha_inside = bestP[j][i].score;
                 value_type beta_outside = bestP_beta[j][i].score;
 #ifdef lv
-                if (abs(alpha_inside + beta_outside - float(viterbi.score))/100. > zuker_energy_delta)
+                if (abs(alpha_inside + beta_outside - float(viterbi.score))/100. > subopt_energy_delta)
 #else
-                if (abs(alpha_inside + beta_outside - float(viterbi.score)) > zuker_energy_delta)
+                if (abs(alpha_inside + beta_outside - float(viterbi.score)) > subopt_energy_delta)
 #endif
                 {
                     continue;
@@ -3190,8 +3190,280 @@ BeamCKYParser::DecoderResult BeamCKYParser::parse(string& seq, vector<int>* cons
 //                 printf("%s (%.2f)\n", second_string.c_str(), bestP[j][i].score + bestP_beta[j][i].score);
 // #endif
         }
+    } else if (wuchty) {
+        wuchty_suboptimal(viterbi.score, subopt_energy_delta * 100, next_pair, cons, subopts);
     }
+
     return {string(result), viterbi.score, nos_tot, parse_elapsed_time};
+}
+
+void BeamCKYParser::recover_hyperedges(int i, int j, BestTypes type, value_type left_score, value_type mfe, value_type delta, partial node, stack<partial>& st, vector<int> next_pair[], vector<int>* cons) {
+    partial new_node = node;
+    value_type temp_score;
+
+    switch (type) {
+        case TYPE_C: {
+            int nucj = nucs[j];
+            int nucj1 = (j+1) < seq_length ? nucs[j+1] : -1;
+
+            if (j == 0) {
+                st.push(new_node);
+                break;
+            }
+
+            // C = C + U
+            temp_score = bestC[j-1].score + node.score;
+            if (!use_constraints || (allow_unpaired_position[j])) {
+                if (temp_score >= mfe - delta){
+                    new_node = node;
+                    new_node.intervals.push(make_tuple(0, j-1, TYPE_C, 0));
+                    st.push(new_node);
+                }
+            }
+
+            // C = C + P
+            for(auto& item : bestP[j]){
+                int i = item.first;
+                State& state = item.second;
+                int nuci = nucs[i];
+                int nuci_1 = (i-1>-1) ? nucs[i-1] : -1;
+
+                if (!use_constraints || allow_paired(i, j, cons, nuci, nucj)) {
+                    int k = i - 1;
+                    int nuck = nuci_1;
+                    int nuck1 = nuci;
+                    int score_external_paired = - v_score_external_paired(k+1, j, nuck, nuck1,
+                                                                        nucj, nucj1, seq_length, dangle_model);
+                    temp_score = ((k >= 0) ? bestC[k].score : 0) + state.score + score_external_paired + node.score;
+                    if (temp_score >= mfe - delta){
+                        new_node = node;
+                        new_node.structure[i] = '(';
+                        new_node.structure[j] = ')';
+                        new_node.score += score_external_paired;
+                        if (i - 1 >= 0) new_node.intervals.push(make_tuple(0, i-1, TYPE_C, 0));
+                        new_node.intervals.push(make_tuple(i, j, TYPE_P, ((k >= 0) ? bestC[k].score : 0)));
+                        st.push(new_node);
+                    }
+                }
+            }
+        }
+        break;
+        case TYPE_P: {
+            int newscore;
+            int nuci = nucs[i];
+            int nuci1 = (i+1) < seq_length ? nucs[i+1] : -1;
+            int nucj = nucs[j];
+            int nucj_1 = (j - 1) > -1 ? nucs[j - 1] : -1;
+
+            int p, q, nucq, nucq1, nucp, nucp_1;
+
+            // stacking, bulge, internal loop
+            for (q = j - 1; q >= std::max(j - SINGLE_MAX_LEN, i+5); --q) { // no sharp turn
+                nucq = nucs[q];
+                nucq1 = nucs[q + 1];
+                p = next_pair[nucq][i]; 
+                while (p != -1 && p <= q - 4 && ((p - i) + (j - q) - 2 <= SINGLE_MAX_LEN)) {
+                    auto iterator = bestP[q].find(p);
+                    if(iterator != bestP[q].end()) {
+                        nucp = nucs[p];
+                        nucp_1 = nucs[p - 1];
+                        
+                        if (!use_constraints || (allow_paired(p, q, cons, nucp, nucq) && allow_unpaired_range[i] >= p && allow_unpaired_range[q] >= j)) {
+                            int score_single = -v_score_single(i,j,p,q, nuci, nuci1, nucj_1, nucj,
+                                                            nucp_1, nucp, nucq, nucq1); // same for vienna
+                            temp_score = bestP[q][p].score + score_single + node.score;
+                            if (temp_score >= mfe - delta - left_score){
+                                new_node = node;
+                                new_node.structure[p] = '(';
+                                new_node.structure[q] = ')';
+                                new_node.score += score_single;
+                                new_node.intervals.push(make_tuple(p, q, TYPE_P, left_score));
+                                st.push(new_node);
+                            }
+                        }
+                    }
+                    p = next_pair[nucq][p];
+                }
+            }
+            
+            // hairpin
+            if (!use_constraints || allow_unpaired_range[i] >= j) {
+                int tetra_hex_tri = -1;
+#ifdef SPECIAL_HP
+                if (j-i-1 == 4) // 6:tetra
+                    tetra_hex_tri = if_tetraloops[i];
+                else if (j-i-1 == 6) // 8:hexa
+                    tetra_hex_tri = if_hexaloops[i];
+                else if (j-i-1 == 3) // 5:tri
+                    tetra_hex_tri = if_triloops[i];
+#endif
+                newscore = - v_score_hairpin(i, j, nuci, nuci1, nucj_1, nucj, tetra_hex_tri);
+                temp_score = newscore + node.score;
+                
+                if (temp_score >= mfe - delta - left_score){
+                    new_node = node;
+                    new_node.score += newscore;
+                    st.push(new_node);
+                }
+            }
+
+            // Multiloop
+            auto iterator = bestMulti[j].find(i);
+            if(iterator != bestMulti[j].end()) {
+                int score_multi = - v_score_multi(i, j, nuci, nuci1, nucj_1, nucj, seq_length, dangle_model);
+                temp_score = bestMulti[j][i].score + score_multi + node.score;
+                if (temp_score >= mfe - delta - left_score){
+                    new_node = node;
+                    new_node.score += score_multi;
+                    new_node.intervals.push(make_tuple(i, j, TYPE_Multi, left_score));
+                    st.push(new_node);
+                }
+            }
+        }
+        break;
+        case TYPE_M: {
+            int nuci = nucs[i];
+            int nuci_1 = (i-1>-1) ? nucs[i-1] : -1;
+            int nucj = nucs[j];
+            int nucj1 = (j+1) < seq_length ? nucs[j+1] : -1;
+
+            // M = M + U
+            auto iterator = bestM[j-1].find(i);
+            if(j > i+1 && iterator != bestM[j-1].end()) {
+                if (!use_constraints || allow_unpaired_position[j]) {
+                    temp_score = bestM[j-1][i].score + node.score;
+                    if (temp_score >= mfe - delta - left_score){
+                        new_node = node;
+                        new_node.intervals.push(make_tuple(i, j-1, TYPE_M, left_score));
+                        st.push(new_node);
+                    }
+                }
+            }
+
+            // M = P
+            iterator = bestP[j].find(i);
+            if(iterator != bestP[j].end()) {
+                if (!use_constraints || allow_paired(i, j, cons, nuci, nucj)) {
+                    int M1_score = - v_score_M1(i, j, j, nuci_1, nuci, nucj, nucj1, seq_length, dangle_model);
+                    temp_score = bestP[j][i].score + M1_score + node.score;
+                    if (temp_score >= mfe - delta - left_score) {
+                        new_node = node;
+                        new_node.structure[i] = '(';
+                        new_node.structure[j] = ')';
+                        new_node.score += M1_score;
+                        new_node.intervals.push(make_tuple(i, j, TYPE_P, left_score));
+                        st.push(new_node);
+                    }
+                }
+            }
+
+            // M = M2
+            iterator = bestM2[j].find(i);
+            if(iterator != bestM2[j].end()) {
+                temp_score = bestM2[j][i].score + node.score;
+                if (temp_score >= mfe - delta - left_score){
+                    new_node = node;
+                    new_node.intervals.push(make_tuple(i, j, TYPE_M2, left_score));
+                    st.push(new_node);
+                }
+            }
+        }
+        break;
+        case TYPE_M2: {
+            int nuci = nucs[i];
+            int nuci1 = nucs[i+1];
+            int nucj = nucs[j];
+            int nucj1 = (j+1) < seq_length ? nucs[j+1] : -1;
+
+            // M2 = M + P
+            if(sortedP[j].size() == 0){
+                for(auto const& item : bestP[j])
+                    sortedP[j].push_back(-item.first);
+                sort(sortedP[j].begin(), sortedP[j].end());
+            }
+
+            for (auto & item : sortedP[j]) { // map not unorderd_map
+                int k = -item;
+                if (k > i + 4) { // lhuang: +4
+                    int m = k - 1;
+                    auto iterator = bestM[m].find(i);
+                    if(iterator != bestM[m].end()) {
+                        int nuck = nucs[k];
+                        int nuck_1 = (k-1>-1) ? nucs[k-1] : -1;
+                        if (!use_constraints || allow_paired(k, j, cons, nuck, nucj)) {
+                            value_type M1_score = - v_score_M1(k, j, j, nuck_1, nuck, nucj, nucj1, seq_length, dangle_model);
+                            temp_score = bestM[m][i].score + bestP[j][k].score + M1_score + node.score;
+                            if (temp_score >= mfe - delta - left_score){
+                                new_node = node;
+                                new_node.structure[k] = '(';
+                                new_node.structure[j] = ')';
+                                new_node.score += M1_score;
+                                new_node.intervals.push(make_tuple(i, k-1, TYPE_M, left_score));
+                                new_node.intervals.push(make_tuple(k, j, TYPE_P, left_score + bestM[m][i].score));
+                                st.push(new_node);
+                            }
+                        }
+                    }
+                }
+                else break;
+            }
+        }
+        break;
+        case TYPE_Multi: {
+            int nuci = nucs[i];
+            int nuci1 = nucs[i+1];
+
+            int p, q;
+            for (q = j - 1; q >= max(0, j - SINGLE_MAX_LEN); q--) { // weiyu: not sure if this loop is correct
+                for (p = i + 1; p <= q - 9 && (p - i) + (j - q) - 2 <= SINGLE_MAX_LEN; p++){
+                    auto bestM2_iter = bestM2[q].find(p);
+                    if(bestM2_iter != bestM2[q].end()){
+                        if (!use_constraints || (allow_unpaired_range[i] >= p && allow_unpaired_range[q] >= j)) {
+                            temp_score = bestM2[q][p].score + node.score;
+                            if (temp_score >= mfe - delta - left_score){
+                                new_node = node;
+                                new_node.intervals.push(make_tuple(p, q, TYPE_M2, left_score));
+                                st.push(new_node);
+                            }
+                        }
+                    }  
+                }
+            }
+        }
+        break;
+    }
+    return;
+}
+
+void BeamCKYParser::wuchty_suboptimal(value_type mfe, value_type delta, vector<int> next_pair[], vector<int>* cons, vector<string>& subopts) {
+    sortedP = new vector<int> [seq_length];
+    stack<partial> st;
+    
+    partial root;
+    root.intervals.push(make_tuple(0, seq_length - 1, TYPE_C, 0));
+    root.structure = string (int(seq_length), '.');
+    root.score = 0.0;
+    st.push(root);
+
+    while (!st.empty()) {
+        partial node = st.top();
+        st.pop();
+
+        if (node.intervals.empty()) {
+            subopts.push_back(node.structure);
+            continue;
+        }
+
+        int i = get<0>(node.intervals.top());
+        int j = get<1>(node.intervals.top());
+        BestTypes type = get<2>(node.intervals.top());
+        value_type left_score = get<3>(node.intervals.top());
+        node.intervals.pop();
+
+        recover_hyperedges(i, j, type, left_score, mfe, delta, node, st, next_pair, cons);
+    }
+
+    delete [] sortedP;
 }
 
 
@@ -3496,6 +3768,7 @@ BeamCKYParser::BeamCKYParser(int beam_size,
                              bool verbose,
                              bool constraints,
                              bool zuker_subopt,
+                             bool wuchty_subopt,
                              float energy_delta,
                              string shape_file_path,
                              bool fasta,
@@ -3505,7 +3778,8 @@ BeamCKYParser::BeamCKYParser(int beam_size,
       is_verbose(verbose),
       use_constraints(constraints),
       zuker(zuker_subopt),
-      zuker_energy_delta(energy_delta),
+      wuchty(wuchty_subopt),
+      subopt_energy_delta(energy_delta),
       is_fasta(fasta),
       dangle_model(dangles){
 #ifdef lv
