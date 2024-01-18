@@ -764,6 +764,11 @@ std::string removeTwoNeighbors(TreeNode* node, std::string ref, int n1, int n2){
             printf("constr: %s\n", constr.c_str());
 
         auto child = node->children[n2-1]; // parent as neibor 0 causing decreament of children's indices by 1
+        for(auto sibling_child: node->children){
+            if (sibling_child != child){
+                pairs_outside.push_back(std::make_pair(sibling_child->first, sibling_child->second));
+            }
+        }
         if (child->children.size()){
             for(auto grandchild: child->children){
                 for(int i = grandchild->first; i <= grandchild->second; i++){
@@ -798,6 +803,11 @@ std::string removeTwoNeighbors(TreeNode* node, std::string ref, int n1, int n2){
         std::vector<TreeNode*> two_children;
         two_children.push_back(node->children[n1-1]); // parent as neibor 0 causing decreament of children's indices by 1
         two_children.push_back(node->children[n2-1]);
+        for(auto sibling_child: node->children){
+            if ( (sibling_child != two_children[0])&& (sibling_child != two_children[1]) ){
+                pairs_outside.push_back(std::make_pair(sibling_child->first, sibling_child->second));
+            }
+        }
         for (auto child: two_children){
                 if (child->children.size()){
                     for(auto grandchild: child->children){
@@ -2211,6 +2221,8 @@ void csv_process(std::string csv, std::string alg){
     std::vector<std::string> records;
     // Specify the file name
     std::string fileName = csv + "." + alg + ".log."+getCurrentTimestamp()+".txt";
+    std::string file_m1 = replaceFileExtension(csv, "m1");
+    std::map<std::string, std::set<std::string>> id2m1 = readMotif(file_m1.c_str());
     // Open the file for writing
     std::ofstream outputFile(fileName);
 
@@ -2369,13 +2381,15 @@ void csv_process(std::string csv, std::string alg){
                             r += ","+rival;
                         // Convert duration to seconds and then cast to float
                         float time_seconds = std::chrono::duration_cast<std::chrono::duration<float>>(time_ms).count();
-                        r += " time:" + fl2str(time_seconds);
+                        r += " time:" + fl2str(time_seconds) + ";";
                         std::cout<<r<<std::endl;
                         records.push_back(r);
                         std::string id = row[1] + "_" + alg;
                         std::string args4plot = compose_args4plot(id, y_star, lc.ps_outside, lc.ps_inside);
                         outputFile << r << std::endl;
                         outputFile << args4plot << std::endl;
+                        std::string pairstring = id + ":" + compose_pairstr(lc.ps_inside, lc.ps_outside);
+                        outputFile << pairstring <<endl;
                         // break;
                     }
                     printf("\n");
@@ -2472,6 +2486,18 @@ void csv_process(std::string csv, std::string alg){
                 std::sort(lc_list.begin(), lc_list.end(), [](const LoopComplex &a, const LoopComplex &b) {
                     return a.count_uk < b.count_uk;});
                 for (auto lc: lc_list){
+                    bool isSubset = false;
+                    if(id2m1.find(puzzle_id) != id2m1.end()){
+                        for(auto pair: lc.ps_inside){
+                            std::string pstr = std::to_string(pair.first) + "," + std::to_string(pair.second);
+                            if(id2m1[puzzle_id].count(pstr) > 0)
+                                isSubset = true;
+                        }
+                    }
+                    if(isSubset){
+                        std::cout<<"the current motif contains an undesignable motif!"<<std::endl;
+                        continue;
+                    }
                     std::string target = y_star.substr(lc.start, lc.end-lc.start+1);
                     std::string subseq = seq.substr(lc.start, lc.end-lc.start+1);
                     printf(" count: %d\n", lc.count_uk);
@@ -2494,13 +2520,15 @@ void csv_process(std::string csv, std::string alg){
                             r += ","+rival;
                         // Convert duration to seconds and then cast to float
                         float time_seconds = std::chrono::duration_cast<std::chrono::duration<float>>(time_ms).count();
-                        r += " time:" + fl2str(time_seconds);
+                        r += " time:" + fl2str(time_seconds) + ";";
                         std::cout<<r<<std::endl;
                         records.push_back(r);
                         std::string id = puzzle_id + "_" + alg;
                         std::string args4plot = compose_args4plot(id, y_star, lc.ps_outside, lc.ps_inside);
                         outputFile << r << std::endl;
                         outputFile << args4plot <<std::endl;
+                        std::string pairstring = id + ":" + compose_pairstr(lc.ps_inside, lc.ps_outside);
+                        outputFile << pairstring <<endl;
                         // break;
                         // return;
                     }
@@ -2749,7 +2777,7 @@ void txt_process(std::string txt, std::string alg){
                             r += ","+rival;
                         // Convert duration to seconds and then cast to float
                         float time_seconds = std::chrono::duration_cast<std::chrono::duration<float>>(time_ms).count();
-                        r += " time:" + fl2str(time_seconds);
+                        r += " time:" + fl2str(time_seconds) + ";";
                         std::cout<<r<<std::endl;
                         records.push_back(r);
                         std::string id = puzzle_id + "_" + alg;

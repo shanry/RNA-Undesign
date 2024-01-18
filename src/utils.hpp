@@ -2,6 +2,7 @@
 #define UTILS
 
 #include <iostream>
+#include <fstream>
 #include <cstdio>
 #include <memory>
 #include <stdexcept>
@@ -11,6 +12,7 @@
 #include <string>
 #include <utility>
 #include <set>
+#include <map>
 #include <ctime>
 #include <stack>
 #include <cassert>
@@ -182,6 +184,21 @@ std::string compose_pairsplot(std::string id, std::string y, std::vector<std::pa
     return "\"" + id + "," + y + "," + prestring + "\"";
 }
 
+std::string compose_pairstr(std::vector<std::pair<int, int>>& pairs_inside, std::vector<std::pair<int, int>>& pairs_outside){
+    std::string pairstring;
+    // color designable pairs
+    pairstring += " inpairs:";
+    for(auto pair: pairs_inside){
+        pairstring += std::to_string(pair.first) + "," + std::to_string(pair.second) + ";";
+    }
+    // color undesignable pairs
+    pairstring += " outpairs:";
+    for(auto pair: pairs_outside)
+        pairstring += std::to_string(pair.first) + "," + std::to_string(pair.second) + ";";
+
+    return pairstring;
+}
+
 std::string fl2str(float x, int d=4){
     // Set the precision to `d` decimals and convert float to string
     std::string str = std::to_string(x);
@@ -194,6 +211,49 @@ std::string fl2str(float x, int d=4){
         str = str.substr(0, found + 1 + decimals);
     }
     return str;
+}
+
+// Function to replace file extension
+std::string replaceFileExtension(const std::string& filePath, const std::string& newExtension) {
+    size_t lastDotPos = filePath.find_last_of('.');
+    
+    if (lastDotPos != std::string::npos) {
+        std::string stem = filePath.substr(0, lastDotPos);
+        return stem + "." + newExtension;
+    }
+
+    // If there's no dot in the original file path, just append the new extension
+    return filePath + "." + newExtension;
+}
+
+// get pairset
+// get pairset
+std::map<std::string, std::set<std::string>> readMotif(const char* file){
+    std::map<std::string, std::set<std::string>> id2motif;
+    std::ifstream inputFile(file); // Replace "example.txt" with the name of your file
+    if (!inputFile.is_open()) {
+        std::cerr << "Failed to open the file." << std::endl;
+        return id2motif;
+    }
+
+    std::string line;
+
+    while (std::getline(inputFile, line)){
+        std::vector<std::string> splits = split_string(line, ':');
+        std::string key = splits[0];
+        std::string val = splits[1];
+        // Check if the key already exists
+        auto it = id2motif.find(key);
+        if (it == id2motif.end()) {
+            // Key doesn't exist, create a new entry
+            id2motif[key] = {val};
+        } else {
+            // Key exists, add the pair to the existing entry
+            id2motif[key].insert(val);
+        }
+    }
+
+    return id2motif;
 }
 
 #endif
