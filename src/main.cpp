@@ -615,7 +615,7 @@ std::string removeEdgeFromTree(TreeNode* node, std::string ref){
         printf(" len_p: %d\n", ref.length());
         printf("   ref: %s\n", ref.c_str());
         printf("constr: %s\n", constr.c_str());
-        pairs_outside.push_back(std::make_pair(0, ref.length()-1));
+        pairs_outside.push_back(std::make_pair(-1, -1));
     }
     for(auto sibling: node->parent->children){
         if (sibling != node){
@@ -2339,6 +2339,7 @@ void csv_process(std::string csv, std::string alg){
                 }
             }
             if (alg == "edge"){
+                auto start_time = std::chrono::high_resolution_clock::now();
                 std::vector<LoopComplex> lc_list;
                 TreeNode* root = parseStringToTree(y_star);
                 tree2Edges(root, y_star, lc_list);
@@ -2357,12 +2358,18 @@ void csv_process(std::string csv, std::string alg){
                     std::string result = alg_5_helper_v2(target, lc.ref, lc.constr, subseq, verbose, dangle);
                     if (result == "undesignable"){
                         std::cout<<"undesignable!"<<std::endl;
+                        auto end_time = std::chrono::high_resolution_clock::now();
+                        const std::chrono::duration<double, std::milli> time_ms = end_time - start_time;
+                        printf("time cost: %.4f seconds\n", time_ms/1000.f);
                         size_t found = y_star.find(y_sub);
                         assert (found != std::string::npos);
                         int found_end = found+y_sub.length();
                         std::string r = row[1]+","+y_star+",1,"+std::to_string(lc.node->first)+","+std::to_string(lc.node->second)+","+y_sub+","+std::to_string(y_rivals.size());
                         for(auto rival: y_rivals)
                             r += ","+rival;
+                        // Convert duration to seconds and then cast to float
+                        float time_seconds = std::chrono::duration_cast<std::chrono::duration<float>>(time_ms).count();
+                        r += " time:" + fl2str(time_seconds);
                         std::cout<<r<<std::endl;
                         records.push_back(r);
                         std::string id = row[1] + "_" + alg;
@@ -2448,6 +2455,7 @@ void csv_process(std::string csv, std::string alg){
                 }
             }
             if (alg == "neighbor2"){
+                auto start_time = std::chrono::high_resolution_clock::now();
                 std::vector<LoopComplex> lc_list;
                 TreeNode* root = parseStringToTree(y_star);
                 int max_internal = max_single(root);
@@ -2474,6 +2482,9 @@ void csv_process(std::string csv, std::string alg){
                     std::string result = alg_5_helper_v2(target, lc.ref, lc.constr, subseq, verbose, dangle);
                     if (result == "undesignable"){
                         std::cout<<"undesignable!"<<std::endl;
+                        auto end_time = std::chrono::high_resolution_clock::now();
+                        const std::chrono::duration<double, std::milli> time_ms = end_time - start_time;
+                        printf("time cost: %.4f seconds\n", time_ms/1000.f);
                         int count_pairs = lc.node->children.size() + 1;
                         std::string r = puzzle_id+","+y_star+","+std::to_string(count_pairs)+","+std::to_string(lc.node->first)+","+std::to_string(lc.node->second);
                         for(auto child: lc.node->children)
@@ -2481,6 +2492,9 @@ void csv_process(std::string csv, std::string alg){
                         r = r + ","+y_sub+","+std::to_string(y_rivals.size());
                         for(auto rival: y_rivals)
                             r += ","+rival;
+                        // Convert duration to seconds and then cast to float
+                        float time_seconds = std::chrono::duration_cast<std::chrono::duration<float>>(time_ms).count();
+                        r += " time:" + fl2str(time_seconds);
                         std::cout<<r<<std::endl;
                         records.push_back(r);
                         std::string id = puzzle_id + "_" + alg;
@@ -2695,7 +2709,8 @@ void txt_process(std::string txt, std::string alg){
             //         printf("\n");
             //     }
             // }
-            if (alg == "edge"){
+            if (alg == "neighbor2"){
+                auto start_time = std::chrono::high_resolution_clock::now();
                 std::vector<LoopComplex> lc_list;
                 TreeNode* root = parseStringToTree(y_star);
                 int max_internal = max_single(root);
@@ -2705,8 +2720,9 @@ void txt_process(std::string txt, std::string alg){
                     outputFile << r << std::endl;
                     continue;
                 }
-                tree2Edges(root, y_star, lc_list);
+                tree2TwoNeighbor(root, y_star, lc_list);
                 printf("lc_list size: %d\n", lc_list.size());
+
                 // Sort the vector using a lambda expression
                 std::sort(lc_list.begin(), lc_list.end(), [](const LoopComplex &a, const LoopComplex &b) {
                     return a.count_uk < b.count_uk;});
@@ -2721,19 +2737,27 @@ void txt_process(std::string txt, std::string alg){
                     std::string result = alg_5_helper_v2(target, lc.ref, lc.constr, subseq, verbose, dangle);
                     if (result == "undesignable"){
                         std::cout<<"undesignable!"<<std::endl;
-                        size_t found = y_star.find(y_sub);
-                        assert (found != std::string::npos);
-                        int found_end = found+y_sub.length();
-                        std::string r = puzzle_id+","+y_star+",1,"+std::to_string(lc.node->first)+","+std::to_string(lc.node->second)+","+y_sub+","+std::to_string(y_rivals.size());
+                        auto end_time = std::chrono::high_resolution_clock::now();
+                        const std::chrono::duration<double, std::milli> time_ms = end_time - start_time;
+                        printf("time cost: %.4f seconds\n", time_ms/1000.f);
+                        int count_pairs = lc.node->children.size() + 1;
+                        std::string r = puzzle_id+","+y_star+","+std::to_string(count_pairs)+","+std::to_string(lc.node->first)+","+std::to_string(lc.node->second);
+                        for(auto child: lc.node->children)
+                            r += ","+std::to_string(child->first)+","+std::to_string(child->second);
+                        r = r + ","+y_sub+","+std::to_string(y_rivals.size());
                         for(auto rival: y_rivals)
                             r += ","+rival;
+                        // Convert duration to seconds and then cast to float
+                        float time_seconds = std::chrono::duration_cast<std::chrono::duration<float>>(time_ms).count();
+                        r += " time:" + fl2str(time_seconds);
                         std::cout<<r<<std::endl;
                         records.push_back(r);
                         std::string id = puzzle_id + "_" + alg;
                         std::string args4plot = compose_args4plot(id, y_star, lc.ps_outside, lc.ps_inside);
                         outputFile << r << std::endl;
-                        outputFile << args4plot << std::endl;
+                        outputFile << args4plot <<std::endl;
                         // break;
+                        // return;
                     }
                     printf("\n");
                 }

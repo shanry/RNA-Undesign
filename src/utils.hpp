@@ -182,4 +182,18 @@ std::string compose_pairsplot(std::string id, std::string y, std::vector<std::pa
     return "\"" + id + "," + y + "," + prestring + "\"";
 }
 
+std::string fl2str(float x, int d=4){
+    // Set the precision to `d` decimals and convert float to string
+    std::string str = std::to_string(x);
+    size_t found = str.find(".");
+    if (found != std::string::npos) {
+        size_t decimals = str.size() - found - 1;
+        if (decimals > d) {
+            decimals = d; // Limit to 4 decimals
+        }
+        str = str.substr(0, found + 1 + decimals);
+    }
+    return str;
+}
+
 #endif
