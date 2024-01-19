@@ -54,6 +54,7 @@ int dangle = 2;
 int y_sub_start;
 int y_sub_end;
 std::string y_sub;
+std::string seq_init;
 std::vector<std::string> y_rivals;
 
 std::vector<std::pair<int, int>> pairs_outside;
@@ -517,8 +518,16 @@ void tree2ThreeNeighbor(TreeNode* root, std::string& ref, std::vector<LoopComple
         std::vector<std::vector<int>> powset3 = PowerSet3(start_neighbor, count_neighbor);
         for(auto ps: powset3){
             // for(int j = i + 1; j < count_neighbor; j++){
+                pairs_outside.clear();
+                pairs_inside.clear();
                 std::string constr = removeThreeNeighbors(root, ref, ps);
                 printf("constr: %s\n", constr.c_str());
+                for(int j: ps){
+                    if(j==0)
+                        pairs_inside.push_back(std::make_pair(root->first, root->second));
+                    else
+                        pairs_inside.push_back(std::make_pair(root->children[j-1]->first, root->children[j-1]->second));
+                }
                 std::string cref = constr;
                 std::replace(cref.begin(), cref.end(), '?', '.');
                 printf("  cref: %s\n", cref.c_str());
@@ -766,6 +775,9 @@ std::string removeTwoNeighbors(TreeNode* node, std::string ref, int n1, int n2){
         auto child = node->children[n2-1]; // parent as neibor 0 causing decreament of children's indices by 1
         for(auto sibling_child: node->children){
             if (sibling_child != child){
+                for(int i = sibling_child->first; i <= sibling_child->second; i++){
+                    constr[i] = ref[i];
+                }
                 pairs_outside.push_back(std::make_pair(sibling_child->first, sibling_child->second));
             }
         }
@@ -805,6 +817,9 @@ std::string removeTwoNeighbors(TreeNode* node, std::string ref, int n1, int n2){
         two_children.push_back(node->children[n2-1]);
         for(auto sibling_child: node->children){
             if ( (sibling_child != two_children[0])&& (sibling_child != two_children[1]) ){
+                for(int i = sibling_child->first; i <= sibling_child->second; i++){
+                    constr[i] = ref[i];
+                }
                 pairs_outside.push_back(std::make_pair(sibling_child->first, sibling_child->second));
             }
         }
@@ -843,11 +858,39 @@ std::string removeThreeNeighbors(TreeNode* node, std::string ref, std::vector<in
             constr[node->parent->first] = '(';
             constr[node->parent->second] = ')';
             printf("constr: %s\n", constr.substr(node->parent->first, len_p).c_str());
+            pairs_outside.push_back(std::make_pair(node->parent->first, node->parent->second));
         }else{
             printf(" len_p: %d\n", ref.length());
             printf("   ref: %s\n", ref.c_str());
             printf("constr: %s\n", constr.c_str());
+            pairs_outside.push_back(std::make_pair(-1, -1));
         }
+
+        for(auto sibling: node->parent->children){
+            if (sibling != node){
+                for(int i = sibling->first; i <= sibling->second; i++){
+                    constr[i] = ref[i];
+                }
+                pairs_outside.push_back(std::make_pair(sibling->first, sibling->second));
+            }
+        }
+
+        if (node->parent->first >= 0)
+            printf("constr: %s\n", constr.substr(node->parent->first, len_p).c_str());
+        else
+            printf("constr: %s\n", constr.c_str());
+
+        std::set<int> setChildren(powset.begin(), powset.end());
+        for(int chid = 0; chid < node->children.size(); chid++ ){
+            if (setChildren.find(chid+1)==setChildren.end()){
+                auto sibling_child = node->children[chid];
+                for(int i = sibling_child->first; i <= sibling_child->second; i++){
+                    constr[i] = ref[i];
+                }
+                pairs_outside.push_back(std::make_pair(sibling_child->first, sibling_child->second));
+            }
+        }
+
         for(int id_child: powset){
             if(id_child > 0){
                 auto child = node->children[id_child-1]; // parent as neibor 0 causing decreament of children's indices by 1
@@ -856,18 +899,8 @@ std::string removeThreeNeighbors(TreeNode* node, std::string ref, std::vector<in
                         for(int i = grandchild->first; i <= grandchild->second; i++){
                             constr[i] = ref[i];
                         }
+                        pairs_outside.push_back(std::make_pair(grandchild->first, grandchild->second));
                     }
-                }
-            }
-        }
-        if (node->parent->first >= 0)
-            printf("constr: %s\n", constr.substr(node->parent->first, len_p).c_str());
-        else
-            printf("constr: %s\n", constr.c_str());
-        for(auto sibling: node->parent->children){
-            if (sibling != node){
-                for(int i = sibling->first; i <= sibling->second; i++){
-                    constr[i] = ref[i];
                 }
             }
         }
@@ -891,11 +924,21 @@ std::string removeThreeNeighbors(TreeNode* node, std::string ref, std::vector<in
             printf("   ref: %s\n", ref.c_str());
             printf("constr: %s\n", constr.c_str());
         }
+
+        std::set<int> setChildren(powset.begin(), powset.end());
+        for(int chid = 0; chid < node->children.size(); chid++ ){
+            if (setChildren.find(chid+1)==setChildren.end()){
+                auto sibling_child = node->children[chid];
+                for(int i = sibling_child->first; i <= sibling_child->second; i++){
+                    constr[i] = ref[i];
+                }
+                pairs_outside.push_back(std::make_pair(sibling_child->first, sibling_child->second));
+            }
+        }
+
         std::vector<TreeNode*> pow_children;
         for(int id_child: powset)
             pow_children.push_back(node->children[id_child - 1]); // parent as neibor 0 causing decreament of children's indices by 1
-        // two_children.push_back(node->children[n1-1]); // parent as neibor 0 causing decreament of children's indices by 1
-        // two_children.push_back(node->children[n2-1]);
         for (auto child: pow_children){
                 if (child->children.size()){
                     for(auto grandchild: child->children){
@@ -1797,7 +1840,9 @@ std::string alg_5_cs(std::string& ref1, std::set<std::string>& refs_checked, std
     std::vector<std::pair<ulong, std::pair<std::string, std::string>>> y_primes;
     std::cout<<"inside alg5cs"<<std::endl;
     std::vector<std::string> X;
+    // X.push_back(seq_init);
     for(auto cs: cs_vec){
+        std::cout<<"cs.seqs size: "<<cs.seqs->size()<<std::endl;
         X.insert(X.end(), cs.seqs->begin(), cs.seqs->end());
         if(X.size() > MAX_SEQ)
             break;
@@ -1964,9 +2009,12 @@ std::string alg_5_helper(std::string& ref1, std::string& ref2, std::string&const
 
 
 std::string alg_5_helper_v2(std::string& ref1, std::string& ref2, std::string&constr, std::string& seq, bool verbose, int dangle_model){
+    std::cout<< "inside alg_5_helper_v2"<<std::endl;
     std::cout << "seq: " << seq << std::endl;
     std::cout << "  y: " << ref1 << std::endl;
+    seq_init = seq;
     std::vector<std::string> mfes = cs_fold(seq, constr, 0, false, verbose, dangle);
+    std::string ref_mfe;
     if(isUMFE(mfes, ref1)){
         std::cout<<seq<<std::endl;
         std::cout<<"designable!"<<std::endl;
@@ -1974,28 +2022,32 @@ std::string alg_5_helper_v2(std::string& ref1, std::string& ref2, std::string&co
     }else if(isMFE(mfes, ref1)){
         std::cout<<"mfe designable"<<std::endl;
         if(mfes[0] == ref1)
-            ref2 = mfes[1];
+            ref_mfe = mfes[1];
         else
-            ref2 = mfes[0];
+            ref_mfe = mfes[0];
     }else{
-        ref2 = mfes[0];
+        ref_mfe = mfes[0];
     }
     std::cout << " y': " << ref2 << std::endl;
     std::cout << "cst: " << constr << std::endl;
+    std::cout << "mfe: " << ref_mfe << std::endl;
 
     std::set<int> critical_positions;
+    std::set<std::string> refs_checked;
+    std::vector<Constraint> cs_vec;
+
     std::vector<std::vector<int>> cr_loops = find_critical_plus(ref1, ref2, critical_positions, verbose);
-    long delta_energy = diff_eval(seq, cr_loops, verbose, dangle_model);
+    // long delta_energy = diff_eval(seq, cr_loops, verbose, dangle_model);
     std::vector<std::tuple<int, int>> pairs_diff = idx2pair(critical_positions, ref1);
     ulong n_enum = count_enum(pairs_diff);
     std::cout<<"enumeration count: "<<n_enum<<std::endl;
+    // check the ref from removing internal pairs
+    std::vector<std::string> X;
+    Constraint cs_ref2 = Constraint(&critical_positions, &X);
     if(n_enum > 0 && n_enum < MAX_ENUM){
         std::cout<<"alg 1"<<std::endl;
-        // auto X = alg_1(ref1, ref2, cr_loops, pairs_diff, seq, verbose, dangle_model);
-        auto X = alg_1_v2(ref1, ref2, seq, verbose, dangle_model);
+        X = alg_1_v2(ref1, ref2, seq, verbose, dangle_model);
         printf("X size: %d\n", X.size());
-        std::set<std::string> refs_checked;
-        std::vector<Constraint> cs_vec;
         if (X.size() == 0){
             std::cout<<"undesignable!"<<std::endl;
             y_sub = ref1;
@@ -2006,11 +2058,49 @@ std::string alg_5_helper_v2(std::string& ref1, std::string& ref2, std::string&co
             std::cout<<"too many constraints: "<<X.size()<<"\t"<<"out of "<<ref2<<std::endl;
         }
         else{
-            Constraint cs_ref2 = Constraint(&critical_positions, &X);
+            cs_ref2 = Constraint(&critical_positions, &X);
             cs_ref2.setStructure(ref2);
-            cs_vec.push_back(cs_ref2);
+            // cs_vec.push_back(cs_ref2);
         }
-        refs_checked.insert(ref2);
+        // refs_checked.insert(ref2);
+        // return alg_5_cs(ref1, refs_checked, cs_vec, constr, verbose, dangle_model);
+    }
+    // finish the first check
+
+    // check the ref from mfe
+    std::set<int> critical_positions_mfe;
+    cr_loops = find_critical_plus(ref1, ref_mfe, critical_positions_mfe, verbose);
+    // delta_energy = diff_eval(seq, cr_loops, verbose, dangle_model);
+    pairs_diff = idx2pair(critical_positions_mfe, ref1);
+    n_enum = count_enum(pairs_diff);
+    std::cout<<"enumeration count: "<<n_enum<<std::endl;
+    std::vector<std::string> X_mfe;
+    if(n_enum > 0 && n_enum < MAX_ENUM){
+        std::cout<<"alg 1"<<std::endl;
+        // auto X = alg_1(ref1, ref2, cr_loops, pairs_diff, seq, verbose, dangle_model);
+        X_mfe = alg_1_v2(ref1, ref_mfe, seq, verbose, dangle_model);
+        printf("X_mfe size: %d\n", X_mfe.size());
+        // std::set<std::string> refs_checked;
+        // std::vector<Constraint> cs_vec;
+        if (X_mfe.size() == 0){
+            std::cout<<"undesignable!"<<std::endl;
+            y_sub = ref1;
+            y_rivals.clear();
+            y_rivals.push_back(ref_mfe);
+            return "undesignable";
+        }else if (X_mfe.size() > MAX_CONSTRAINT){
+            std::cout<<"too many constraints: "<<X_mfe.size()<<"\t"<<"out of "<<ref_mfe<<std::endl;
+            if(cs_ref2.seqs->size()){
+                cs_vec.push_back(cs_ref2);
+                refs_checked.insert(ref2);
+            }
+        }
+        else{
+            Constraint cs_ref_mfe = Constraint(&critical_positions_mfe, &X_mfe);
+            cs_ref_mfe.setStructure(ref_mfe);
+            cs_vec.push_back(cs_ref_mfe);
+        }
+        refs_checked.insert(ref_mfe);
         return alg_5_cs(ref1, refs_checked, cs_vec, constr, verbose, dangle_model);
     }
     std::cout<<"intial y_prime too bad!"<<std::endl;
@@ -2468,7 +2558,7 @@ void csv_process(std::string csv, std::string alg){
                     printf("\n");
                 }
             }
-            if (alg == "neighbor2"){
+            if (alg == "neighbor2" || alg == "neighbor3" ){
                 auto start_time = std::chrono::high_resolution_clock::now();
                 std::vector<LoopComplex> lc_list;
                 TreeNode* root = parseStringToTree(y_star);
@@ -2479,7 +2569,10 @@ void csv_process(std::string csv, std::string alg){
                     outputFile << r << std::endl;
                     continue;
                 }
-                tree2TwoNeighbor(root, y_star, lc_list);
+                if (alg == "neighbor2")
+                    tree2TwoNeighbor(root, y_star, lc_list);
+                else
+                    tree2ThreeNeighbor(root, y_star, lc_list);
                 printf("lc_list size: %d\n", lc_list.size());
 
                 // Sort the vector using a lambda expression
@@ -2535,49 +2628,49 @@ void csv_process(std::string csv, std::string alg){
                     printf("\n");
                 }
             }
-            if (alg == "neighbor3"){
-                std::vector<LoopComplex> lc_list;
-                TreeNode* root = parseStringToTree(y_star);
-                int max_internal = max_single(root);
-                if(max_internal > 30){
-                    std::string r = puzzle_id+","+std::to_string(max_internal);
-                    records.push_back(r);
-                    outputFile << r << std::endl;
-                    continue;
-                }
-                tree2ThreeNeighbor(root, y_star, lc_list);
-                printf("lc_list size: %d\n", lc_list.size());
+            // if (alg == "neighbor3"){
+            //     std::vector<LoopComplex> lc_list;
+            //     TreeNode* root = parseStringToTree(y_star);
+            //     int max_internal = max_single(root);
+            //     if(max_internal > 30){
+            //         std::string r = puzzle_id+","+std::to_string(max_internal);
+            //         records.push_back(r);
+            //         outputFile << r << std::endl;
+            //         continue;
+            //     }
+            //     tree2ThreeNeighbor(root, y_star, lc_list);
+            //     printf("lc_list size: %d\n", lc_list.size());
 
-                // Sort the vector using a lambda expression
-                std::sort(lc_list.begin(), lc_list.end(), [](const LoopComplex &a, const LoopComplex &b) {
-                    return a.count_uk < b.count_uk;});
-                for (auto lc: lc_list){
-                    std::string target = y_star.substr(lc.start, lc.end-lc.start+1);
-                    std::string subseq = seq.substr(lc.start, lc.end-lc.start+1);
-                    printf(" count: %d\n", lc.count_uk);
-                    printf("target: %s\n", target.c_str());
-                    printf("   ref: %s\n", lc.ref.c_str());
-                    printf("constr: %s\n", lc.constr.c_str());
+            //     // Sort the vector using a lambda expression
+            //     std::sort(lc_list.begin(), lc_list.end(), [](const LoopComplex &a, const LoopComplex &b) {
+            //         return a.count_uk < b.count_uk;});
+            //     for (auto lc: lc_list){
+            //         std::string target = y_star.substr(lc.start, lc.end-lc.start+1);
+            //         std::string subseq = seq.substr(lc.start, lc.end-lc.start+1);
+            //         printf(" count: %d\n", lc.count_uk);
+            //         printf("target: %s\n", target.c_str());
+            //         printf("   ref: %s\n", lc.ref.c_str());
+            //         printf("constr: %s\n", lc.constr.c_str());
 
-                    std::string result = alg_5_helper_v2(target, lc.ref, lc.constr, subseq, verbose, dangle);
-                    if (result == "undesignable"){
-                        std::cout<<"undesignable!"<<std::endl;
-                        int count_pairs = lc.node->children.size() + 1;
-                        std::string r = puzzle_id+","+y_star+","+std::to_string(count_pairs)+","+std::to_string(lc.node->first)+","+std::to_string(lc.node->second);
-                        for(auto child: lc.node->children)
-                            r += ","+std::to_string(child->first)+","+std::to_string(child->second);
-                        r = r + ","+y_sub+","+std::to_string(y_rivals.size());
-                        for(auto rival: y_rivals)
-                            r += ","+rival;
-                        std::cout<<r<<std::endl;
-                        records.push_back(r);
-                        outputFile << r << std::endl;
-                        // break;
-                        // return;
-                    }
-                    printf("\n");
-                }
-            }
+            //         std::string result = alg_5_helper_v2(target, lc.ref, lc.constr, subseq, verbose, dangle);
+            //         if (result == "undesignable"){
+            //             std::cout<<"undesignable!"<<std::endl;
+            //             int count_pairs = lc.node->children.size() + 1;
+            //             std::string r = puzzle_id+","+y_star+","+std::to_string(count_pairs)+","+std::to_string(lc.node->first)+","+std::to_string(lc.node->second);
+            //             for(auto child: lc.node->children)
+            //                 r += ","+std::to_string(child->first)+","+std::to_string(child->second);
+            //             r = r + ","+y_sub+","+std::to_string(y_rivals.size());
+            //             for(auto rival: y_rivals)
+            //                 r += ","+rival;
+            //             std::cout<<r<<std::endl;
+            //             records.push_back(r);
+            //             outputFile << r << std::endl;
+            //             // break;
+            //             // return;
+            //         }
+            //         printf("\n");
+            //     }
+            // }
             if (alg == "dsedge"){
                 std::vector<LoopComplex> lc_list;
                 TreeNode* root = parseStringToTree(y_star);
@@ -3361,6 +3454,53 @@ int main(int argc, char* argv[]) {
                 }
                 printf("\n");
             // }
+        }
+    }else if (alg == "neighbor2"){ /* edges evaluation  */
+        std::string seq;
+        std::string ref;
+        // Read input line by line until EOF (end of file) is reached
+        while (std::getline(std::cin, seq)) {
+            getline(std::cin, ref);
+            std::vector<LoopComplex> lc_list;
+            TreeNode* root = parseStringToTree(ref);
+            tree2TwoNeighbor(root, ref, lc_list);
+            printf("lc_list size: %d\n", lc_list.size());
+            // Sort the vector using a lambda expression
+            std::sort(lc_list.begin(), lc_list.end(), [](const LoopComplex &a, const LoopComplex &b) {
+                return a.count_uk < b.count_uk;});
+            for (auto lc: lc_list){
+                std::string target = ref.substr(lc.start, lc.end-lc.start+1);
+                std::string subseq = seq.substr(lc.start, lc.end-lc.start+1);
+                printf(" count: %d\n", lc.count_uk);
+                printf("target: %s\n", target.c_str());
+                printf("   ref: %s\n", lc.ref.c_str());
+                printf("constr: %s\n", lc.constr.c_str());
+                auto start_time = std::chrono::high_resolution_clock::now();
+                std::string result = alg_5_helper_v2(target, lc.ref, lc.constr, subseq, verbose, dangle);
+                if (result == "undesignable"){
+                    std::cout<<"undesignable!"<<std::endl;
+                    auto end_time = std::chrono::high_resolution_clock::now();
+                    const std::chrono::duration<double, std::milli> time_ms = end_time - start_time;
+                    printf("time cost: %.4f seconds\n", time_ms/1000.f);
+                    int count_pairs = lc.node->children.size() + 1;
+                    std::string r = seq+","+ref+","+std::to_string(count_pairs)+","+std::to_string(lc.node->first)+","+std::to_string(lc.node->second);
+                    for(auto child: lc.node->children)
+                        r += ","+std::to_string(child->first)+","+std::to_string(child->second);
+                    r = r + ","+y_sub+","+std::to_string(y_rivals.size());
+                    for(auto rival: y_rivals)
+                        r += ","+rival;
+                    // Convert duration to seconds and then cast to float
+                    float time_seconds = std::chrono::duration_cast<std::chrono::duration<float>>(time_ms).count();
+                    r += " time:" + fl2str(time_seconds) + ";";
+                    std::cout<<r<<std::endl;
+                    // std::string id = puzzle_id + "_" + alg;
+                    std::string args4plot = compose_args4plot("id", ref, lc.ps_outside, lc.ps_inside);
+                    std::cout << args4plot <<std::endl;
+                    std::string pairstring = compose_pairstr(lc.ps_inside, lc.ps_outside);
+                    std::cout << pairstring << std::endl;
+                }
+                printf("\n");
+            }
         }
     }
     return 0;
