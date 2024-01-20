@@ -20,6 +20,8 @@
 #include <cmath>
 #include <algorithm>
 
+#include "utils.h"
+
 
 bool compareByFirstStringLength(const std::pair<std::string, std::string> &a, const std::pair<std::string, std::string> &b) {
     return a.first.length() < b.first.length();
@@ -155,13 +157,6 @@ bool check_compatible(std::string seq, std::string ss){
     return true;
 }
 
-template <typename T>
-std::set<T> setIntersection(const std::set<T>& set1, const std::set<T>& set2) {
-    std::set<T> intersection;
-    std::set_intersection(set1.begin(), set1.end(), set2.begin(), set2.end(), std::inserter(intersection, intersection.begin()));
-    return intersection;
-}
-
 std::string getSubstrings(std::set<int>& indices, std::string& str){
     std::string substr;
     for (int index : indices) {
@@ -290,7 +285,7 @@ std::string compose_pairstr(std::vector<std::pair<int, int>>& pairs_inside, std:
     return pairstring;
 }
 
-std::string fl2str(float x, int d=4){
+std::string fl2str(float x, int d){
     // Set the precision to `d` decimals and convert float to string
     std::string str = std::to_string(x);
     size_t found = str.find(".");
@@ -367,6 +362,45 @@ std::vector<std::vector<int>> PowerSet3(int start, int set_size){
             powset_all.push_back(powset);
     } 
     return powset_all;
+}
+
+std::vector<std::vector<std::string>> read_csv(const char* file){
+
+    std::vector<std::vector<std::string>> df;
+
+    std::ifstream inputFile(file); // Replace "example.txt" with the name of your file
+
+    if (!inputFile.is_open()) {
+        std::cerr << "Failed to open the file." << std::endl;
+        return df;
+    }
+
+    std::string line;
+
+    while (std::getline(inputFile, line)) {
+        std::vector<std::string> row;
+        // Process the line here
+        // std::cout << line << std::endl;
+        std::vector<std::string> tokens;
+        std::istringstream tokenStream(line);
+        std::string token;
+
+        while (std::getline(tokenStream, token, ',')) {
+            tokens.push_back(token);
+        }
+
+        // Now 'tokens' contains the individual parts of the line separated by commas
+        for (int j = 0; j < tokens.size(); j++) {
+            // std::cout << j << ": " << tokens[j] << std::endl;
+            row.push_back(tokens[j]);
+        }
+        // std::cout << std::endl;
+        df.push_back(row);
+    }
+
+    inputFile.close(); // Close the file when you're done
+
+    return df;
 }
 
 // #endif

@@ -32,5 +32,6 @@ std::string fl2str(float x, int d=4);
 std::string replaceFileExtension(const std::string& filePath, const std::string& newExtension);
 std::map<std::string, std::set<std::string>> readMotif(const char* file);
 std::vector<std::vector<int>> PowerSet3(int start, int set_size);
+std::vector<std::vector<std::string>> read_csv(const char* file);
 
 #endif

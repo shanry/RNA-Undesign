@@ -17,7 +17,6 @@
 #include <bits/stdc++.h> 
 
 // #include "eval.cpp"
-#include "csv.cpp"
 #include "cxxopts.hpp"
 #include "utils.h"
 #include "comps.h"
@@ -1487,7 +1486,7 @@ void csv_process(std::string csv, std::string alg){
                             r += ","+rival;
                         // Convert duration to seconds and then cast to float
                         float time_seconds = std::chrono::duration_cast<std::chrono::duration<float>>(time_ms).count();
-                        r += " time:" + fl2str(time_seconds) + ";";
+                        r += " time:" + fl2str(time_seconds, 4) + ";";
                         std::cout<<r<<std::endl;
                         records.push_back(r);
                         std::string id = row[1] + "_" + alg;
