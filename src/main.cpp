@@ -16,12 +16,12 @@
 #include <sstream>
 #include <bits/stdc++.h> 
 
-#include "eval.cpp"
+// #include "eval.cpp"
 #include "csv.cpp"
 #include "cxxopts.hpp"
-// #include "utils.hpp"
 #include "utils.h"
 #include "comps.h"
+#include "eval.h"
 using namespace std;
 
 #define MAX_ENUM 10000000000
@@ -60,8 +60,6 @@ std::vector<std::string> y_rivals;
 std::vector<std::pair<int, int>> pairs_outside;
 std::vector<std::pair<int, int>> pairs_inside;
 
-std::vector<std::string> cs_fold(std::string seq, std::string& constr, int beamsize, bool sharpturn, bool verbose, int dangle);
-std::vector<std::string> fold(std::string seq, int beamsize, bool sharpturn, bool verbose, int dangle, float energy_delta);
 ulong count_enum(std::vector<std::tuple<int, int>>& pairs_diff);
 
 // std::string removeNodeFromTree(TreeNode* node, std::string ref);
@@ -1225,80 +1223,6 @@ std::string alg_5_helper_v2(std::string& ref1, std::string& ref2, std::string&co
     return "intial y_prime too bad";
 }
 
-
-std::vector<std::string> cs_fold(std::string seq, std::string& constr, int beamsize, bool sharpturn, bool verbose, int dangle){
-    return subopt(seq, constr);
-    bool consflag = true;
-    std::vector<std::string> subopts;
-    std::set<char> consSet {'?', '.', '(', ')'};
-    if (seq.length() != constr.length()){
-        printf("The lengths don't match between sequence and constraints: %s, %s\n", seq.c_str(), constr.c_str());
-        return subopts;
-    }
-    int n = seq.length();
-    std::vector<int> cons(n);
-    std::stack<int> leftBrackets;
-    consflag = true;
-    for (int i=0; i < n; i++){
-        char coni = constr[i];
-        if (consSet.count(coni) == 0){
-            printf("Unrecognized constraint character, should be ? . ( or )\n");
-            consflag = false;
-            break;
-        }
-        switch(coni){
-            case '.':
-                cons[i] = -2;
-                break;
-            case '?':
-                cons[i] = -1;
-                break;
-            case '(':
-                leftBrackets.push(i);
-                break;
-            case ')':
-                int leftIndex = leftBrackets.top();
-                leftBrackets.pop();
-                cons[leftIndex] = i;
-                cons[i] = leftIndex;
-                break;
-        }
-    }
-    if (consflag) {
-        // printf("%s\n", constr.c_str());
-        
-        // lhuang: moved inside loop, fixing an obscure but crucial bug in initialization
-        BeamCKYParser parser(beamsize, !sharpturn, verbose, true, true, 0.0, "", false, dangle);
-        
-        BeamCKYParser::DecoderResult result = parser.parse(seq, &cons, subopts);
-        // BeamCKYParser::DecoderResult result = parser.parse(seq, &cons);
-
-        #ifdef lv
-                double printscore = (result.score / -100.0);
-        #else
-                double printscore = result.score;
-        #endif
-        // printf("%s (%.2f)\n", result.structure.c_str(), printscore);
-
-        // Use std::find to search for the value
-        if (std::find(subopts.begin(), subopts.end(), result.structure) == subopts.end()){
-            subopts.push_back(result.structure);
-        } 
-        return subopts;
-    }
-    return subopts;
-}
-
-
-std::vector<std::string> fold(std::string seq, int beamsize, bool sharpturn, bool verbose, int dangle, float energy_delta = 0.){
-        // lhuang: moved inside loop, fixing an obscure but crucial bug in initialization
-        BeamCKYParser parser(beamsize, !sharpturn, verbose, false, true, energy_delta, "", false, dangle);
-        std::vector<std::string> subopts;
-        BeamCKYParser::DecoderResult result = parser.parse(seq, NULL, subopts);
-        return subopts;
-}
-
-
 std::string alg1_helper(std::string& seq, std::string& ref1, std::string& ref2, bool is_verbose, int dangle_model) {
     std::cout << "seq: " << seq << std::endl;
     std::cout << "  y: " << ref1 << std::endl;
@@ -2268,7 +2192,7 @@ int main(int argc, char* argv[]) {
         std::string seq;
         while (std::getline(std::cin, seq))
         {
-            std::vector<std::string> refs =  fold(seq, beamsize, sharpturn, verbose, dangle);
+            std::vector<std::string> refs =  fold(seq, beamsize, sharpturn, verbose, dangle, 0.);
             std::cout<<"subopts size: "<<refs.size()<<std::endl;
             for(auto ref: refs)
                 std::cout<<ref<<std::endl;
