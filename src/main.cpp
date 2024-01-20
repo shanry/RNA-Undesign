@@ -19,15 +19,15 @@
 #include "eval.cpp"
 #include "csv.cpp"
 #include "cxxopts.hpp"
-#include "utils.hpp"
+// #include "utils.hpp"
+#include "utils.h"
+#include "comps.h"
 using namespace std;
 
 #define MAX_ENUM 10000000000
 #define MAX_CONSTRAINT 100000
 #define MAX_SEQ 500
 // global variables
-char nuc_all[] = "ACGU";
-char nuc_pair_all[][3] = {"GC", "CG", "AU", "UA", "GU", "UG"};
 std::vector<std::string> TriHP{"", "CAACG", "GUUAC"}; // middle position can't be C or G
 std::vector<std::string> TetraHP{"",
                                  "CAACGG",
@@ -63,213 +63,89 @@ std::vector<std::pair<int, int>> pairs_inside;
 std::vector<std::string> cs_fold(std::string seq, std::string& constr, int beamsize, bool sharpturn, bool verbose, int dangle);
 std::vector<std::string> fold(std::string seq, int beamsize, bool sharpturn, bool verbose, int dangle, float energy_delta);
 ulong count_enum(std::vector<std::tuple<int, int>>& pairs_diff);
-std::string enumerate(std::vector<std::tuple<int, int>>& pairs_diff, ulong order, std::string& seq);
-// Define a basic constraint structure
-struct Constraint {
-    std::set<int>* indices;
-    std::vector<std::string>* seqs;
-    std::string structure;
 
-    // Constructor that accepts two arguments to initialize the members
-    Constraint(std::set<int>* index_set, std::vector<std::string>* seq_list){
-        indices = index_set;
-        seqs = seq_list;
+// std::string removeNodeFromTree(TreeNode* node, std::string ref);
+// std::string removeMNodeFromTree(TreeNode* node, std::string ref);
+// std::string removeEdgeFromTree(TreeNode* node, std::string ref);
+// std::string removeTwoNeighbors(TreeNode* node, std::string ref, int n1, int n2);
+// std::string removeThreeNeighbors(TreeNode* node, std::string ref, std::vector<int>& powset);
+
+void TreeNode::printTreeEnum(std::string& seq, std::string& y){
+    printf("first: %d, second: %d\n", first, second);
+    std::vector<std::tuple<int, int>> pairs_diff;
+    int n_unpair = second - first - 1;
+    int n_pair = 0;
+    if (first >= 0){
+        n_pair += 1;
+        pairs_diff.push_back(std::make_tuple(first, second));
     }
-
-    Constraint(std::set<int>* index_set, std::vector<std::string>* seq_list, std::string& ref){
-        indices = index_set;
-        seqs = seq_list;
-        structure = ref;
+    for(int i = 0; i < children.size(); i++){
+        n_unpair -= children[i]->second - children[i]->first + 1;
+        pairs_diff.push_back(std::make_tuple(children[i]->first, children[i]->second));
+        n_pair += 1;
     }
-
-    void setStructure(std::string& ref){
-        structure = ref;
-    }
-
-    // ~Constraint(){
-    //     delete indices;
-    //     delete seqs;
-    // }
-};
-
-// Define a basic TreeNode structure
-struct TreeNode {
-    int first; // root: -1
-    int second; // 
-    TreeNode* parent = NULL;
-    std::vector<TreeNode*> children;
-
-    TreeNode(int first_val, int second_val){
-        first = first_val;
-        second = second_val;
-    }
-
-    void printTree(){
-        printf("first: %d, second: %d\n", first, second);
+    ulong count = 1;
+    for(int p=0; p<n_pair; p++)
+        count *= 6;
+    for(int u=0; u<n_unpair; u++)
+        count *= 4;
+    printf("(%d, %d), pairs: %d, unpairs: %d, enum: %d\n", first, second, n_pair, n_unpair, count);
+    std::string subref(seq.length(), '?');
+    if (first >= 0){
+        int len = second-first+1;
+        // std::string subseq = seq.substr(first, len);
+        subref[first] = '(';
+        subref[second] = ')';
         for(int i = 0; i < children.size(); i++){
-            printf("child[%d]: first: %d, second: %d\n", i, children[i]->first, children[i]->second);
+            subref[children[i]->first] = '(';
+            subref[children[i]->second] = ')';
+            for (int k = children[i]->first+1; k < children[i]->second; k++)
+                subref[k] = y[k];
         }
-        printf("\n");
-        for(int j = 0; j < children.size(); j++){
-            children[j]->printTree();
-        }       
-    }
-
-    void printTreeEnum(std::string& seq, std::string& y){
-        printf("first: %d, second: %d\n", first, second);
-        std::vector<std::tuple<int, int>> pairs_diff;
-        int n_unpair = second - first - 1;
-        int n_pair = 0;
-        if (first >= 0){
-            n_pair += 1;
-            pairs_diff.push_back(std::make_tuple(first, second));
+        // printf("constraint: %s\n", subref.c_str());
+        std::cout<<subref.substr(first, len)<<std::endl;
+        for(int l = 0; l < len; l++){
+            if (subref[first+l]=='?')
+                pairs_diff.push_back(std::make_tuple(first+l, first+l));
         }
+    }else{
+        int len = second-first-1;
+        assert( len == seq.length() );
         for(int i = 0; i < children.size(); i++){
-            n_unpair -= children[i]->second - children[i]->first + 1;
-            pairs_diff.push_back(std::make_tuple(children[i]->first, children[i]->second));
-            n_pair += 1;
+            subref[children[i]->first] = '(';
+            subref[children[i]->second] = ')';
+            for (int k = children[i]->first+1; k < children[i]->second; k++)
+                subref[k] = y[k];
         }
-        ulong count = 1;
-        for(int p=0; p<n_pair; p++)
-            count *= 6;
-        for(int u=0; u<n_unpair; u++)
-            count *= 4;
-        printf("(%d, %d), pairs: %d, unpairs: %d, enum: %d\n", first, second, n_pair, n_unpair, count);
-        std::string subref(seq.length(), '?');
-        if (first >= 0){
-            int len = second-first+1;
-            // std::string subseq = seq.substr(first, len);
-            subref[first] = '(';
-            subref[second] = ')';
-            for(int i = 0; i < children.size(); i++){
-                subref[children[i]->first] = '(';
-                subref[children[i]->second] = ')';
-                for (int k = children[i]->first+1; k < children[i]->second; k++)
-                    subref[k] = y[k];
-            }
-            // printf("constraint: %s\n", subref.c_str());
-            std::cout<<subref.substr(first, len)<<std::endl;
-            for(int l = 0; l < len; l++){
-                if (subref[first+l]=='?')
-                    pairs_diff.push_back(std::make_tuple(first+l, first+l));
-            }
-        }else{
-            int len = second-first-1;
-            assert( len == seq.length() );
-            for(int i = 0; i < children.size(); i++){
-                subref[children[i]->first] = '(';
-                subref[children[i]->second] = ')';
-                for (int k = children[i]->first+1; k < children[i]->second; k++)
-                    subref[k] = y[k];
-            }
-            // printf("constraint: %s\n", subref.c_str());
-            std::cout<<subref<<std::endl;
-            for(int l = 0; l < len; l++){
-                if (subref[l]=='?')
-                    pairs_diff.push_back(std::make_tuple(l, l));
-            }
+        // printf("constraint: %s\n", subref.c_str());
+        std::cout<<subref<<std::endl;
+        for(int l = 0; l < len; l++){
+            if (subref[l]=='?')
+                pairs_diff.push_back(std::make_tuple(l, l));
         }
-        ulong count_v2 =  count_enum(pairs_diff);
-        printf("enum v2: %d\n", count_v2);
-        assert(count_v2 == count);
-        if (first >= 0){
-            std::string constr_i = subref.substr(first, second-first+1);
-            std::string gold_i = constr_i;
-            std::replace(gold_i.begin(), gold_i.end(), '?', '.');
-            int count_mfe = 0;
-            std::cout<<"gold: "<<gold_i<<std::endl;
-            for(ulong i=0; i<count_v2; i++){
-                std::string seq_i = enumerate(pairs_diff, i, seq);
-                std::string subseq_i = seq_i.substr(first, second-first+1);
-                std::string mfe_str = cs_fold(subseq_i, constr_i, 0, false, false, 2)[0];
-                if(mfe_str==gold_i)
-                    count_mfe += 1;
-            }
-            printf("count_mfe: %d\n", count_mfe);
-        }
-        for(int j = 0; j < children.size(); j++){
-            children[j]->printTreeEnum(seq, y);
-        }       
     }
-
-    void printTree(std::string ref){
-        printf("first: %d, second: %d\n", first, second);
-        if(first >= 0)
-            printf("%s\n", ref.substr(first, second-first+1).c_str());
-        else
-            printf("%s\n", ref.c_str());
-        for(int i = 0; i < children.size(); i++){
-            printf("child[%d]: first: %d, second: %d\n", i, children[i]->first, children[i]->second);
+    ulong count_v2 =  count_enum(pairs_diff);
+    printf("enum v2: %d\n", count_v2);
+    assert(count_v2 == count);
+    if (first >= 0){
+        std::string constr_i = subref.substr(first, second-first+1);
+        std::string gold_i = constr_i;
+        std::replace(gold_i.begin(), gold_i.end(), '?', '.');
+        int count_mfe = 0;
+        std::cout<<"gold: "<<gold_i<<std::endl;
+        for(ulong i=0; i<count_v2; i++){
+            std::string seq_i = enumerate(pairs_diff, i, seq);
+            std::string subseq_i = seq_i.substr(first, second-first+1);
+            std::string mfe_str = cs_fold(subseq_i, constr_i, 0, false, false, 2)[0];
+            if(mfe_str==gold_i)
+                count_mfe += 1;
         }
-        printf("\n");
-        for(int j = 0; j < children.size(); j++){
-            children[j]->printTree(ref);
-        }       
+        printf("count_mfe: %d\n", count_mfe);
     }
-
-    void printTree(std::string& ref, std::string& seq){
-        printf("first: %d, second: %d\n", first, second);
-        if(first >= 0){
-            printf("%s\n", seq.substr(first, second-first+1).c_str());
-            printf("%s\n", ref.substr(first, second-first+1).c_str());
-        }
-        else{
-            printf("%s\n", seq.c_str());
-            printf("%s\n", ref.c_str());
-        }
-        for(int i = 0; i < children.size(); i++){
-            printf("child[%d]: first: %d, second: %d\n", i, children[i]->first, children[i]->second);
-        }
-        printf("\n");
-        for(int j = 0; j < children.size(); j++){
-            children[j]->printTree(ref, seq);
-        }       
-    }
-
-    void printTree(std::string& ref, std::string& seq, std::vector<std::pair<std::string, std::string>>& subrefs){
-        printf("first: %d, second: %d\n", first, second);
-        if(first >= 0){
-            printf("%s\n", seq.substr(first, second-first+1).c_str());
-            printf("%s\n", ref.substr(first, second-first+1).c_str());
-            if(children.size()&&(ref[first+1]!='('||ref[second-1]!=')'))
-                subrefs.push_back({ref.substr(first, second-first+1), seq.substr(first, second-first+1)});
-        }
-        else{
-            printf("%s\n", seq.c_str());
-            printf("%s\n", ref.c_str());
-            // if(children.size())
-            //     subrefs.push_back({ref, seq});
-        }
-        for(int i = 0; i < children.size(); i++){
-            printf("child[%d]: first: %d, second: %d\n", i, children[i]->first, children[i]->second);
-        }
-        printf("\n");
-        for(int j = 0; j < children.size(); j++){
-            children[j]->printTree(ref, seq, subrefs);
-        }       
-    }
-};
-
-// Define input for decomposition algs
-
-struct LoopComplex {
-    int count_uk;
-    std::string ref;
-    std::string constr;
-    int start;
-    int end;
-    TreeNode* node;
-    int left;
-    int right;
-    std::vector<std::pair<int, int>> ps_outside;
-    std::vector<std::pair<int, int>> ps_inside;
-};
-
-std::string removeNodeFromTree(TreeNode* node, std::string ref);
-std::string removeMNodeFromTree(TreeNode* node, std::string ref);
-std::string removeEdgeFromTree(TreeNode* node, std::string ref);
-std::string removeTwoNeighbors(TreeNode* node, std::string ref, int n1, int n2);
-std::string removeThreeNeighbors(TreeNode* node, std::string ref, std::vector<int>& powset);
+    for(int j = 0; j < children.size(); j++){
+        children[j]->printTreeEnum(seq, y);
+    }       
+}
 
 // Function to parse a string of nested pairs into a tree
 TreeNode* parseStringToTree(const std::string& ref) {
@@ -315,770 +191,11 @@ std::string getCurrentTimestamp() {
     return timestamp;
 }
 
-std::vector<std::vector<int>> PowerSet3(int start, int set_size) 
-{ 
-    std::vector<std::vector<int>> powset_all;
-    // Set_size of power set of a set with set_size 
-    // n is (2^n-1) 
-    unsigned int pow_set_size = pow(2, set_size); 
-    int counter, j; 
-  
-    // Run from counter 000..0 to 111..1 
-    for (counter = 0; counter < pow_set_size; counter++) { 
-        std::vector<int> powset;
-        for (j = 0; j < set_size; j++) { 
-            // Check if jth bit in the counter is set 
-            // If set then print jth element from set 
-            if (counter & (1 << j)) 
-                powset.push_back(j+start);
-        } 
-        if(powset.size() > 2)
-            powset_all.push_back(powset);
-    } 
-    return powset_all;
-}
-
-void tree2Loops(TreeNode* root, std::string& ref, std::vector<LoopComplex>& lc_list){
-    if (root->first == -1){
-        printf("external: first: %d, second: %d; children: %d\n", root->first, root->second, root->children.size());
-    }else if (root->children.size() == 0){
-        printf("haiprin: first: %d, second: %d; children: %d\n", root->first, root->second, root->children.size());
-    }else if(root->children.size() == 1){
-        printf("internal: first: %d, second: %d; children: %d\n", root->first, root->second, root->children.size());
-    }else if(root->children.size() > 1){
-        printf("multi-loop: first: %d, second: %d; children: %d\n", root->first, root->second, root->children.size());
-    }
-    if (root->parent != NULL){  // make sure it is not the pseudo-node
-        printf("parent: first: %d, second: %d; children: %d\n", root->parent->first, root->parent->second, root->parent->children.size());
-        printf("   ref: %s\n", ref.c_str());
-        std::string constr = removeNodeFromTree(root, ref);
-        printf("constr: %s\n", constr.c_str());
-        std::string cref = constr;
-        std::replace(cref.begin(), cref.end(), '?', '.');
-        printf("  cref: %s\n", cref.c_str());
-        int count_unknown = 0;
-        for(auto ch: constr){
-            if (ch == '?')
-                count_unknown += 1;
-        }
-        printf("? count: %d\n", count_unknown);
-        int start = root->parent->first;
-        int end = root->parent->second;
-        if (root->parent->first < 0){
-            start = 0;
-            end = ref.length() - 1;
-        }
-        LoopComplex lc = {count_unknown, cref, constr, start, end, root, root->first, root->second, pairs_outside, pairs_inside};
-        lc_list.push_back(lc);
-    }
-    printf("\n");
-    for(auto child: root->children){
-        tree2Loops(child, ref, lc_list);
-    }
-    return;
-}
-
-std::string removeNodeFromTree(TreeNode* node, std::string ref){
-    std::string constr(ref.length(), '?');
-    int len_p = node->parent->second - node->parent->first + 1;
-    if (node->parent->first >= 0){
-        printf("first: %d, second: %d\n", node->parent->first, node->parent->second);
-        printf(" len_p: %d\n", len_p);
-        printf("   ref: %s\n", ref.substr(node->parent->first, len_p).c_str());
-        constr[node->parent->first] = '(';
-        constr[node->parent->second] = ')';
-        printf("constr: %s\n", constr.substr(node->parent->first, len_p).c_str());
-    }else{
-        printf(" len_p: %d\n", ref.length());
-        printf("   ref: %s\n", ref.c_str());
-        printf("constr: %s\n", constr.c_str());
-    }
-    // for(int i = 0; i < ref.length(); i++){
-    //     if(i <= node->parent->first || i >= node->parent->second)
-    //         constr[i] = ref[i];
-    // }
-    for(auto child: node->children){
-        if (child->children.size()){
-            for(auto grandchild: child->children){
-                for(int i = grandchild->first; i <= grandchild->second; i++){
-                    constr[i] = ref[i];
-                }
-            }
-        }
-    }
-    if (node->parent->first >= 0)
-        printf("constr: %s\n", constr.substr(node->parent->first, len_p).c_str());
-    else
-        printf("constr: %s\n", constr.c_str());
-    for(auto sibling: node->parent->children){
-        if (sibling != node){
-            for(int i = sibling->first; i <= sibling->second; i++){
-                constr[i] = ref[i];
-            }
-        }
-    }
-    if (node->parent->first >= 0)
-        return constr.substr(node->parent->first, len_p);
-    else
-        return constr;
-}
-
-void tree2TwoNeighbor(TreeNode* root, std::string& ref, std::vector<LoopComplex>& lc_list){
-     printf("inside tree2TwoNeighbor\n");
-    if (root->first == -1){
-        printf("external: first: %d, second: %d; children: %d\n", root->first, root->second, root->children.size());
-    }else if (root->children.size() == 0){
-        printf("haiprin: first: %d, second: %d; children: %d\n", root->first, root->second, root->children.size());
-    }else if(root->children.size() == 1){
-        printf("internal: first: %d, second: %d; children: %d\n", root->first, root->second, root->children.size());
-    }else if(root->children.size() > 1){
-        printf("multi-loop: first: %d, second: %d; children: %d\n", root->first, root->second, root->children.size());
-    }
-    printf("before if\n");
-    if (root != NULL && root->children.size() > 0){
-        printf("in if\n");
-        printf("parent: first: %d, second: %d; children: %d\n", root->first, root->second, root->children.size());
-        printf("   ref: %s\n", ref.c_str());
-        int count_neighbor = root->children.size() + 1;
-        int start_neighbor = 0;
-        if (root->parent == NULL){
-            start_neighbor++; // from the first child
-        }
-        for(int i = start_neighbor; i < count_neighbor; i++){
-            for(int j = i + 1; j < count_neighbor; j++){
-                pairs_outside.clear();
-                pairs_inside.clear();
-                std::string constr = removeTwoNeighbors(root, ref, i, j);
-                printf("constr: %s\n", constr.c_str());
-                if(i==0){
-                    pairs_inside.push_back(std::make_pair(root->first, root->second));
-                }else{
-                    pairs_inside.push_back(std::make_pair(root->children[i-1]->first, root->children[i-1]->second));
-                }
-                pairs_inside.push_back(std::make_pair(root->children[j-1]->first, root->children[j-1]->second));
-                std::string cref = constr;
-                std::replace(cref.begin(), cref.end(), '?', '.');
-                printf("  cref: %s\n", cref.c_str());
-                int count_unknown = 0;
-                for(auto ch: constr){
-                    if (ch == '?')
-                        count_unknown += 1;
-                }
-                printf("? count: %d\n", count_unknown);
-                int start, end;
-                if(i == 0){
-                    start = root->parent->first;
-                    end = root->parent->second;
-                    if (root->parent->first < 0){
-                        start = 0;
-                        end = ref.length() - 1;
-                    }
-                }else{
-                    start = root->first;
-                    end = root->second;
-                    if (root->first < 0){
-                        start = 0;
-                        end = ref.length() - 1;
-                    }
-                }
-                LoopComplex lc = {count_unknown, cref, constr, start, end, root, root->first, root->second, pairs_outside, pairs_inside};
-                lc_list.push_back(lc);
-            }
-        }
-    }
-    printf("\n");
-    for(auto child: root->children){
-        tree2TwoNeighbor(child, ref, lc_list);
-    }
-    return;
-}
-
-void tree2ThreeNeighbor(TreeNode* root, std::string& ref, std::vector<LoopComplex>& lc_list){
-     printf("inside tree2TwoNeighbor\n");
-    if (root->first == -1){
-        printf("external: first: %d, second: %d; children: %d\n", root->first, root->second, root->children.size());
-    }else if (root->children.size() == 0){
-        printf("haiprin: first: %d, second: %d; children: %d\n", root->first, root->second, root->children.size());
-    }else if(root->children.size() == 1){
-        printf("internal: first: %d, second: %d; children: %d\n", root->first, root->second, root->children.size());
-    }else if(root->children.size() > 1){
-        printf("multi-loop: first: %d, second: %d; children: %d\n", root->first, root->second, root->children.size());
-    }
-    printf("before if\n");
-    if (root != NULL && root->children.size() > 1){
-        printf("in if\n");
-        printf("parent: first: %d, second: %d; children: %d\n", root->first, root->second, root->children.size());
-        printf("   ref: %s\n", ref.c_str());
-        int count_neighbor = root->children.size() + 1;
-        int start_neighbor = 0;
-        if (root->parent == NULL){
-            start_neighbor++; // from the first child
-            count_neighbor--;
-        }
-        std::vector<std::vector<int>> powset3 = PowerSet3(start_neighbor, count_neighbor);
-        for(auto ps: powset3){
-            // for(int j = i + 1; j < count_neighbor; j++){
-                pairs_outside.clear();
-                pairs_inside.clear();
-                std::string constr = removeThreeNeighbors(root, ref, ps);
-                printf("constr: %s\n", constr.c_str());
-                for(int j: ps){
-                    if(j==0)
-                        pairs_inside.push_back(std::make_pair(root->first, root->second));
-                    else
-                        pairs_inside.push_back(std::make_pair(root->children[j-1]->first, root->children[j-1]->second));
-                }
-                std::string cref = constr;
-                std::replace(cref.begin(), cref.end(), '?', '.');
-                printf("  cref: %s\n", cref.c_str());
-                int count_unknown = 0;
-                for(auto ch: constr){
-                    if (ch == '?')
-                        count_unknown += 1;
-                }
-                printf("? count: %d\n", count_unknown);
-                int start, end;
-                if(ps[0] == 0){
-                    start = root->parent->first;
-                    end = root->parent->second;
-                    if (root->parent->first < 0){
-                        start = 0;
-                        end = ref.length() - 1;
-                    }
-                }else{
-                    start = root->first;
-                    end = root->second;
-                    if (root->first < 0){
-                        start = 0;
-                        end = ref.length() - 1;
-                    }
-                }
-                LoopComplex lc = {count_unknown, cref, constr, start, end, root, root->first, root->second, pairs_outside, pairs_inside};
-                lc_list.push_back(lc);
-            // }
-        }
-    }
-    printf("\n");
-    for(auto child: root->children){
-        tree2ThreeNeighbor(child, ref, lc_list);
-    }
-    return;
-}
-
-void tree2Edges(TreeNode* root, std::string& ref, std::vector<LoopComplex>& lc_list){
-    if (root->first == -1){
-        printf("external: first: %d, second: %d; children: %d\n", root->first, root->second, root->children.size());
-    }else if (root->children.size() == 0){
-        printf("haiprin: first: %d, second: %d; children: %d\n", root->first, root->second, root->children.size());
-    }else if(root->children.size() == 1){
-        printf("internal: first: %d, second: %d; children: %d\n", root->first, root->second, root->children.size());
-    }else if(root->children.size() > 1){
-        printf("multi-loop: first: %d, second: %d; children: %d\n", root->first, root->second, root->children.size());
-    }
-    if (root->parent != NULL){
-        printf("parent: first: %d, second: %d; children: %d\n", root->parent->first, root->parent->second, root->parent->children.size());
-        printf("   ref: %s\n", ref.c_str());
-        pairs_inside.clear();
-        pairs_outside.clear();
-        std::string constr = removeEdgeFromTree(root, ref);
-        printf("constr: %s\n", constr.c_str());
-        pairs_inside.push_back(std::make_pair(root->first, root->second));
-        std::string cref = constr;
-        std::replace(cref.begin(), cref.end(), '?', '.');
-        printf("  cref: %s\n", cref.c_str());
-        int count_unknown = 0;
-        for(auto ch: constr){
-            if (ch == '?')
-                count_unknown += 1;
-        }
-        printf("? count: %d\n", count_unknown);
-        int start = root->parent->first;
-        int end = root->parent->second;
-        if (root->parent->first < 0){
-            start = 0;
-            end = ref.length() - 1;
-        }
-        assert(pairs_inside.size() == 1);
-        LoopComplex lc = {count_unknown, cref, constr, start, end, root, root->first, root->second, pairs_outside, pairs_inside};
-        lc_list.push_back(lc);
-    }
-    printf("\n");
-    for(auto child: root->children){
-        tree2Edges(child, ref, lc_list);
-    }
-    return;
-}
-
-std::string removeEdgeFromTree(TreeNode* node, std::string ref){
-    std::string constr(ref.length(), '?');
-    int len_p = node->parent->second - node->parent->first + 1;
-    if (node->parent->first >= 0){
-        printf("first: %d, second: %d\n", node->parent->first, node->parent->second);
-        printf(" len_p: %d\n", len_p);
-        printf("   ref: %s\n", ref.substr(node->parent->first, len_p).c_str());
-        constr[node->parent->first] = '(';
-        constr[node->parent->second] = ')';
-        printf("constr: %s\n", constr.substr(node->parent->first, len_p).c_str());
-        pairs_outside.push_back(std::make_pair(node->parent->first, node->parent->second));
-    }else{
-        printf(" len_p: %d\n", ref.length());
-        printf("   ref: %s\n", ref.c_str());
-        printf("constr: %s\n", constr.c_str());
-        pairs_outside.push_back(std::make_pair(-1, -1));
-    }
-    for(auto sibling: node->parent->children){
-        if (sibling != node){
-            for(int i = sibling->first; i <= sibling->second; i++){
-                constr[i] = ref[i];
-            }
-            pairs_outside.push_back(std::make_pair(sibling->first, sibling->second));
-        }
-    }
-    if (node->parent->first >= 0)
-        printf("constr: %s\n", constr.substr(node->parent->first, len_p).c_str());
-    else
-        printf("constr: %s\n", constr.c_str());
-    for(auto child: node->children){
-        for(int i = child->first; i <= child->second; i++){
-            constr[i] = ref[i];
-        }
-        pairs_outside.push_back(std::make_pair(child->first, child->second));
-    }
-    if (node->parent->first >= 0)
-        return constr.substr(node->parent->first, len_p);
-    else
-        return constr;
-}
-
-void tree2MLoops(TreeNode* root, std::string& ref, std::vector<LoopComplex>& lc_list){
-    printf("inside tree2MLoops\n");
-    if (root->first == -1){
-        printf("external: first: %d, second: %d; children: %d\n", root->first, root->second, root->children.size());
-    }else if (root->children.size() == 0){
-        printf("haiprin: first: %d, second: %d; children: %d\n", root->first, root->second, root->children.size());
-    }else if(root->children.size() == 1){
-        printf("internal: first: %d, second: %d; children: %d\n", root->first, root->second, root->children.size());
-    }else if(root->children.size() > 1){
-        printf("multi-loop: first: %d, second: %d; children: %d\n", root->first, root->second, root->children.size());
-    }
-    printf("before if\n");
-    if (root != NULL && root->children.size() > 1){
-        printf("in if\n");
-        printf("parent: first: %d, second: %d; children: %d\n", root->first, root->second, root->children.size());
-        printf("   ref: %s\n", ref.c_str());
-        std::string constr = removeMNodeFromTree(root, ref);
-        printf("constr: %s\n", constr.c_str());
-        std::string cref = constr;
-        std::replace(cref.begin(), cref.end(), '?', '.');
-        printf("  cref: %s\n", cref.c_str());
-        int count_unknown = 0;
-        for(auto ch: constr){
-            if (ch == '?')
-                count_unknown += 1;
-        }
-        printf("? count: %d\n", count_unknown);
-        int start = root->first;
-        int end = root->second;
-        if (root->first < 0){
-            start = 0;
-            end = ref.length() - 1;
-        }
-        LoopComplex lc = {count_unknown, cref, constr, start, end, root, root->first, root->second, pairs_outside, pairs_inside};
-        lc_list.push_back(lc);
-    }
-    printf("\n");
-    for(auto child: root->children){
-        tree2MLoops(child, ref, lc_list);
-    }
-    return;
-}
-
-std::string removeMNodeFromTree(TreeNode* node, std::string ref){
-    std::string constr(ref.length(), '?');
-    int len_p = node->second - node->first + 1;
-    if (node->first >= 0){
-        printf("first: %d, second: %d\n", node->first, node->second);
-        printf(" len_p: %d\n", len_p);
-        printf("   ref: %s\n", ref.substr(node->first, len_p).c_str());
-        constr[node->first] = '(';
-        constr[node->second] = ')';
-        printf("constr: %s\n", constr.substr(node->parent->first, len_p).c_str());
-    }else{
-        printf(" len_p: %d\n", ref.length());
-        printf("   ref: %s\n", ref.c_str());
-        printf("constr: %s\n", constr.c_str());
-    }
-    // for(int i = 0; i < ref.length(); i++){
-    //     if(i <= node->parent->first || i >= node->parent->second)
-    //         constr[i] = ref[i];
-    // }
-    for (auto sibling: node->children){
-        for(auto child: sibling->children){
-            if (child->children.size()){
-                for(auto grandchild: child->children){
-                    for(int i = grandchild->first; i <= grandchild->second; i++){
-                        constr[i] = ref[i];
-                    }
-                }
-            }
-        }
-    }
-    if (node->first >= 0)
-        printf("constr: %s\n", constr.substr(node->first, len_p).c_str());
-    else
-        printf("constr: %s\n", constr.c_str());
-    // for(auto sibling: node->parent->children){
-    //     if (sibling != node){
-    //         for(int i = sibling->first; i <= sibling->second; i++){
-    //             constr[i] = ref[i];
-    //         }
-    //     }
-    // }
-    if (node->first >= 0)
-        return constr.substr(node->first, len_p);
-    else
-        return constr;
-}
-
-std::string removeTwoNeighbors(TreeNode* node, std::string ref, int n1, int n2){
-    std::string constr(ref.length(), '?');
-    // the parent of node and a child of the current node
-    if (n1 == 0){
-        int len_p = node->parent->second - node->parent->first + 1;
-        if (node->parent->first >= 0){
-            printf("first: %d, second: %d\n", node->parent->first, node->parent->second);
-            printf(" len_p: %d\n", len_p);
-            printf("   ref: %s\n", ref.substr(node->parent->first, len_p).c_str());
-            constr[node->parent->first] = '(';
-            constr[node->parent->second] = ')';
-            printf("constr: %s\n", constr.substr(node->parent->first, len_p).c_str());
-            pairs_outside.push_back(std::make_pair(node->parent->first, node->parent->second));
-        }else{
-            printf(" len_p: %d\n", ref.length());
-            printf("   ref: %s\n", ref.c_str());
-            printf("constr: %s\n", constr.c_str());
-            pairs_outside.push_back(std::make_pair(-1, -1));
-        }
-        for(auto sibling: node->parent->children){
-            if (sibling != node){
-                for(int i = sibling->first; i <= sibling->second; i++){
-                    constr[i] = ref[i];
-                }
-                pairs_outside.push_back(std::make_pair(sibling->first, sibling->second));
-            }
-        }
-        if (node->parent->first >= 0)
-            printf("constr: %s\n", constr.substr(node->parent->first, len_p).c_str());
-        else
-            printf("constr: %s\n", constr.c_str());
-
-        auto child = node->children[n2-1]; // parent as neibor 0 causing decreament of children's indices by 1
-        for(auto sibling_child: node->children){
-            if (sibling_child != child){
-                for(int i = sibling_child->first; i <= sibling_child->second; i++){
-                    constr[i] = ref[i];
-                }
-                pairs_outside.push_back(std::make_pair(sibling_child->first, sibling_child->second));
-            }
-        }
-        if (child->children.size()){
-            for(auto grandchild: child->children){
-                for(int i = grandchild->first; i <= grandchild->second; i++){
-                    constr[i] = ref[i];
-                }
-                pairs_outside.push_back(std::make_pair(grandchild->first, grandchild->second));
-            }
-        }
-
-        if (node->parent->first >= 0)
-            return constr.substr(node->parent->first, len_p);
-        else
-            return constr;
-    }
-    // two childrent of the current node
-    if (n1 > 0){
-        int len_p = node->second - node->first + 1;
-        if (node->first >= 0){
-            printf("first: %d, second: %d\n", node->first, node->second);
-            printf(" len_p: %d\n", len_p);
-            printf("   ref: %s\n", ref.substr(node->first, len_p).c_str());
-            constr[node->first] = '(';
-            constr[node->second] = ')';
-            printf("constr: %s\n", constr.substr(node->parent->first, len_p).c_str());
-            pairs_outside.push_back(std::make_pair(node->first, node->second));
-        }else{
-            printf(" len_p: %d\n", ref.length());
-            printf("   ref: %s\n", ref.c_str());
-            printf("constr: %s\n", constr.c_str());
-            pairs_outside.push_back(std::make_pair(-1, -1));
-        }
-        std::vector<TreeNode*> two_children;
-        two_children.push_back(node->children[n1-1]); // parent as neibor 0 causing decreament of children's indices by 1
-        two_children.push_back(node->children[n2-1]);
-        for(auto sibling_child: node->children){
-            if ( (sibling_child != two_children[0])&& (sibling_child != two_children[1]) ){
-                for(int i = sibling_child->first; i <= sibling_child->second; i++){
-                    constr[i] = ref[i];
-                }
-                pairs_outside.push_back(std::make_pair(sibling_child->first, sibling_child->second));
-            }
-        }
-        for (auto child: two_children){
-                if (child->children.size()){
-                    for(auto grandchild: child->children){
-                        for(int i = grandchild->first; i <= grandchild->second; i++){
-                            constr[i] = ref[i];
-                        }
-                    pairs_outside.push_back(std::make_pair(grandchild->first, grandchild->second));
-                    }
-                }
-        }
-        if (node->first >= 0)
-            printf("constr: %s\n", constr.substr(node->first, len_p).c_str());
-        else
-            printf("constr: %s\n", constr.c_str());
-        if (node->first >= 0)
-            return constr.substr(node->first, len_p);
-        else
-            return constr;
-    }
-    assert(false);
-    return constr;
-}
-
-std::string removeThreeNeighbors(TreeNode* node, std::string ref, std::vector<int>& powset){
-    std::string constr(ref.length(), '?');
-    // the parent of node and a child of the current node
-    if (powset[0] == 0){
-        int len_p = node->parent->second - node->parent->first + 1;
-        if (node->parent->first >= 0){
-            printf("first: %d, second: %d\n", node->parent->first, node->parent->second);
-            printf(" len_p: %d\n", len_p);
-            printf("   ref: %s\n", ref.substr(node->parent->first, len_p).c_str());
-            constr[node->parent->first] = '(';
-            constr[node->parent->second] = ')';
-            printf("constr: %s\n", constr.substr(node->parent->first, len_p).c_str());
-            pairs_outside.push_back(std::make_pair(node->parent->first, node->parent->second));
-        }else{
-            printf(" len_p: %d\n", ref.length());
-            printf("   ref: %s\n", ref.c_str());
-            printf("constr: %s\n", constr.c_str());
-            pairs_outside.push_back(std::make_pair(-1, -1));
-        }
-
-        for(auto sibling: node->parent->children){
-            if (sibling != node){
-                for(int i = sibling->first; i <= sibling->second; i++){
-                    constr[i] = ref[i];
-                }
-                pairs_outside.push_back(std::make_pair(sibling->first, sibling->second));
-            }
-        }
-
-        if (node->parent->first >= 0)
-            printf("constr: %s\n", constr.substr(node->parent->first, len_p).c_str());
-        else
-            printf("constr: %s\n", constr.c_str());
-
-        std::set<int> setChildren(powset.begin(), powset.end());
-        for(int chid = 0; chid < node->children.size(); chid++ ){
-            if (setChildren.find(chid+1)==setChildren.end()){
-                auto sibling_child = node->children[chid];
-                for(int i = sibling_child->first; i <= sibling_child->second; i++){
-                    constr[i] = ref[i];
-                }
-                pairs_outside.push_back(std::make_pair(sibling_child->first, sibling_child->second));
-            }
-        }
-
-        for(int id_child: powset){
-            if(id_child > 0){
-                auto child = node->children[id_child-1]; // parent as neibor 0 causing decreament of children's indices by 1
-                if (child->children.size()){
-                    for(auto grandchild: child->children){
-                        for(int i = grandchild->first; i <= grandchild->second; i++){
-                            constr[i] = ref[i];
-                        }
-                        pairs_outside.push_back(std::make_pair(grandchild->first, grandchild->second));
-                    }
-                }
-            }
-        }
-        if (node->parent->first >= 0)
-            return constr.substr(node->parent->first, len_p);
-        else
-            return constr;
-    }
-    // two childrent of the current node
-    if (powset[0] > 0){
-        int len_p = node->second - node->first + 1;
-        if (node->first >= 0){
-            printf("first: %d, second: %d\n", node->first, node->second);
-            printf(" len_p: %d\n", len_p);
-            printf("   ref: %s\n", ref.substr(node->first, len_p).c_str());
-            constr[node->first] = '(';
-            constr[node->second] = ')';
-            printf("constr: %s\n", constr.substr(node->parent->first, len_p).c_str());
-        }else{
-            printf(" len_p: %d\n", ref.length());
-            printf("   ref: %s\n", ref.c_str());
-            printf("constr: %s\n", constr.c_str());
-        }
-
-        std::set<int> setChildren(powset.begin(), powset.end());
-        for(int chid = 0; chid < node->children.size(); chid++ ){
-            if (setChildren.find(chid+1)==setChildren.end()){
-                auto sibling_child = node->children[chid];
-                for(int i = sibling_child->first; i <= sibling_child->second; i++){
-                    constr[i] = ref[i];
-                }
-                pairs_outside.push_back(std::make_pair(sibling_child->first, sibling_child->second));
-            }
-        }
-
-        std::vector<TreeNode*> pow_children;
-        for(int id_child: powset)
-            pow_children.push_back(node->children[id_child - 1]); // parent as neibor 0 causing decreament of children's indices by 1
-        for (auto child: pow_children){
-                if (child->children.size()){
-                    for(auto grandchild: child->children){
-                        for(int i = grandchild->first; i <= grandchild->second; i++){
-                            constr[i] = ref[i];
-                        }
-                    }
-                }
-        }
-        if (node->first >= 0)
-            printf("constr: %s\n", constr.substr(node->first, len_p).c_str());
-        else
-            printf("constr: %s\n", constr.c_str());
-        if (node->first >= 0)
-            return constr.substr(node->first, len_p);
-        else
-            return constr;
-    }
-    assert(false);
-    return constr;
-}
-
-bool compareByFirstStringLength(const std::pair<std::string, std::string> &a, const std::pair<std::string, std::string> &b) {
-    return a.first.length() < b.first.length();
-}
-
-std::vector<int> findAllOccurrences(const std::string& mainString, const std::string& subString) {
-    std::vector<int> pos_vec;
-    size_t pos = mainString.find(subString); // Find the first occurrence
-    while (pos != std::string::npos) {
-        // std::cout << "Substring found at index: " << pos << std::endl;
-        pos_vec.push_back(pos);
-        pos = mainString.find(subString, pos + 1); // Find the next occurrence
-    }
-    return pos_vec;
-}
-
-std::vector<std::tuple<int, int>> idx2pair(std::set<int>& positions, std::string& ref){
-    vector<int> pairs_all = ref2pairs(ref);
-    std::vector<std::tuple<int, int>> pairs_diff;
-    for(auto& idx: positions){
-        if(pairs_all[idx]==idx)
-            pairs_diff.push_back(std::make_tuple(idx, idx));
-        else if (pairs_all[idx]>idx)
-            pairs_diff.push_back(std::make_tuple(idx, pairs_all[idx]));
-    }
-    return pairs_diff;
-}
-
-std::vector<std::string> readLinesFromFile(const std::string& filePath) {
-    std::vector<std::string> lines;
-    std::string line;
-    
-    std::ifstream file(filePath);
-
-    if (file.is_open()) {
-        while (std::getline(file, line)) {
-            lines.push_back(line);
-        }
-        file.close();
-    } else {
-        std::cerr << "Error: Unable to open the file " << filePath << std::endl;
-    }
-
-    return lines;
-}
-
-ulong count_enum(std::vector<std::tuple<int, int>>& pairs_diff){
-    ulong count = 1;
-    for(auto& pair: pairs_diff){
-        if (std::get<0>(pair) == std::get<1>(pair))
-            count *= 4;
-        else
-            count *= 6;
-    }
-    return count;
-}
-
-std::string enumerate(std::vector<std::tuple<int, int>>& pairs_diff, ulong order, std::string& seq){
-    std::string seq_new = seq;
-    for(auto& pair: pairs_diff){
-        int first = std::get<0>(pair);
-        int second = std::get<1>(pair);
-        if (first == second){
-            int idx_nuc = order%4;
-            seq_new[second] = nuc_all[idx_nuc];
-            order = order>>2;
-        }else{
-            int idx_nuc_pair = order%6;
-            seq_new[first] = nuc_pair_all[idx_nuc_pair][0];
-            seq_new[second] = nuc_pair_all[idx_nuc_pair][1];
-            order = order/6;
-        }
-    }
-    return seq_new;
-}
-
-bool check_compatible(std::string seq, std::string ss){
-    std::vector<int> pairs_list = ref2pairs(ss);
-    for(int i=0; i<seq.length(); i++){
-        int j = pairs_list[i];
-        if(i!=j){
-            char nuc_ij[3];
-            nuc_ij[0] = seq[i];
-            nuc_ij[1] = seq[j];
-            nuc_ij[2] = '\0';
-            if( strcmp(nuc_ij, "CG")&&strcmp(nuc_ij, "GC")&&strcmp(nuc_ij, "AU")&&strcmp(nuc_ij, "UA")&&strcmp(nuc_ij, "GU")&&strcmp(nuc_ij, "UG") ){
-                return false;
-            }
-        }
-    }
-    return true;
-}
-
 template <typename T>
 std::set<T> setIntersection(const std::set<T>& set1, const std::set<T>& set2) {
     std::set<T> intersection;
     std::set_intersection(set1.begin(), set1.end(), set2.begin(), set2.end(), std::inserter(intersection, intersection.begin()));
     return intersection;
-}
-
-std::string getSubstrings(std::set<int>& indices, std::string& str){
-    std::string substr;
-    for (int index : indices) {
-        substr += str[index];
-    }
-    return substr;
-}
-
-void print(Constraint& cs){
-    for(int idx: *cs.indices)
-        std::cout<<idx<<"\t";
-    std::cout<<std::endl;
-    for(std::string str: *cs.seqs){
-        std::string substr = getSubstrings(*cs.indices, str);
-        for(char c: substr)
-            std::cout<<c<<"\t";
-        std::cout<<std::endl;
-    }
-    std::cout<<std::endl;
 }
 
 void intersect(Constraint* cs1, Constraint* cs2){
@@ -2056,6 +1173,7 @@ std::string alg_5_helper_v2(std::string& ref1, std::string& ref2, std::string&co
             return "undesignable";
         }else if (X.size() > MAX_CONSTRAINT){
             std::cout<<"too many constraints: "<<X.size()<<"\t"<<"out of "<<ref2<<std::endl;
+            refs_checked.insert(ref2);
         }
         else{
             cs_ref2 = Constraint(&critical_positions, &X);
@@ -2277,32 +1395,6 @@ void test_cs(std::string& seq, std::string& ref1, std::string& ref2, bool is_ver
             std::cout<<ref_new<<"\t"<<n_enum<<std::endl;
         }
     }
-}
-
-int max_single(TreeNode* root){
-    int maxlen = 0;
-    if (root->first!=-1&&root->children.size()==1){
-        maxlen = (root->children[0]->first - root->first) + (root->second - root->children[0]->second)-2;
-    }
-    for(TreeNode* child: root->children){
-        int maxlen_child = max_single(child);
-        maxlen = max(maxlen, maxlen_child);
-    }
-    return maxlen;
-}
-
-std::string ml_degree(TreeNode* root){
-    std::string ml_str = "";
-    if (root->children.size() > 1){
-        ml_str += std::to_string(root->children.size()) + ":" + std::to_string(root->first) + "," + std::to_string(root->second) + ";";
-         for(TreeNode* child: root->children){
-            ml_str += std::to_string(child->first) + "," + std::to_string(child->second) + ";";
-         }
-    }
-    for(TreeNode* child: root->children){
-        ml_str += ml_degree(child);
-    } 
-    return ml_str;
 }
 
 void csv_process(std::string csv, std::string alg){
@@ -2628,49 +1720,59 @@ void csv_process(std::string csv, std::string alg){
                     printf("\n");
                 }
             }
-            // if (alg == "neighbor3"){
-            //     std::vector<LoopComplex> lc_list;
-            //     TreeNode* root = parseStringToTree(y_star);
-            //     int max_internal = max_single(root);
-            //     if(max_internal > 30){
-            //         std::string r = puzzle_id+","+std::to_string(max_internal);
-            //         records.push_back(r);
-            //         outputFile << r << std::endl;
-            //         continue;
-            //     }
-            //     tree2ThreeNeighbor(root, y_star, lc_list);
-            //     printf("lc_list size: %d\n", lc_list.size());
+            if (alg == "nb2plot" || alg == "nb3plot"){
+                auto start_time = std::chrono::high_resolution_clock::now();
+                std::vector<LoopComplex> lc_list;
+                TreeNode* root = parseStringToTree(y_star);
+                int max_internal = max_single(root);
+                if(max_internal > 30){
+                    std::string r = puzzle_id+","+std::to_string(max_internal);
+                    records.push_back(r);
+                    outputFile << r << std::endl;
+                    continue;
+                }
+                printf("alg: %s\n", alg.c_str());
+                if (alg == "nb2plot")
+                    tree2TwoNeighbor(root, y_star, lc_list);
+                else
+                    tree2ThreeNeighbor(root, y_star, lc_list);
+                printf("lc_list size: %d\n", lc_list.size());
 
-            //     // Sort the vector using a lambda expression
-            //     std::sort(lc_list.begin(), lc_list.end(), [](const LoopComplex &a, const LoopComplex &b) {
-            //         return a.count_uk < b.count_uk;});
-            //     for (auto lc: lc_list){
-            //         std::string target = y_star.substr(lc.start, lc.end-lc.start+1);
-            //         std::string subseq = seq.substr(lc.start, lc.end-lc.start+1);
-            //         printf(" count: %d\n", lc.count_uk);
-            //         printf("target: %s\n", target.c_str());
-            //         printf("   ref: %s\n", lc.ref.c_str());
-            //         printf("constr: %s\n", lc.constr.c_str());
-
-            //         std::string result = alg_5_helper_v2(target, lc.ref, lc.constr, subseq, verbose, dangle);
-            //         if (result == "undesignable"){
-            //             std::cout<<"undesignable!"<<std::endl;
-            //             int count_pairs = lc.node->children.size() + 1;
-            //             std::string r = puzzle_id+","+y_star+","+std::to_string(count_pairs)+","+std::to_string(lc.node->first)+","+std::to_string(lc.node->second);
-            //             for(auto child: lc.node->children)
-            //                 r += ","+std::to_string(child->first)+","+std::to_string(child->second);
-            //             r = r + ","+y_sub+","+std::to_string(y_rivals.size());
-            //             for(auto rival: y_rivals)
-            //                 r += ","+rival;
-            //             std::cout<<r<<std::endl;
-            //             records.push_back(r);
-            //             outputFile << r << std::endl;
-            //             // break;
-            //             // return;
-            //         }
-            //         printf("\n");
-            //     }
-            // }
+                // Sort the vector using a lambda expression
+                std::sort(lc_list.begin(), lc_list.end(), [](const LoopComplex &a, const LoopComplex &b) {
+                    return a.count_uk < b.count_uk;});
+                for (auto lc: lc_list){
+                    printf("alg: %s\n", alg.c_str());
+                    bool isSubset = false;
+                    if(id2m1.find(puzzle_id) != id2m1.end()){
+                        for(auto pair: lc.ps_inside){
+                            std::string pstr = std::to_string(pair.first) + "," + std::to_string(pair.second);
+                            if(id2m1[puzzle_id].count(pstr) > 0)
+                                isSubset = true;
+                        }
+                    }
+                    if(isSubset){
+                        std::cout<<"the current motif contains an undesignable motif!"<<std::endl;
+                        continue;
+                    }
+                    std::string target = y_star.substr(lc.start, lc.end-lc.start+1);
+                    std::string subseq = seq.substr(lc.start, lc.end-lc.start+1);
+                    printf(" count: %d\n", lc.count_uk);
+                    printf("target: %s\n", target.c_str());
+                    printf("   ref: %s\n", lc.ref.c_str());
+                    printf("constr: %s\n", lc.constr.c_str());
+                    {
+                        std::string id = puzzle_id + "_" + alg;
+                        std::string args4plot = compose_args4plot(id, y_star, lc.ps_outside, lc.ps_inside);
+                        std::cout<< args4plot <<std::endl;
+                        outputFile << args4plot <<std::endl;
+                        std::string pairstring = id + ":" + compose_pairstr(lc.ps_inside, lc.ps_outside);
+                        outputFile << pairstring << std::endl;
+                        std::cout<< pairstring <<std::endl;
+                    }
+                    printf("\n");
+                }
+            }
             if (alg == "dsedge"){
                 std::vector<LoopComplex> lc_list;
                 TreeNode* root = parseStringToTree(y_star);
@@ -3501,6 +2603,13 @@ int main(int argc, char* argv[]) {
                 }
                 printf("\n");
             }
+        }
+    }else if (alg == "showtree"){
+        std::string ref;
+        // Read input line by line until EOF (end of file) is reached
+        while (std::getline(std::cin, ref)) {
+            TreeNode* root = parseStringToTree(ref);
+            root->printTree();
         }
     }
     return 0;
