@@ -9,9 +9,14 @@ struct TreeNode {
     int first; // root: -1
     int second; // 
     TreeNode* parent = NULL;
+    int child_id = -1;
     std::vector<TreeNode*> children;
-
+    std::string looptype;
+    std::vector<int> neighbors;
+    std::vector<int> looplens;
+    std::string jstring;
     TreeNode(int first_val, int second_val);
+    void setLoop();
     void printTree();
     void printTreeEnum(std::string& seq, std::string& y);
     void printTree(std::string ref);
@@ -32,6 +37,12 @@ struct LoopComplex {
     int right;
     std::vector<std::pair<int, int>> ps_outside;
     std::vector<std::pair<int, int>> ps_inside;
+    std::vector<int> neighbors;
+
+    LoopComplex(int count, std::string y, std::string cs, int s, int e, TreeNode* n, int l, int r, std::vector<std::pair<int, int>> p_out, std::vector<std::pair<int, int>> p_in);
+    void set_neighbors(std::vector<int> nbs);
+
+    std::string jsmotif(std::string id);
 };
 
 // Define a basic constraint structure

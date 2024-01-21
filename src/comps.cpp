@@ -8,6 +8,7 @@
 #include <algorithm>
 
 #include "json.hpp"
+using json = nlohmann::json;
 
 #include "comps.h"
 #include "utils.h"
@@ -21,6 +22,57 @@ extern std::vector<std::pair<int, int>> pairs_inside;
 TreeNode::TreeNode(int first_val, int second_val){
         first = first_val;
         second = second_val;
+    }
+
+void TreeNode::setLoop(){
+        if(first == -1){
+            assert(parent == NULL);
+            looptype = "E";
+        }else{
+            // parent is the first neighbor
+            neighbors.push_back(0);
+            if(children.size() == 0){
+                looptype = "H";
+            }
+            else if (children.size() == 1){
+                if(first+1 == children[0]->first && second-1 == children[0]->second)
+                    looptype = "S";
+                else if (first+1 == children[0]->first || second-1 == children[0]->second)
+                    looptype = "B";
+                else if (first+1 < children[0]->first || second-1 > children[0]->second)
+                    looptype = "I";
+                else{
+                    std::cerr << "two pairs of internal/bulge/stack are not correct!" << std::endl;
+                    assert(false);
+                }
+            }
+            else{
+                looptype = "M";
+            }
+        }
+        // children are neighbors
+        for(int ic = 0; ic < children.size(); ic++)
+            neighbors.push_back(ic+1);
+        // lens of (unpaired) loops
+        if(children.size() == 0)
+            looplens.push_back(second - first - 1);
+        else{
+            for(int i = 0; i < children.size(); i++){
+                if(i == 0)
+                    looplens.push_back(children[i]->first - first - 1);
+                else
+                    looplens.push_back(children[i]->first - children[i-1]->second - 1);
+            }
+            looplens.push_back(second - children.back()->second - 1);
+        }
+        assert(looplens.size() == children.size()+1);
+
+        json js;
+        js["type"] = looptype;
+        js["neighbors"] = neighbors;
+        js["loops"] = looplens;
+        js["child_id"] = child_id;
+        jstring = js.dump();
     }
 
 void TreeNode::printTree(){
@@ -91,6 +143,24 @@ void TreeNode::printTree(std::string& ref, std::string& seq, std::vector<std::pa
     }       
 }
 
+LoopComplex::LoopComplex(int count, std::string y, std::string cs, int s, int e, TreeNode* n, int l, int r, std::vector<std::pair<int, int>> p_out, std::vector<std::pair<int, int>> p_in){
+    count_uk = count;
+    ref = y;
+    constr = cs;
+    start = s;
+    end = e;
+    node = n;
+    left = l;
+    right = r;
+    ps_outside = p_out;
+    ps_inside = p_in;
+
+}
+
+void LoopComplex::set_neighbors(std::vector<int> nbs){
+    neighbors = nbs;
+}
+
 // Constructor that accepts two arguments to initialize the members
 Constraint::Constraint(std::set<int>* index_set, std::vector<std::string>* seq_list){
     indices = index_set;
@@ -156,7 +226,7 @@ void tree2Loops(TreeNode* root, std::string& ref, std::vector<LoopComplex>& lc_l
             start = 0;
             end = ref.length() - 1;
         }
-        LoopComplex lc = {count_unknown, cref, constr, start, end, root, root->first, root->second, pairs_outside, pairs_inside};
+        LoopComplex lc(count_unknown, cref, constr, start, end, root, root->first, root->second, pairs_outside, pairs_inside);
         lc_list.push_back(lc);
     }
     printf("\n");
@@ -269,7 +339,8 @@ void tree2TwoNeighbor(TreeNode* root, std::string& ref, std::vector<LoopComplex>
                         end = ref.length() - 1;
                     }
                 }
-                LoopComplex lc = {count_unknown, cref, constr, start, end, root, root->first, root->second, pairs_outside, pairs_inside};
+                LoopComplex lc(count_unknown, cref, constr, start, end, root, root->first, root->second, pairs_outside, pairs_inside);
+                lc.set_neighbors({i, j});
                 lc_list.push_back(lc);
             }
         }
@@ -341,7 +412,8 @@ void tree2ThreeNeighbor(TreeNode* root, std::string& ref, std::vector<LoopComple
                         end = ref.length() - 1;
                     }
                 }
-                LoopComplex lc = {count_unknown, cref, constr, start, end, root, root->first, root->second, pairs_outside, pairs_inside};
+                LoopComplex lc(count_unknown, cref, constr, start, end, root, root->first, root->second, pairs_outside, pairs_inside);
+                lc.set_neighbors(ps);
                 lc_list.push_back(lc);
             // }
         }
@@ -387,7 +459,8 @@ void tree2Edges(TreeNode* root, std::string& ref, std::vector<LoopComplex>& lc_l
             end = ref.length() - 1;
         }
         assert(pairs_inside.size() == 1);
-        LoopComplex lc = {count_unknown, cref, constr, start, end, root, root->first, root->second, pairs_outside, pairs_inside};
+        LoopComplex lc(count_unknown, cref, constr, start, end, root, root->first, root->second, pairs_outside, pairs_inside);
+        lc.set_neighbors({0});
         lc_list.push_back(lc);
     }
     printf("\n");
@@ -471,7 +544,7 @@ void tree2MLoops(TreeNode* root, std::string& ref, std::vector<LoopComplex>& lc_
             start = 0;
             end = ref.length() - 1;
         }
-        LoopComplex lc = {count_unknown, cref, constr, start, end, root, root->first, root->second, pairs_outside, pairs_inside};
+        LoopComplex lc(count_unknown, cref, constr, start, end, root, root->first, root->second, pairs_outside, pairs_inside);
         lc_list.push_back(lc);
     }
     printf("\n");
@@ -801,4 +874,23 @@ void print(Constraint& cs){
         std::cout<<std::endl;
     }
     std::cout<<std::endl;
+}
+
+std::string LoopComplex::jsmotif(std::string id){
+    json js;
+    js["id"] = id;
+    if(neighbors.size() == 1){
+        assert(neighbors[0]==0);
+        json parent_j = json::parse(node->parent->jstring);
+        json children_j;
+        for(int i = 0; i < node->parent->children.size(); i++){
+            if(i+1 == node->child_id)
+                children_j.push_back(json::parse(node->jstring));
+            else
+                children_j.push_back(nullptr);
+        }
+        parent_j["children"] = children_j;
+        js["root"] = parent_j;
+    }
+    return js.dump();
 }

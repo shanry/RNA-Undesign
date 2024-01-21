@@ -155,14 +155,19 @@ TreeNode* parseStringToTree(const std::string& ref) {
             TreeNode* node = new TreeNode(i, -2);
             nodeStack.top()->children.push_back(node);
             node->parent = nodeStack.top();
+            node->child_id = nodeStack.top()->children.size(); // 1-based child id
             nodeStack.push(node);
         } else if (c == ')') {
             nodeStack.top()->second = i;
-            // printf("pop: (%d, %d), %d\n", nodeStack.top()->first, nodeStack.top()->second, nodeStack.top()->children.size());
+            nodeStack.top()->setLoop();
             nodeStack.pop();
+
         }
     }
-    // printf("root: (%d, %d)\n", nodeStack.top()->first, nodeStack.top()->second);
+    assert(nodeStack.size() == 1);
+    nodeStack.top()->setLoop();
+    nodeStack.pop();
+
     return root;
 }
 
@@ -1339,18 +1344,23 @@ void csv_process(std::string csv, std::string alg){
     
     for(int i = 1; i < df.size(); i++){
         auto row = df[i];
-        if (row[7] != "None"){
-            std::cout<<"Puzzle ID: "<<row[1]<<std::endl;
-            std::cout<<"Puzzle name: "<<row[2]<<std::endl;
-            std::cout<<row[8]<<std::endl;
-            std::cout<<row[4]<<std::endl;
-            std::cout<<row[7]<<std::endl;
-            std::cout<<std::endl;
+        {
+            // std::cout<<"Puzzle name: "<<row[2]<<std::endl;
+            // std::cout<<row[8]<<std::endl;
+            // std::cout<<row[4]<<std::endl;
+            // std::cout<<row[7]<<std::endl;
+            // std::cout<<std::endl;
 
-            std::string puzzle_id = row[1];
-            std::string seq = row[8];
-            std::string y_star = row[4];
-            std::string y_prim = row[7];
+            std::string puzzle_id = row[0];
+            std::string seq;
+            std::string y_star = row[1];
+            if(row.size() > 2)
+                seq = row[2];
+            else
+                seq = tg_init(y_star);
+            std::string y_prim; // currently dummy
+
+            std::cout<<"Puzzle ID: "<<puzzle_id<<std::endl;
 
             if (alg == "1"){
                 auto start_time = std::chrono::high_resolution_clock::now();
@@ -1359,7 +1369,7 @@ void csv_process(std::string csv, std::string alg){
                 const std::chrono::duration<double, std::milli> time_ms = end_time - start_time;
                 printf("alg1(v2) time: %.4f seconds\n", time_ms/1000.f);
                 if (result == "undesignable"){
-                    std::string r = row[1]+","+y_star+","+y_prim;
+                    std::string r = puzzle_id+","+y_star+","+y_prim;
                     std::set<std::pair<int, int>> pairset_star = ref2pairset(y_star);
                     std::set<std::pair<int, int>> pairset_prim = ref2pairset(y_prim);
                     for (std::pair<int, int> p: pairset_prim){
@@ -1382,7 +1392,7 @@ void csv_process(std::string csv, std::string alg){
                 const std::chrono::duration<double, std::milli> time_ms = end_time - start_time;
                 printf("alg2 time: %.4f seconds\n", time_ms/1000.f);
                 if (result == "undesignable"){
-                    std::string r = row[1]+","+y_star+","+std::to_string(y_rivals.size());
+                    std::string r = puzzle_id+","+y_star+","+std::to_string(y_rivals.size());
                     for(auto rival: y_rivals)
                         r += ","+rival;
                     records.push_back(r);
@@ -1403,7 +1413,7 @@ void csv_process(std::string csv, std::string alg){
                     std::cout << "Found at position: " << found << std::endl;
                     std::cout<<"substr indices:"<<found<<","<<found+y_sub.length()<<std::endl;
 
-                    std::string r = row[1]+","+y_star+","+std::to_string(found)+","+std::to_string(found+y_sub.length())+","+y_sub+","+std::to_string(y_rivals.size());
+                    std::string r = puzzle_id+","+y_star+","+std::to_string(found)+","+std::to_string(found+y_sub.length())+","+y_sub+","+std::to_string(y_rivals.size());
                     for(auto rival: y_rivals)
                         r += ","+rival;
                     records.push_back(r);
@@ -1444,7 +1454,7 @@ void csv_process(std::string csv, std::string alg){
                                 std::cout << "Found at position: " << found << std::endl;
                                 std::cout<<"substr indices:"<<found<<","<<found+y_sub.length()<<std::endl;
 
-                                std::string r = row[1]+","+y_star+","+std::to_string(found)+","+std::to_string(found+y_sub.length())+","+y_sub+","+std::to_string(y_rivals.size());
+                                std::string r = puzzle_id+","+y_star+","+std::to_string(found)+","+std::to_string(found+y_sub.length())+","+y_sub+","+std::to_string(y_rivals.size());
                                 for(auto rival: y_rivals)
                                     r += ","+rival;
                                 records.push_back(r);
@@ -1481,7 +1491,7 @@ void csv_process(std::string csv, std::string alg){
                         size_t found = y_star.find(y_sub);
                         assert (found != std::string::npos);
                         int found_end = found+y_sub.length();
-                        std::string r = row[1]+","+y_star+",1,"+std::to_string(lc.node->first)+","+std::to_string(lc.node->second)+","+y_sub+","+std::to_string(y_rivals.size());
+                        std::string r = puzzle_id+","+y_star+",1,"+std::to_string(lc.node->first)+","+std::to_string(lc.node->second)+","+y_sub+","+std::to_string(y_rivals.size());
                         for(auto rival: y_rivals)
                             r += ","+rival;
                         // Convert duration to seconds and then cast to float
@@ -1489,12 +1499,16 @@ void csv_process(std::string csv, std::string alg){
                         r += " time:" + fl2str(time_seconds, 4) + ";";
                         std::cout<<r<<std::endl;
                         records.push_back(r);
-                        std::string id = row[1] + "_" + alg;
+                        std::string id = puzzle_id + "_" + alg;
                         std::string args4plot = compose_args4plot(id, y_star, lc.ps_outside, lc.ps_inside);
                         outputFile << r << std::endl;
                         outputFile << args4plot << std::endl;
                         std::string pairstring = id + ":" + compose_pairstr(lc.ps_inside, lc.ps_outside);
-                        outputFile << pairstring <<endl;
+                        std::cout << pairstring << std::endl;
+                        outputFile << pairstring << std::endl;
+                        std::string jstr = lc.jsmotif(puzzle_id);
+                        std::cout << jstr << std::endl;
+                        outputFile << jstr << std::endl;
                         // break;
                     }
                     printf("\n");
@@ -1522,7 +1536,7 @@ void csv_process(std::string csv, std::string alg){
                     if (result == "undesignable"){
                         std::cout<<"undesignable!"<<std::endl;
                         int count_pairs = lc.node->children.size() + 1;
-                        std::string r = row[1]+","+y_star+","+y_prim+","+std::to_string(count_pairs)+","+std::to_string(lc.node->first)+","+std::to_string(lc.node->second);
+                        std::string r = puzzle_id+","+y_star+","+y_prim+","+std::to_string(count_pairs)+","+std::to_string(lc.node->first)+","+std::to_string(lc.node->second);
                         for(auto child: lc.node->children)
                             r += ","+std::to_string(child->first)+","+std::to_string(child->second);
                         r = r + ","+y_sub+","+std::to_string(y_rivals.size());
@@ -1558,7 +1572,7 @@ void csv_process(std::string csv, std::string alg){
                     if (result == "undesignable"){
                         std::cout<<"undesignable!"<<std::endl;
                         int count_pairs = lc.node->children.size() + 1;
-                        std::string r = row[1]+","+y_star+","+y_prim+","+std::to_string(count_pairs)+","+std::to_string(lc.node->first)+","+std::to_string(lc.node->second);
+                        std::string r = puzzle_id+","+y_star+","+y_prim+","+std::to_string(count_pairs)+","+std::to_string(lc.node->first)+","+std::to_string(lc.node->second);
                         for(auto child: lc.node->children)
                             r += ","+std::to_string(child->first)+","+std::to_string(child->second);
                         r = r + ","+y_sub+","+std::to_string(y_rivals.size());
@@ -1637,13 +1651,16 @@ void csv_process(std::string csv, std::string alg){
                         outputFile << args4plot <<std::endl;
                         std::string pairstring = id + ":" + compose_pairstr(lc.ps_inside, lc.ps_outside);
                         outputFile << pairstring <<endl;
+                        std::string jstr = lc.jsmotif(puzzle_id);
+                        std::cout << jstr << std::endl;
+                        outputFile << jstr << std::endl;
                         // break;
                         // return;
                     }
                     printf("\n");
                 }
             }
-            if (alg == "nb2plot" || alg == "nb3plot"){
+            if (alg == "nb1plot" || alg == "nb2plot" || alg == "nb3plot"){
                 auto start_time = std::chrono::high_resolution_clock::now();
                 std::vector<LoopComplex> lc_list;
                 TreeNode* root = parseStringToTree(y_star);
@@ -1655,7 +1672,9 @@ void csv_process(std::string csv, std::string alg){
                     continue;
                 }
                 printf("alg: %s\n", alg.c_str());
-                if (alg == "nb2plot")
+                if (alg == "nb1plot")
+                    tree2Edges(root, y_star, lc_list);
+                else if (alg == "nb2plot")
                     tree2TwoNeighbor(root, y_star, lc_list);
                 else
                     tree2ThreeNeighbor(root, y_star, lc_list);
@@ -1777,346 +1796,346 @@ void csv_process(std::string csv, std::string alg){
     std::cout << "Strings written to file: " << fileName << std::endl;
 }
 
-void txt_process(std::string txt, std::string alg){
-    std::vector<std::string> lines = readLinesFromFile(txt);
-    printf("line count: %d\n", lines.size());
-    // Specify the file name
-    std::string fileName = txt + "." + alg + ".log."+getCurrentTimestamp()+".txt";
-    // Open the file for writing
-    std::ofstream outputFile(fileName);
+// void txt_process(std::string txt, std::string alg){
+//     std::vector<std::string> lines = readLinesFromFile(txt);
+//     printf("line count: %d\n", lines.size());
+//     // Specify the file name
+//     std::string fileName = txt + "." + alg + ".log."+getCurrentTimestamp()+".txt";
+//     // Open the file for writing
+//     std::ofstream outputFile(fileName);
 
-    // Check if the file is open
-    if (!outputFile.is_open()) {
-        std::cerr << "Error opening the file: " << fileName << std::endl;
-        return;
-    }
-    std::vector<std::string> records;
-    for(int i = 0; i < lines.size(); i++){
-        if (true){
-            std::cout<<"Puzzle ID: "<<i<<std::endl;
-            std::cout<<"Puzzle name: "<<i<<std::endl;
+//     // Check if the file is open
+//     if (!outputFile.is_open()) {
+//         std::cerr << "Error opening the file: " << fileName << std::endl;
+//         return;
+//     }
+//     std::vector<std::string> records;
+//     for(int i = 0; i < lines.size(); i++){
+//         if (true){
+//             std::cout<<"Puzzle ID: "<<i<<std::endl;
+//             std::cout<<"Puzzle name: "<<i<<std::endl;
 
-            std::string puzzle_id = std::to_string(i);
-            std::string y_star = lines[i];
-            std::string seq = tg_init(y_star);
-            // std::string y_prim = row[7];
+//             std::string puzzle_id = std::to_string(i);
+//             std::string y_star = lines[i];
+//             std::string seq = tg_init(y_star);
+//             // std::string y_prim = row[7];
 
-            if (alg == "inspect"){
-                 TreeNode* root = parseStringToTree(y_star);
-                 int max_internal = max_single(root);
-                 std::string r = puzzle_id+","+std::to_string(max_internal);
-                 records.push_back(r);
-                 outputFile << r << std::endl;
-            }
-            if (alg == "mdegree"){
-                 TreeNode* root = parseStringToTree(y_star);
-                 std::string mloops = ml_degree(root);
-                 std::string r = puzzle_id + "," + y_star + ";" + mloops;
-                 records.push_back(r);
-                 outputFile << r << std::endl;
-            }
-            // if (alg == "edge"){
-            //     std::vector<LoopComplex> lc_list;
-            //     TreeNode* root = parseStringToTree(y_star);
-            //     int max_internal = max_single(root);
-            //     if(max_internal > 30){
-            //         std::string r = puzzle_id+","+std::to_string(max_internal);
-            //         records.push_back(r);
-            //         outputFile << r << std::endl;
-            //         continue;
-            //     }
-            //     tree2Edges(root, y_star, lc_list);
-            //     printf("lc_list size: %d\n", lc_list.size());
-            //     // Sort the vector using a lambda expression
-            //     std::sort(lc_list.begin(), lc_list.end(), [](const LoopComplex &a, const LoopComplex &b) {
-            //         return a.count_uk < b.count_uk;});
-            //     for (auto lc: lc_list){
-            //         std::string target = y_star.substr(lc.start, lc.end-lc.start+1);
-            //         std::string subseq = seq.substr(lc.start, lc.end-lc.start+1);
-            //         printf(" count: %d\n", lc.count_uk);
-            //         printf("target: %s\n", target.c_str());
-            //         printf("   ref: %s\n", lc.ref.c_str());
-            //         printf("constr: %s\n", lc.constr.c_str());
+//             if (alg == "inspect"){
+//                  TreeNode* root = parseStringToTree(y_star);
+//                  int max_internal = max_single(root);
+//                  std::string r = puzzle_id+","+std::to_string(max_internal);
+//                  records.push_back(r);
+//                  outputFile << r << std::endl;
+//             }
+//             if (alg == "mdegree"){
+//                  TreeNode* root = parseStringToTree(y_star);
+//                  std::string mloops = ml_degree(root);
+//                  std::string r = puzzle_id + "," + y_star + ";" + mloops;
+//                  records.push_back(r);
+//                  outputFile << r << std::endl;
+//             }
+//             // if (alg == "edge"){
+//             //     std::vector<LoopComplex> lc_list;
+//             //     TreeNode* root = parseStringToTree(y_star);
+//             //     int max_internal = max_single(root);
+//             //     if(max_internal > 30){
+//             //         std::string r = puzzle_id+","+std::to_string(max_internal);
+//             //         records.push_back(r);
+//             //         outputFile << r << std::endl;
+//             //         continue;
+//             //     }
+//             //     tree2Edges(root, y_star, lc_list);
+//             //     printf("lc_list size: %d\n", lc_list.size());
+//             //     // Sort the vector using a lambda expression
+//             //     std::sort(lc_list.begin(), lc_list.end(), [](const LoopComplex &a, const LoopComplex &b) {
+//             //         return a.count_uk < b.count_uk;});
+//             //     for (auto lc: lc_list){
+//             //         std::string target = y_star.substr(lc.start, lc.end-lc.start+1);
+//             //         std::string subseq = seq.substr(lc.start, lc.end-lc.start+1);
+//             //         printf(" count: %d\n", lc.count_uk);
+//             //         printf("target: %s\n", target.c_str());
+//             //         printf("   ref: %s\n", lc.ref.c_str());
+//             //         printf("constr: %s\n", lc.constr.c_str());
 
-            //         std::string result = alg_5_helper_v2(target, lc.ref, lc.constr, subseq, verbose, dangle);
-            //         if (result == "undesignable"){
-            //             std::cout<<"undesignable!"<<std::endl;
-            //             size_t found = y_star.find(y_sub);
-            //             assert (found != std::string::npos);
-            //             int found_end = found+y_sub.length();
-            //             std::string r = puzzle_id+","+y_star+",1,"+std::to_string(lc.node->first)+","+std::to_string(lc.node->second)+","+y_sub+","+std::to_string(y_rivals.size());
-            //             for(auto rival: y_rivals)
-            //                 r += ","+rival;
-            //             std::cout<<r<<std::endl;
-            //             records.push_back(r);
-            //             outputFile << r << std::endl;
-            //             // break;
-            //         }
-            //         printf("\n");
-            //     }
-            // }
-            if (alg == "neighbor2"){
-                auto start_time = std::chrono::high_resolution_clock::now();
-                std::vector<LoopComplex> lc_list;
-                TreeNode* root = parseStringToTree(y_star);
-                int max_internal = max_single(root);
-                if(max_internal > 30){
-                    std::string r = puzzle_id+","+std::to_string(max_internal);
-                    records.push_back(r);
-                    outputFile << r << std::endl;
-                    continue;
-                }
-                tree2TwoNeighbor(root, y_star, lc_list);
-                printf("lc_list size: %d\n", lc_list.size());
+//             //         std::string result = alg_5_helper_v2(target, lc.ref, lc.constr, subseq, verbose, dangle);
+//             //         if (result == "undesignable"){
+//             //             std::cout<<"undesignable!"<<std::endl;
+//             //             size_t found = y_star.find(y_sub);
+//             //             assert (found != std::string::npos);
+//             //             int found_end = found+y_sub.length();
+//             //             std::string r = puzzle_id+","+y_star+",1,"+std::to_string(lc.node->first)+","+std::to_string(lc.node->second)+","+y_sub+","+std::to_string(y_rivals.size());
+//             //             for(auto rival: y_rivals)
+//             //                 r += ","+rival;
+//             //             std::cout<<r<<std::endl;
+//             //             records.push_back(r);
+//             //             outputFile << r << std::endl;
+//             //             // break;
+//             //         }
+//             //         printf("\n");
+//             //     }
+//             // }
+//             if (alg == "neighbor2"){
+//                 auto start_time = std::chrono::high_resolution_clock::now();
+//                 std::vector<LoopComplex> lc_list;
+//                 TreeNode* root = parseStringToTree(y_star);
+//                 int max_internal = max_single(root);
+//                 if(max_internal > 30){
+//                     std::string r = puzzle_id+","+std::to_string(max_internal);
+//                     records.push_back(r);
+//                     outputFile << r << std::endl;
+//                     continue;
+//                 }
+//                 tree2TwoNeighbor(root, y_star, lc_list);
+//                 printf("lc_list size: %d\n", lc_list.size());
 
-                // Sort the vector using a lambda expression
-                std::sort(lc_list.begin(), lc_list.end(), [](const LoopComplex &a, const LoopComplex &b) {
-                    return a.count_uk < b.count_uk;});
-                for (auto lc: lc_list){
-                    std::string target = y_star.substr(lc.start, lc.end-lc.start+1);
-                    std::string subseq = seq.substr(lc.start, lc.end-lc.start+1);
-                    printf(" count: %d\n", lc.count_uk);
-                    printf("target: %s\n", target.c_str());
-                    printf("   ref: %s\n", lc.ref.c_str());
-                    printf("constr: %s\n", lc.constr.c_str());
+//                 // Sort the vector using a lambda expression
+//                 std::sort(lc_list.begin(), lc_list.end(), [](const LoopComplex &a, const LoopComplex &b) {
+//                     return a.count_uk < b.count_uk;});
+//                 for (auto lc: lc_list){
+//                     std::string target = y_star.substr(lc.start, lc.end-lc.start+1);
+//                     std::string subseq = seq.substr(lc.start, lc.end-lc.start+1);
+//                     printf(" count: %d\n", lc.count_uk);
+//                     printf("target: %s\n", target.c_str());
+//                     printf("   ref: %s\n", lc.ref.c_str());
+//                     printf("constr: %s\n", lc.constr.c_str());
 
-                    std::string result = alg_5_helper_v2(target, lc.ref, lc.constr, subseq, verbose, dangle);
-                    if (result == "undesignable"){
-                        std::cout<<"undesignable!"<<std::endl;
-                        auto end_time = std::chrono::high_resolution_clock::now();
-                        const std::chrono::duration<double, std::milli> time_ms = end_time - start_time;
-                        printf("time cost: %.4f seconds\n", time_ms/1000.f);
-                        int count_pairs = lc.node->children.size() + 1;
-                        std::string r = puzzle_id+","+y_star+","+std::to_string(count_pairs)+","+std::to_string(lc.node->first)+","+std::to_string(lc.node->second);
-                        for(auto child: lc.node->children)
-                            r += ","+std::to_string(child->first)+","+std::to_string(child->second);
-                        r = r + ","+y_sub+","+std::to_string(y_rivals.size());
-                        for(auto rival: y_rivals)
-                            r += ","+rival;
-                        // Convert duration to seconds and then cast to float
-                        float time_seconds = std::chrono::duration_cast<std::chrono::duration<float>>(time_ms).count();
-                        r += " time:" + fl2str(time_seconds) + ";";
-                        std::cout<<r<<std::endl;
-                        records.push_back(r);
-                        std::string id = puzzle_id + "_" + alg;
-                        std::string args4plot = compose_args4plot(id, y_star, lc.ps_outside, lc.ps_inside);
-                        outputFile << r << std::endl;
-                        outputFile << args4plot <<std::endl;
-                        // break;
-                        // return;
-                    }
-                    printf("\n");
-                }
-            }
-            if (alg == "dsedge"){
-                std::vector<LoopComplex> lc_list;
-                TreeNode* root = parseStringToTree(y_star);
-                int max_internal = max_single(root);
-                if(max_internal > 30){
-                    std::string r = puzzle_id+","+std::to_string(max_internal);
-                    records.push_back(r);
-                    outputFile << r << std::endl;
-                    continue;
-                }
-                tree2Edges(root, y_star, lc_list);
-                printf("lc_list size: %d\n", lc_list.size());
-                // Sort the vector using a lambda expression
-                std::sort(lc_list.begin(), lc_list.end(), [](const LoopComplex &a, const LoopComplex &b) {
-                    return a.count_uk < b.count_uk;});
-                std::string r = puzzle_id+";"+y_star+";";
-                std::vector<std::pair<int, int>> pairs_ds;
-                std::vector<std::pair<int, int>> pairs_ud;
-                for (auto lc: lc_list){
-                    std::string target = y_star.substr(lc.start, lc.end-lc.start+1);
-                    std::string subseq = seq.substr(lc.start, lc.end-lc.start+1);
-                    printf(" count: %d\n", lc.count_uk);
-                    printf("target: %s\n", target.c_str());
-                    printf("   ref: %s\n", lc.ref.c_str());
-                    printf("constr: %s\n", lc.constr.c_str());
-                    std::string result = alg_5_helper_v2(target, lc.ref, lc.constr, subseq, verbose, dangle);
-                    if (result == "UMFE"){
-                        std::cout<<"UMFE!"<<std::endl;
-                        r += std::to_string(lc.left) + "," + std::to_string(lc.right) + ";";
-                        pairs_ds.push_back(std::make_pair(lc.left, lc.right));
-                        // break;
-                    }else if (result == "undesignable"){
-                        pairs_ud.push_back(std::make_pair(lc.left, lc.right));
-                    }
-                    printf("\n");
-                }
-                std::cout<<r<<std::endl;
-                records.push_back(r);
-                std::string id = puzzle_id + "_" + "dsedge";
-                std::string pairsplot = compose_pairsplot(id, y_star, pairs_ds, pairs_ud);
-                outputFile << r << std::endl;
-                outputFile << pairsplot << std::endl;
-            }
-            if (alg == "loop"){
-                std::vector<LoopComplex> lc_list;
-                TreeNode* root = parseStringToTree(y_star);
-                int max_internal = max_single(root);
-                if(max_internal > 30){
-                    std::string r = puzzle_id+","+std::to_string(max_internal);
-                    records.push_back(r);
-                    outputFile << r << std::endl;
-                    continue;
-                }
-                tree2Loops(root, y_star, lc_list);
-                printf("lc_list size: %d\n", lc_list.size());
+//                     std::string result = alg_5_helper_v2(target, lc.ref, lc.constr, subseq, verbose, dangle);
+//                     if (result == "undesignable"){
+//                         std::cout<<"undesignable!"<<std::endl;
+//                         auto end_time = std::chrono::high_resolution_clock::now();
+//                         const std::chrono::duration<double, std::milli> time_ms = end_time - start_time;
+//                         printf("time cost: %.4f seconds\n", time_ms/1000.f);
+//                         int count_pairs = lc.node->children.size() + 1;
+//                         std::string r = puzzle_id+","+y_star+","+std::to_string(count_pairs)+","+std::to_string(lc.node->first)+","+std::to_string(lc.node->second);
+//                         for(auto child: lc.node->children)
+//                             r += ","+std::to_string(child->first)+","+std::to_string(child->second);
+//                         r = r + ","+y_sub+","+std::to_string(y_rivals.size());
+//                         for(auto rival: y_rivals)
+//                             r += ","+rival;
+//                         // Convert duration to seconds and then cast to float
+//                         float time_seconds = std::chrono::duration_cast<std::chrono::duration<float>>(time_ms).count();
+//                         r += " time:" + fl2str(time_seconds) + ";";
+//                         std::cout<<r<<std::endl;
+//                         records.push_back(r);
+//                         std::string id = puzzle_id + "_" + alg;
+//                         std::string args4plot = compose_args4plot(id, y_star, lc.ps_outside, lc.ps_inside);
+//                         outputFile << r << std::endl;
+//                         outputFile << args4plot <<std::endl;
+//                         // break;
+//                         // return;
+//                     }
+//                     printf("\n");
+//                 }
+//             }
+//             if (alg == "dsedge"){
+//                 std::vector<LoopComplex> lc_list;
+//                 TreeNode* root = parseStringToTree(y_star);
+//                 int max_internal = max_single(root);
+//                 if(max_internal > 30){
+//                     std::string r = puzzle_id+","+std::to_string(max_internal);
+//                     records.push_back(r);
+//                     outputFile << r << std::endl;
+//                     continue;
+//                 }
+//                 tree2Edges(root, y_star, lc_list);
+//                 printf("lc_list size: %d\n", lc_list.size());
+//                 // Sort the vector using a lambda expression
+//                 std::sort(lc_list.begin(), lc_list.end(), [](const LoopComplex &a, const LoopComplex &b) {
+//                     return a.count_uk < b.count_uk;});
+//                 std::string r = puzzle_id+";"+y_star+";";
+//                 std::vector<std::pair<int, int>> pairs_ds;
+//                 std::vector<std::pair<int, int>> pairs_ud;
+//                 for (auto lc: lc_list){
+//                     std::string target = y_star.substr(lc.start, lc.end-lc.start+1);
+//                     std::string subseq = seq.substr(lc.start, lc.end-lc.start+1);
+//                     printf(" count: %d\n", lc.count_uk);
+//                     printf("target: %s\n", target.c_str());
+//                     printf("   ref: %s\n", lc.ref.c_str());
+//                     printf("constr: %s\n", lc.constr.c_str());
+//                     std::string result = alg_5_helper_v2(target, lc.ref, lc.constr, subseq, verbose, dangle);
+//                     if (result == "UMFE"){
+//                         std::cout<<"UMFE!"<<std::endl;
+//                         r += std::to_string(lc.left) + "," + std::to_string(lc.right) + ";";
+//                         pairs_ds.push_back(std::make_pair(lc.left, lc.right));
+//                         // break;
+//                     }else if (result == "undesignable"){
+//                         pairs_ud.push_back(std::make_pair(lc.left, lc.right));
+//                     }
+//                     printf("\n");
+//                 }
+//                 std::cout<<r<<std::endl;
+//                 records.push_back(r);
+//                 std::string id = puzzle_id + "_" + "dsedge";
+//                 std::string pairsplot = compose_pairsplot(id, y_star, pairs_ds, pairs_ud);
+//                 outputFile << r << std::endl;
+//                 outputFile << pairsplot << std::endl;
+//             }
+//             if (alg == "loop"){
+//                 std::vector<LoopComplex> lc_list;
+//                 TreeNode* root = parseStringToTree(y_star);
+//                 int max_internal = max_single(root);
+//                 if(max_internal > 30){
+//                     std::string r = puzzle_id+","+std::to_string(max_internal);
+//                     records.push_back(r);
+//                     outputFile << r << std::endl;
+//                     continue;
+//                 }
+//                 tree2Loops(root, y_star, lc_list);
+//                 printf("lc_list size: %d\n", lc_list.size());
 
-                // Sort the vector using a lambda expression
-                std::sort(lc_list.begin(), lc_list.end(), [](const LoopComplex &a, const LoopComplex &b) {
-                    return a.count_uk < b.count_uk;});
-                for (auto lc: lc_list){
-                    std::string target = y_star.substr(lc.start, lc.end-lc.start+1);
-                    std::string subseq = seq.substr(lc.start, lc.end-lc.start+1);
-                    printf(" count: %d\n", lc.count_uk);
-                    printf("target: %s\n", target.c_str());
-                    printf("   ref: %s\n", lc.ref.c_str());
-                    printf("constr: %s\n", lc.constr.c_str());
+//                 // Sort the vector using a lambda expression
+//                 std::sort(lc_list.begin(), lc_list.end(), [](const LoopComplex &a, const LoopComplex &b) {
+//                     return a.count_uk < b.count_uk;});
+//                 for (auto lc: lc_list){
+//                     std::string target = y_star.substr(lc.start, lc.end-lc.start+1);
+//                     std::string subseq = seq.substr(lc.start, lc.end-lc.start+1);
+//                     printf(" count: %d\n", lc.count_uk);
+//                     printf("target: %s\n", target.c_str());
+//                     printf("   ref: %s\n", lc.ref.c_str());
+//                     printf("constr: %s\n", lc.constr.c_str());
 
-                    std::string result = alg_5_helper_v2(target, lc.ref, lc.constr, subseq, verbose, dangle);
-                    if (result == "undesignable"){
-                        std::cout<<"undesignable!"<<std::endl;
-                        int count_pairs = lc.node->children.size() + 1;
-                        std::string r = puzzle_id+","+y_star+","+std::to_string(count_pairs)+","+std::to_string(lc.node->first)+","+std::to_string(lc.node->second);
-                        for(auto child: lc.node->children)
-                            r += ","+std::to_string(child->first)+","+std::to_string(child->second);
-                        r = r + ","+y_sub+","+std::to_string(y_rivals.size());
-                        for(auto rival: y_rivals)
-                            r += ","+rival;
-                        std::cout<<r<<std::endl;
-                        records.push_back(r);
-                        outputFile << r << std::endl;
-                        // break;
-                        // return;
-                    }
-                    printf("\n");
-                }
-            }
-            if (alg == "mloop"){
-                std::vector<LoopComplex> lc_list;
-                TreeNode* root = parseStringToTree(y_star);
-                int max_internal = max_single(root);
-                if(max_internal > 30){
-                    std::string r = puzzle_id+","+std::to_string(max_internal);
-                    records.push_back(r);
-                    outputFile << r << std::endl;
-                    continue;
-                }
-                tree2MLoops(root, y_star, lc_list);
-                printf("lc_list size: %d\n", lc_list.size());
+//                     std::string result = alg_5_helper_v2(target, lc.ref, lc.constr, subseq, verbose, dangle);
+//                     if (result == "undesignable"){
+//                         std::cout<<"undesignable!"<<std::endl;
+//                         int count_pairs = lc.node->children.size() + 1;
+//                         std::string r = puzzle_id+","+y_star+","+std::to_string(count_pairs)+","+std::to_string(lc.node->first)+","+std::to_string(lc.node->second);
+//                         for(auto child: lc.node->children)
+//                             r += ","+std::to_string(child->first)+","+std::to_string(child->second);
+//                         r = r + ","+y_sub+","+std::to_string(y_rivals.size());
+//                         for(auto rival: y_rivals)
+//                             r += ","+rival;
+//                         std::cout<<r<<std::endl;
+//                         records.push_back(r);
+//                         outputFile << r << std::endl;
+//                         // break;
+//                         // return;
+//                     }
+//                     printf("\n");
+//                 }
+//             }
+//             if (alg == "mloop"){
+//                 std::vector<LoopComplex> lc_list;
+//                 TreeNode* root = parseStringToTree(y_star);
+//                 int max_internal = max_single(root);
+//                 if(max_internal > 30){
+//                     std::string r = puzzle_id+","+std::to_string(max_internal);
+//                     records.push_back(r);
+//                     outputFile << r << std::endl;
+//                     continue;
+//                 }
+//                 tree2MLoops(root, y_star, lc_list);
+//                 printf("lc_list size: %d\n", lc_list.size());
 
-                // Sort the vector using a lambda expression
-                std::sort(lc_list.begin(), lc_list.end(), [](const LoopComplex &a, const LoopComplex &b) {
-                    return a.count_uk < b.count_uk;});
-                for (auto lc: lc_list){
-                    std::string target = y_star.substr(lc.start, lc.end-lc.start+1);
-                    std::string subseq = seq.substr(lc.start, lc.end-lc.start+1);
-                    printf(" count: %d\n", lc.count_uk);
-                    printf("target: %s\n", target.c_str());
-                    printf("   ref: %s\n", lc.ref.c_str());
-                    printf("constr: %s\n", lc.constr.c_str());
+//                 // Sort the vector using a lambda expression
+//                 std::sort(lc_list.begin(), lc_list.end(), [](const LoopComplex &a, const LoopComplex &b) {
+//                     return a.count_uk < b.count_uk;});
+//                 for (auto lc: lc_list){
+//                     std::string target = y_star.substr(lc.start, lc.end-lc.start+1);
+//                     std::string subseq = seq.substr(lc.start, lc.end-lc.start+1);
+//                     printf(" count: %d\n", lc.count_uk);
+//                     printf("target: %s\n", target.c_str());
+//                     printf("   ref: %s\n", lc.ref.c_str());
+//                     printf("constr: %s\n", lc.constr.c_str());
 
-                    std::string result = alg_5_helper_v2(target, lc.ref, lc.constr, subseq, verbose, dangle);
-                    if (result == "undesignable"){
-                        std::cout<<"undesignable!"<<std::endl;
-                        int count_pairs = lc.node->children.size() + 1;
-                        std::string r = puzzle_id+","+y_star+","+std::to_string(count_pairs)+","+std::to_string(lc.node->first)+","+std::to_string(lc.node->second);
-                        for(auto child: lc.node->children)
-                            r += ","+std::to_string(child->first)+","+std::to_string(child->second);
-                        r = r + ","+y_sub+","+std::to_string(y_rivals.size());
-                        for(auto rival: y_rivals)
-                            r += ","+rival;
-                        std::cout<<r<<std::endl;
-                        records.push_back(r);
-                        outputFile << r << std::endl;
-                        // break;
-                        // return;
-                    }
-                    printf("\n");
-                }
-            }
-            if (alg == "neighbor2"){
-                std::vector<LoopComplex> lc_list;
-                TreeNode* root = parseStringToTree(y_star);
-                int max_internal = max_single(root);
-                if(max_internal > 30){
-                    std::string r = puzzle_id+","+std::to_string(max_internal);
-                    records.push_back(r);
-                    outputFile << r << std::endl;
-                    continue;
-                }
-                tree2TwoNeighbor(root, y_star, lc_list);
-                printf("lc_list size: %d\n", lc_list.size());
+//                     std::string result = alg_5_helper_v2(target, lc.ref, lc.constr, subseq, verbose, dangle);
+//                     if (result == "undesignable"){
+//                         std::cout<<"undesignable!"<<std::endl;
+//                         int count_pairs = lc.node->children.size() + 1;
+//                         std::string r = puzzle_id+","+y_star+","+std::to_string(count_pairs)+","+std::to_string(lc.node->first)+","+std::to_string(lc.node->second);
+//                         for(auto child: lc.node->children)
+//                             r += ","+std::to_string(child->first)+","+std::to_string(child->second);
+//                         r = r + ","+y_sub+","+std::to_string(y_rivals.size());
+//                         for(auto rival: y_rivals)
+//                             r += ","+rival;
+//                         std::cout<<r<<std::endl;
+//                         records.push_back(r);
+//                         outputFile << r << std::endl;
+//                         // break;
+//                         // return;
+//                     }
+//                     printf("\n");
+//                 }
+//             }
+//             if (alg == "neighbor2"){
+//                 std::vector<LoopComplex> lc_list;
+//                 TreeNode* root = parseStringToTree(y_star);
+//                 int max_internal = max_single(root);
+//                 if(max_internal > 30){
+//                     std::string r = puzzle_id+","+std::to_string(max_internal);
+//                     records.push_back(r);
+//                     outputFile << r << std::endl;
+//                     continue;
+//                 }
+//                 tree2TwoNeighbor(root, y_star, lc_list);
+//                 printf("lc_list size: %d\n", lc_list.size());
 
-                // Sort the vector using a lambda expression
-                std::sort(lc_list.begin(), lc_list.end(), [](const LoopComplex &a, const LoopComplex &b) {
-                    return a.count_uk < b.count_uk;});
-                for (auto lc: lc_list){
-                    std::string target = y_star.substr(lc.start, lc.end-lc.start+1);
-                    std::string subseq = seq.substr(lc.start, lc.end-lc.start+1);
-                    printf(" count: %d\n", lc.count_uk);
-                    printf("target: %s\n", target.c_str());
-                    printf("   ref: %s\n", lc.ref.c_str());
-                    printf("constr: %s\n", lc.constr.c_str());
+//                 // Sort the vector using a lambda expression
+//                 std::sort(lc_list.begin(), lc_list.end(), [](const LoopComplex &a, const LoopComplex &b) {
+//                     return a.count_uk < b.count_uk;});
+//                 for (auto lc: lc_list){
+//                     std::string target = y_star.substr(lc.start, lc.end-lc.start+1);
+//                     std::string subseq = seq.substr(lc.start, lc.end-lc.start+1);
+//                     printf(" count: %d\n", lc.count_uk);
+//                     printf("target: %s\n", target.c_str());
+//                     printf("   ref: %s\n", lc.ref.c_str());
+//                     printf("constr: %s\n", lc.constr.c_str());
 
-                    std::string result = alg_5_helper_v2(target, lc.ref, lc.constr, subseq, verbose, dangle);
-                    if (result == "undesignable"){
-                        std::cout<<"undesignable!"<<std::endl;
-                        int count_pairs = lc.node->children.size() + 1;
-                        std::string r = puzzle_id+","+y_star+","+std::to_string(count_pairs)+","+std::to_string(lc.node->first)+","+std::to_string(lc.node->second);
-                        for(auto child: lc.node->children)
-                            r += ","+std::to_string(child->first)+","+std::to_string(child->second);
-                        r = r + ","+y_sub+","+std::to_string(y_rivals.size());
-                        for(auto rival: y_rivals)
-                            r += ","+rival;
-                        std::cout<<r<<std::endl;
-                        records.push_back(r);
-                        outputFile << r << std::endl;
-                        // break;
-                        // return;
-                    }
-                    printf("\n");
-                }
-            }
-            if (alg == "csgen"){
-                std::vector<LoopComplex> lc_list;
-                TreeNode* root = parseStringToTree(y_star);
-                int max_internal = max_single(root);
-                if(max_internal > 30){
-                    std::string r = puzzle_id+","+std::to_string(max_internal);
-                    records.push_back(r);
-                    outputFile << r << std::endl;
-                    continue;
-                }
-                tree2Loops(root, y_star, lc_list);
-                printf("lc_list size: %d\n", lc_list.size());
+//                     std::string result = alg_5_helper_v2(target, lc.ref, lc.constr, subseq, verbose, dangle);
+//                     if (result == "undesignable"){
+//                         std::cout<<"undesignable!"<<std::endl;
+//                         int count_pairs = lc.node->children.size() + 1;
+//                         std::string r = puzzle_id+","+y_star+","+std::to_string(count_pairs)+","+std::to_string(lc.node->first)+","+std::to_string(lc.node->second);
+//                         for(auto child: lc.node->children)
+//                             r += ","+std::to_string(child->first)+","+std::to_string(child->second);
+//                         r = r + ","+y_sub+","+std::to_string(y_rivals.size());
+//                         for(auto rival: y_rivals)
+//                             r += ","+rival;
+//                         std::cout<<r<<std::endl;
+//                         records.push_back(r);
+//                         outputFile << r << std::endl;
+//                         // break;
+//                         // return;
+//                     }
+//                     printf("\n");
+//                 }
+//             }
+//             if (alg == "csgen"){
+//                 std::vector<LoopComplex> lc_list;
+//                 TreeNode* root = parseStringToTree(y_star);
+//                 int max_internal = max_single(root);
+//                 if(max_internal > 30){
+//                     std::string r = puzzle_id+","+std::to_string(max_internal);
+//                     records.push_back(r);
+//                     outputFile << r << std::endl;
+//                     continue;
+//                 }
+//                 tree2Loops(root, y_star, lc_list);
+//                 printf("lc_list size: %d\n", lc_list.size());
 
-                // Sort the vector using a lambda expression
-                std::sort(lc_list.begin(), lc_list.end(), [](const LoopComplex &a, const LoopComplex &b) {
-                    return a.count_uk < b.count_uk;});
-                for (auto lc: lc_list){
-                    std::string target = y_star.substr(lc.start, lc.end-lc.start+1);
-                    std::string subseq = seq.substr(lc.start, lc.end-lc.start+1);
-                    printf(" count: %d\n", lc.count_uk);
-                    printf("target: %s\n", target.c_str());
-                    printf("   ref: %s\n", lc.ref.c_str());
-                    printf("constr: %s\n", lc.constr.c_str());
-                    outputFile << subseq << std::endl;
-                    outputFile << lc.constr << std::endl;
-                    printf("\n");
-                }
-            }
-        }
-    }
-    for (auto r: records)
-        std::cout<<r<<std::endl;
+//                 // Sort the vector using a lambda expression
+//                 std::sort(lc_list.begin(), lc_list.end(), [](const LoopComplex &a, const LoopComplex &b) {
+//                     return a.count_uk < b.count_uk;});
+//                 for (auto lc: lc_list){
+//                     std::string target = y_star.substr(lc.start, lc.end-lc.start+1);
+//                     std::string subseq = seq.substr(lc.start, lc.end-lc.start+1);
+//                     printf(" count: %d\n", lc.count_uk);
+//                     printf("target: %s\n", target.c_str());
+//                     printf("   ref: %s\n", lc.ref.c_str());
+//                     printf("constr: %s\n", lc.constr.c_str());
+//                     outputFile << subseq << std::endl;
+//                     outputFile << lc.constr << std::endl;
+//                     printf("\n");
+//                 }
+//             }
+//         }
+//     }
+//     for (auto r: records)
+//         std::cout<<r<<std::endl;
     
-    // Close the file
-    outputFile.close();
-    std::cout << "Strings written to file: " << fileName << std::endl;
-}
+//     // Close the file
+//     outputFile.close();
+//     std::cout << "Strings written to file: " << fileName << std::endl;
+// }
 
 void show_configuration(){
     #ifdef SPECIAL_HP
@@ -2163,10 +2182,10 @@ int main(int argc, char* argv[]) {
         return 0;
     }
 
-    if (!txt.empty()){
-        txt_process(txt, alg);
-        return 0;
-    }
+    // if (!txt.empty()){
+    //     txt_process(txt, alg);
+    //     return 0;
+    // }
 
 
     if ( alg == "csfold" ){  /* constrained folding */
@@ -2433,34 +2452,6 @@ int main(int argc, char* argv[]) {
         while (std::getline(std::cin, seq)) {
             getline(std::cin, target);
             getline(std::cin, cst);
-            // ref = cst;
-            // std::replace(ref.begin(), ref.end(), '?', '.');
-            // std::vector<std::string> mfes = cs_fold(seq, cst, 0, false, verbose, dangle);
-            // if(isUMFE(mfes, target)){
-            //     // std::count<<seq<<std::endl;
-            //     std::cout<<seq<<std::endl;
-            //     std::cout<<"designable! (umfe) "<<std::endl;
-            //     // std::count<<"designable! (umfe)"<<std::endl;
-            //     continue;
-            // }else if(isMFE(mfes, target)){
-            //     if(mfes[0] == target)
-            //         ref = mfes[1];
-            //     else
-            //         ref = mfes[0];
-            // }else{
-            //     ref = mfes[0];
-            // }
-            
-            // std::vector<LoopComplex> lc_list;
-            // TreeNode* root = parseStringToTree(ref);
-            // tree2Loops(root, ref, lc_list);
-            // printf("lc_list size: %d\n", lc_list.size());
-            // // Sort the vector using a lambda expression
-            // std::sort(lc_list.begin(), lc_list.end(), [](const LoopComplex &a, const LoopComplex &b) {
-            //     return a.count_uk < b.count_uk;});
-            // for (auto lc: lc_list){
-                // std::string target = ref.substr(lc.start, lc.end-lc.start+1);
-                // std::string subseq = seq.substr(lc.start, lc.end-lc.start+1);
                 printf(" count: %d\n", countOccurrences(cst, '?'));
                 printf("target: %s\n", target.c_str());
                 printf("constr: %s\n", cst.c_str());
