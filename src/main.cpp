@@ -1469,6 +1469,13 @@ void csv_process(std::string csv, std::string alg){
                 auto start_time = std::chrono::high_resolution_clock::now();
                 std::vector<LoopComplex> lc_list;
                 TreeNode* root = parseStringToTree(y_star);
+                int max_internal = max_single(root);
+                if(max_internal > 30){
+                    std::string r = puzzle_id+","+std::to_string(max_internal);
+                    records.push_back(r);
+                    outputFile << r << std::endl;
+                    continue;
+                }
                 tree2Edges(root, y_star, lc_list);
                 printf("lc_list size: %d\n", lc_list.size());
                 // Sort the vector using a lambda expression
