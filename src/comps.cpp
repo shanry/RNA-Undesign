@@ -892,5 +892,54 @@ std::string LoopComplex::jsmotif(std::string id){
         parent_j["children"] = children_j;
         js["root"] = parent_j;
     }
+    else if(neighbors.size() == 2){
+        std::cout<<"neighbors.size() == 2"<<std::endl;
+        if(neighbors[0] == 0){
+            json parent_j = json::parse(node->parent->jstring);
+            json child_j = json::parse(node->jstring);
+            json grandchild_j = json::parse(node->children[neighbors[1]-1]->jstring);
+            json children_j;
+            json grandchildren_j;
+            for(int i = 0; i < node->children.size(); i++){
+                if(i+1 == node->children[neighbors[1]-1]->child_id)
+                    grandchildren_j.push_back(grandchild_j);
+                else
+                    grandchildren_j.push_back(nullptr);
+            }
+            child_j["children"] = grandchildren_j;
+            for(int i = 0; i < node->parent->children.size(); i++){
+                if(i+1 == node->child_id)
+                    children_j.push_back(child_j);
+                else
+                    children_j.push_back(nullptr);
+            }
+            parent_j["children"] = children_j;
+            js["root"] = parent_j;
+        }else{
+            // json parent_j = json::parse(node->parent->jstring);
+            json child_j = json::parse(node->jstring);
+            json grandchild_1j = json::parse(node->children[neighbors[0]-1]->jstring);
+            json grandchild_2j = json::parse(node->children[neighbors[1]-1]->jstring);
+            // json children_j;
+            json grandchildren_j;
+            // for(int i = 0; i < node->parent->children.size(); i++){
+            //     if(i+1 == node->child_id)
+            //         children_j.push_back(child_j);
+            //     else
+            //         children_j.push_back(nullptr);
+            // }
+            for(int i = 0; i < node->children.size(); i++){
+                if(i+1 == node->children[neighbors[0]-1]->child_id)
+                    grandchildren_j.push_back(grandchild_1j);
+                else if(i+1 == node->children[neighbors[1]-1]->child_id)
+                    grandchildren_j.push_back(grandchild_2j);
+                else
+                    grandchildren_j.push_back(nullptr);
+            }
+            child_j["children"] = grandchildren_j;
+            // parent_j["children"] = children_j;
+            js["root"] = child_j;
+        }
+    }
     return js.dump();
 }
