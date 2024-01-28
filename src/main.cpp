@@ -1331,8 +1331,6 @@ void csv_process(std::string csv, std::string alg){
     std::vector<std::string> records;
     // Specify the file name
     std::string fileName = csv + "." + alg + ".log."+getCurrentTimestamp()+".txt";
-    std::string file_m1 = replaceFileExtension(csv, "m1");
-    std::map<std::string, std::set<std::string>> id2m1 = readMotif(file_m1.c_str());
     // Open the file for writing
     std::ofstream outputFile(fileName);
 
@@ -1469,13 +1467,13 @@ void csv_process(std::string csv, std::string alg){
                 auto start_time = std::chrono::high_resolution_clock::now();
                 std::vector<LoopComplex> lc_list;
                 TreeNode* root = parseStringToTree(y_star);
-                int max_internal = max_single(root);
-                if(max_internal > 30){
-                    std::string r = puzzle_id+","+std::to_string(max_internal);
-                    records.push_back(r);
-                    outputFile << r << std::endl;
-                    continue;
-                }
+                // int max_internal = max_single(root);
+                // if(max_internal > 30){
+                //     std::string r = puzzle_id+","+std::to_string(max_internal);
+                //     records.push_back(r);
+                //     outputFile << r << std::endl;
+                //     continue;
+                // }
                 tree2Edges(root, y_star, lc_list);
                 printf("lc_list size: %d\n", lc_list.size());
                 // Sort the vector using a lambda expression
@@ -1488,8 +1486,16 @@ void csv_process(std::string csv, std::string alg){
                     printf("target: %s\n", target.c_str());
                     printf("   ref: %s\n", lc.ref.c_str());
                     printf("constr: %s\n", lc.constr.c_str());
-
-                    std::string result = alg_5_helper_v2(target, lc.ref, lc.constr, subseq, verbose, dangle);
+                    std::string result;
+                    try{
+                        result = alg_5_helper_v2(target, lc.ref, lc.constr, subseq, verbose, dangle);
+                    }catch(...){
+                        // Code to handle any exception
+                        std::cerr << "An exception occurred" << std::endl;
+                        result = "exception";
+                    }
+                    if (result == "exception")
+                        continue;
                     if (result == "undesignable"){
                         std::cout<<"undesignable!"<<std::endl;
                         auto end_time = std::chrono::high_resolution_clock::now();
@@ -1595,16 +1601,18 @@ void csv_process(std::string csv, std::string alg){
                 }
             }
             if (alg == "neighbor2" || alg == "neighbor3" ){
+                std::string file_m1 = replaceFileExtension(csv, "m1");
+                std::map<std::string, std::set<std::string>> id2m1 = readMotif(file_m1.c_str());
                 auto start_time = std::chrono::high_resolution_clock::now();
                 std::vector<LoopComplex> lc_list;
                 TreeNode* root = parseStringToTree(y_star);
-                int max_internal = max_single(root);
-                if(max_internal > 30){
-                    std::string r = puzzle_id+","+std::to_string(max_internal);
-                    records.push_back(r);
-                    outputFile << r << std::endl;
-                    continue;
-                }
+                // int max_internal = max_single(root);
+                // if(max_internal > 30){
+                //     std::string r = puzzle_id+","+std::to_string(max_internal);
+                //     records.push_back(r);
+                //     outputFile << r << std::endl;
+                //     continue;
+                // }
                 if (alg == "neighbor2")
                     tree2TwoNeighbor(root, y_star, lc_list);
                 else
@@ -1633,8 +1641,16 @@ void csv_process(std::string csv, std::string alg){
                     printf("target: %s\n", target.c_str());
                     printf("   ref: %s\n", lc.ref.c_str());
                     printf("constr: %s\n", lc.constr.c_str());
-
-                    std::string result = alg_5_helper_v2(target, lc.ref, lc.constr, subseq, verbose, dangle);
+                    std::string result;
+                    try{
+                        result = alg_5_helper_v2(target, lc.ref, lc.constr, subseq, verbose, dangle);
+                    }catch(...){
+                        // Code to handle any exception
+                        std::cerr << "An exception occurred" << std::endl;
+                        result = "exception";
+                    }
+                    if (result == "exception")
+                        continue;
                     if (result == "undesignable"){
                         std::cout<<"undesignable!"<<std::endl;
                         auto end_time = std::chrono::high_resolution_clock::now();
@@ -1668,6 +1684,8 @@ void csv_process(std::string csv, std::string alg){
                 }
             }
             if (alg == "nb1plot" || alg == "nb2plot" || alg == "nb3plot"){
+                std::string file_m1 = replaceFileExtension(csv, "m1");
+                std::map<std::string, std::set<std::string>> id2m1 = readMotif(file_m1.c_str());
                 auto start_time = std::chrono::high_resolution_clock::now();
                 std::vector<LoopComplex> lc_list;
                 TreeNode* root = parseStringToTree(y_star);
