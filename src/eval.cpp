@@ -3845,7 +3845,7 @@ static inline void rtrim(std::string &s) {
 }
 
 
-std::vector<std::string> cs_fold(std::string seq, std::string& constr, int beamsize, bool sharpturn, bool verbose, int dangle){
+std::vector<std::string> cs_fold_vienna(std::string seq, std::string& constr, int beamsize, bool sharpturn, bool verbose, int dangle){
     return subopt(seq, constr);
     bool consflag = true;
     std::vector<std::string> subopts;
@@ -3908,7 +3908,7 @@ std::vector<std::string> cs_fold(std::string seq, std::string& constr, int beams
     return subopts;
 }
 
-std::vector<std::string> cs_fold2(std::string seq, std::string& constr, int beamsize, bool sharpturn, bool verbose, int dangle){
+std::vector<std::string> cs_fold(std::string seq, std::string& constr, int beamsize, bool sharpturn, bool verbose, int dangle){
     bool consflag = true;
     std::vector<std::string> subopts;
     std::set<char> consSet {'?', '.', '(', ')'};
