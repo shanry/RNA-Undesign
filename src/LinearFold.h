@@ -24,7 +24,10 @@
   #define VALUE_MIN std::numeric_limits<double>::lowest()
 #endif
 
-
+using std::vector;
+using std::stack;
+using std::tuple;
+using std::string;
 
 enum Manner {
   MANNER_NONE = 0,              // 0: empty
@@ -106,6 +109,13 @@ struct State {
     }
 };
 
+// For wuchty suboptimal structures
+struct partial {
+    stack<tuple<int, int, BestTypes, value_type>> intervals;
+    string structure;
+    value_type score;
+};
+
 
 class BeamCKYParser {
 public:
@@ -114,8 +124,9 @@ public:
     bool is_verbose;
     bool use_constraints; // lisiz, add constraints
     bool zuker;
+    bool wuchty;
     int  window_size; //2 + 1 + 2 = 5 in total, 5*5 window size.
-    float zuker_energy_delta;
+    float subopt_energy_delta;
     bool use_shape = false;
     double m = 1.8;
     double b = -0.6;
@@ -134,7 +145,8 @@ public:
                   bool is_verbose=false,
                   bool is_constraints=false,
                   bool zuker_subopt=false,
-                  float zuker_energy_delta=5.0,
+                  bool wuchty_subopt=false,
+                  float subopt_energy_delta=5.0,
                   std::string shape_file_path="",
                   bool is_fasta=false,
                   int dangle_model=2); // lisiz, add constraints
@@ -155,6 +167,11 @@ private:
 
     //Zuker subopt
     std::vector<std::unordered_map<int, State>> bestH_beta, bestP_beta, bestM2_beta, bestMulti_beta, bestM_beta;
+
+    //Wuchty subopt
+    void wuchty_suboptimal(value_type mfe, value_type delta, vector<int> next_pair[], vector<int>* cons, vector<string>& subopts);
+    void recover_hyperedges(int i, int j, BestTypes type, value_type left_score, value_type mfe, value_type delta, partial node, stack<partial>& st, vector<int> next_pair[], vector<int>* cons);
+    vector<int> *sortedP;
 
     std::vector<int> if_tetraloops;
     std::vector<int> if_hexaloops;
