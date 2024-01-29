@@ -180,17 +180,17 @@ std::string getCurrentTimestamp() {
 
     // Convert the time_t to a std::tm structure
     std::tm* timeInfo = std::localtime(&currentTime_t);
-
-    // Create a stringstream to format the timestamp
-    std::stringstream timestampStream;
     
     // Use strftime to format the timestamp
-    timestampStream << std::put_time(timeInfo, "%Y%m%d%H%M%S");
+    char buffer[15]; // Adjust the size as needed based on your format
+    std::strftime(buffer, sizeof(buffer), "%Y%m%d%H%M%S", timeInfo);
 
     // Convert the stringstream to a string
-    std::string timestamp = timestampStream.str();
+    std::ostringstream timestampStream;
+    timestampStream << buffer;
 
-    return timestamp;
+    // Return the formatted timestamp as a string
+    return timestampStream.str();
 }
 
 template <typename T>
