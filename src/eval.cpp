@@ -34,6 +34,9 @@
 #include <set>
 #include <cmath>
 
+#include "eval.h"
+#include "utils.h"
+
 #define BASE 1000
 #define SPECIAL_HP
 #define SPECIAL_HP_3
@@ -3839,5 +3842,136 @@ static inline void rtrim(std::string &s) {
     s.erase(std::find_if(s.rbegin(), s.rend(), [](unsigned char ch) {
         return !std::isspace(ch);
     }).base(), s.end());
+}
+
+
+std::vector<std::string> cs_fold(std::string seq, std::string& constr, int beamsize, bool sharpturn, bool verbose, int dangle){
+    return subopt(seq, constr);
+    bool consflag = true;
+    std::vector<std::string> subopts;
+    std::set<char> consSet {'?', '.', '(', ')'};
+    if (seq.length() != constr.length()){
+        printf("The lengths don't match between sequence and constraints: %s, %s\n", seq.c_str(), constr.c_str());
+        return subopts;
+    }
+    int n = seq.length();
+    std::vector<int> cons(n);
+    std::stack<int> leftBrackets;
+    consflag = true;
+    for (int i=0; i < n; i++){
+        char coni = constr[i];
+        if (consSet.count(coni) == 0){
+            printf("Unrecognized constraint character, should be ? . ( or )\n");
+            consflag = false;
+            break;
+        }
+        switch(coni){
+            case '.':
+                cons[i] = -2;
+                break;
+            case '?':
+                cons[i] = -1;
+                break;
+            case '(':
+                leftBrackets.push(i);
+                break;
+            case ')':
+                int leftIndex = leftBrackets.top();
+                leftBrackets.pop();
+                cons[leftIndex] = i;
+                cons[i] = leftIndex;
+                break;
+        }
+    }
+    if (consflag) {
+        // printf("%s\n", constr.c_str());
+        
+        // lhuang: moved inside loop, fixing an obscure but crucial bug in initialization
+        BeamCKYParser parser(beamsize, !sharpturn, verbose, true, true, false, 0.0, "", false, dangle);
+        
+        BeamCKYParser::DecoderResult result = parser.parse(seq, &cons, subopts);
+        // BeamCKYParser::DecoderResult result = parser.parse(seq, &cons);
+
+        #ifdef lv
+                double printscore = (result.score / -100.0);
+        #else
+                double printscore = result.score;
+        #endif
+        // printf("%s (%.2f)\n", result.structure.c_str(), printscore);
+
+        // Use std::find to search for the value
+        if (std::find(subopts.begin(), subopts.end(), result.structure) == subopts.end()){
+            subopts.push_back(result.structure);
+        } 
+        return subopts;
+    }
+    return subopts;
+}
+
+std::vector<std::string> cs_fold2(std::string seq, std::string& constr, int beamsize, bool sharpturn, bool verbose, int dangle){
+    bool consflag = true;
+    std::vector<std::string> subopts;
+    std::set<char> consSet {'?', '.', '(', ')'};
+    if (seq.length() != constr.length()){
+        printf("The lengths don't match between sequence and constraints: %s, %s\n", seq.c_str(), constr.c_str());
+        return subopts;
+    }
+    int n = seq.length();
+    std::vector<int> cons(n);
+    std::stack<int> leftBrackets;
+    consflag = true;
+    for (int i=0; i < n; i++){
+        char coni = constr[i];
+        if (consSet.count(coni) == 0){
+            printf("Unrecognized constraint character, should be ? . ( or )\n");
+            consflag = false;
+            break;
+        }
+        switch(coni){
+            case '.':
+                cons[i] = -2;
+                break;
+            case '?':
+                cons[i] = -1;
+                break;
+            case '(':
+                leftBrackets.push(i);
+                break;
+            case ')':
+                int leftIndex = leftBrackets.top();
+                leftBrackets.pop();
+                cons[leftIndex] = i;
+                cons[i] = leftIndex;
+                break;
+        }
+    }
+    if (consflag) {
+        // printf("%s\n", constr.c_str());
+        
+        // lhuang: moved inside loop, fixing an obscure but crucial bug in initialization
+        BeamCKYParser parser(beamsize, !sharpturn, verbose, true, false, true, 0.0, "", false, dangle);
+        
+        BeamCKYParser::DecoderResult result = parser.parse(seq, &cons, subopts);
+        // BeamCKYParser::DecoderResult result = parser.parse(seq, &cons);
+
+        #ifdef lv
+                double printscore = (result.score / -100.0);
+        #else
+                double printscore = result.score;
+        #endif
+        // printf("%s (%.2f)\n", result.structure.c_str(), printscore);
+
+        return subopts;
+    }
+    return subopts;
+}
+
+
+std::vector<std::string> fold(std::string seq, int beamsize, bool sharpturn, bool verbose, int dangle, float energy_delta){
+        // lhuang: moved inside loop, fixing an obscure but crucial bug in initialization
+        BeamCKYParser parser(beamsize, !sharpturn, verbose, false, true, false, energy_delta, "", false, dangle);
+        std::vector<std::string> subopts;
+        BeamCKYParser::DecoderResult result = parser.parse(seq, NULL, subopts);
+        return subopts;
 }
 
