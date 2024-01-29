@@ -169,3 +169,6 @@ logs/
 cpps/
 .vscode/
 algs_inout/
+*.txt
+*.csv
+*.ipynb
