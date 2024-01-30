@@ -26,6 +26,10 @@ using namespace std;
 #define MAX_ENUM 10000000000
 #define MAX_CONSTRAINT 100000
 #define MAX_SEQ 500
+
+#define SPECIAL_HP
+#define SPECIAL_HP_3
+#define SPECIAL_HP_6
 // global variables
 std::vector<std::string> TriHP{"", "CAACG", "GUUAC"}; // middle position can't be C or G
 std::vector<std::string> TetraHP{"",
