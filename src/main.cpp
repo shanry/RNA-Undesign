@@ -2406,12 +2406,12 @@ int main(int argc, char* argv[]) {
                 printf("\n");
             }
         }
-    }else if (alg == "edge"){ /* edges evaluation  */
-        std::string seq;
+    }else if (alg == "n1"){ /* edges evaluation  */
         std::string ref;
         // Read input line by line until EOF (end of file) is reached
-        while (std::getline(std::cin, seq)) {
-            getline(std::cin, ref);
+        while (std::getline(std::cin, ref)) {
+            // getline(std::cin, ref);
+            std::string seq = tg_init(ref);
             std::vector<LoopComplex> lc_list;
             TreeNode* root = parseStringToTree(ref);
             tree2Edges(root, ref, lc_list);
@@ -2500,15 +2500,17 @@ int main(int argc, char* argv[]) {
                 printf("\n");
             // }
         }
-    }else if (alg == "neighbor2"){ /* edges evaluation  */
-        std::string seq;
+    }else if (alg == "n2" || alg == "n3"){ /* edges evaluation  */
         std::string ref;
         // Read input line by line until EOF (end of file) is reached
-        while (std::getline(std::cin, seq)) {
-            getline(std::cin, ref);
+        while (std::getline(std::cin, ref)) {
+            std::string seq = tg_init(ref);
             std::vector<LoopComplex> lc_list;
             TreeNode* root = parseStringToTree(ref);
-            tree2TwoNeighbor(root, ref, lc_list);
+            if(alg == "n2")
+                tree2TwoNeighbor(root, ref, lc_list);
+            else
+                tree2ThreeNeighbor(root, ref, lc_list);
             printf("lc_list size: %d\n", lc_list.size());
             // Sort the vector using a lambda expression
             std::sort(lc_list.begin(), lc_list.end(), [](const LoopComplex &a, const LoopComplex &b) {
@@ -2545,6 +2547,7 @@ int main(int argc, char* argv[]) {
                     std::cout << pairstring << std::endl;
                 }
                 printf("\n");
+                break;
             }
         }
     }else if (alg == "showtree"){
