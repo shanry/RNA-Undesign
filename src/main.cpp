@@ -14,7 +14,7 @@
 #include <omp.h>
 #include <iomanip>
 #include <sstream>
-#include <bits/stdc++.h> 
+#include <cassert> 
 
 // #include "eval.cpp"
 #include "cxxopts.hpp"
