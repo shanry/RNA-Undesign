@@ -30,6 +30,12 @@ using namespace std;
 #define SPECIAL_HP
 #define SPECIAL_HP_3
 #define SPECIAL_HP_6
+
+/* Old compatibility names for C types.  */
+typedef unsigned long int ulong;
+typedef unsigned short int ushort;
+typedef unsigned int uint;
+
 // global variables
 std::vector<std::string> TriHP{"", "CAACG", "GUUAC"}; // middle position can't be C or G
 std::vector<std::string> TetraHP{"",
