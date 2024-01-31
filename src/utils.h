@@ -7,6 +7,9 @@
 #include <map>
 #include <utility>
 
+/* Old compatibility names for C types.  */
+typedef unsigned long int ulong;
+
 bool compareByFirstStringLength(const std::pair<std::string, std::string> &a, const std::pair<std::string, std::string> &b); 
 std::vector<int> findAllOccurrences(const std::string& mainString, const std::string& subString); 
 std::vector<std::string> readLinesFromFile(const std::string& filePath); 

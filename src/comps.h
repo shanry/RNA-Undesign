@@ -5,6 +5,9 @@
 #include<set>
 #include<string>
 
+/* Old compatibility names for C types.  */
+typedef unsigned long int ulong;
+
 struct TreeNode {
     int first; // root: -1
     int second; // 
