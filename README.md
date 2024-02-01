@@ -25,7 +25,7 @@ $./make main_hp3  # only turn on special hairpin of triloop
 ```
 ### Mac
 ```
-$ Test with Apple Silicon
+# Test with Apple Silicon
 $./make main_mac   
 $./make main_hp3_mac  # only turn on special hairpin of triloop
 ```
