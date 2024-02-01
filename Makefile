@@ -16,7 +16,7 @@ main: main.o utils.o comps.o eval.o
 	$(CC)  $(CFLAGS) -Wl,-ld_classic  bin/main.o bin/utils.o bin/comps.o bin/eval.o  -o bin/main
 
 main0: main0.o utils.o comps.o eval0.o # only special hp of triloop
-	$(CC)  $(CFLAGS) bin/main0.o bin/utils.o bin/comps.o bin/eval0.o  -o bin/main0
+	$(CC)  $(CFLAGS) -Wl,-ld_classic  bin/main0.o bin/utils.o bin/comps.o bin/eval0.o  -o bin/main0
 
 main.o: src/main.cpp $(DEPS)
 	$(CC) src/main.cpp -c $(CFLAGS) -Dlv -DSPECIAL_HP_4 -Dis_cube_pruning -Dis_candidate_list -o bin/main.o
