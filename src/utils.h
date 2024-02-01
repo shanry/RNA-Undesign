@@ -5,6 +5,7 @@
 #include <set>
 #include <vector>
 #include <map>
+#include <unordered_map>
 #include <utility>
 
 /* Old compatibility names for C types.  */
@@ -36,5 +37,5 @@ std::string replaceFileExtension(const std::string& filePath, const std::string&
 std::map<std::string, std::set<std::string>> readMotif(const char* file);
 std::vector<std::vector<int>> PowerSet3(int start, int set_size);
 std::vector<std::vector<std::string>> read_csv(const char* file);
-
+std::unordered_map<std::string, std::string> loadlib_eterna(std::string csv);
 #endif

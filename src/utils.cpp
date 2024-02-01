@@ -1,6 +1,3 @@
-// #ifndef UTILS
-// #define UTILS
-
 #include <iostream>
 #include <fstream>
 #include <cstdio>
@@ -14,6 +11,7 @@
 #include <utility>
 #include <set>
 #include <map>
+#include <unordered_map>
 #include <ctime>
 #include <stack>
 #include <cassert>
@@ -403,4 +401,13 @@ std::vector<std::vector<std::string>> read_csv(const char* file){
     return df;
 }
 
-// #endif
+std::unordered_map<std::string, std::string> loadlib_eterna(std::string csv){
+    auto df = read_csv(csv.c_str());
+    printf("df shape: %d, %d\n", df.size(), df[0].size());
+    std::unordered_map<std::string, std::string> struct2seq;
+    for(int i = 1; i < df.size(); i++){
+        auto row = df[i];
+        struct2seq[row[1]] = row[2]; 
+    }
+    return struct2seq;
+}
