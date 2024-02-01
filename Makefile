@@ -13,10 +13,16 @@ objects=bin/main bin/main4
 all: main main0
 
 main: main.o utils.o comps.o eval.o
+	$(CC)  $(CFLAGS)  bin/main.o bin/utils.o bin/comps.o bin/eval.o  -o bin/main
+
+main_hp3: main0.o utils.o comps.o eval0.o # only special hp of triloop
+	$(CC)  $(CFLAGS)  bin/main0.o bin/utils.o bin/comps.o bin/eval0.o  -o bin/main_hp3
+
+main_mac: main.o utils.o comps.o eval.o
 	$(CC)  $(CFLAGS) -Wl,-ld_classic  bin/main.o bin/utils.o bin/comps.o bin/eval.o  -o bin/main
 
-main0: main0.o utils.o comps.o eval0.o # only special hp of triloop
-	$(CC)  $(CFLAGS) -Wl,-ld_classic  bin/main0.o bin/utils.o bin/comps.o bin/eval0.o  -o bin/main0
+main_hp3_mac: main0.o utils.o comps.o eval0.o # only special hp of triloop
+	$(CC)  $(CFLAGS) -Wl,-ld_classic  bin/main0.o bin/utils.o bin/comps.o bin/eval0.o  -o bin/main_hp3
 
 main.o: src/main.cpp $(DEPS)
 	$(CC) src/main.cpp -c $(CFLAGS) -Dlv -DSPECIAL_HP_4 -Dis_cube_pruning -Dis_candidate_list -o bin/main.o

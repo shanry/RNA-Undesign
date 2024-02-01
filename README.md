@@ -17,11 +17,18 @@ arXiv preprint arXiv:2311.08339 (2023). To appear in Proceedings of RECOMB 2024.
 - GCC 4.8.5 or above
 
 ## Build
+### Linux
 ```
+# Test with CentOS
 $./make main   
-$./make main0  # only turn on special hairpin of triloop
+$./make main_hp3  # only turn on special hairpin of triloop
 ```
-
+### Mac
+```
+$ Test with Apple Silicon
+$./make main_mac   
+$./make main_hp3_mac  # only turn on special hairpin of triloop
+```
 ## Scalable Identification of Minimum Undesignable Motifs
 
 ### Loop + 1 Neighbor
