@@ -26,19 +26,19 @@ $./make main0  # only turn on special hairpin of triloop
 
 ### Loop + 1 Neighbor
 ```
-$export OMP_NUM_THREADS=4 # parallel computing eabled by OpenMP
+$export OMP_NUM_THREADS=8 # parallel computing eabled by OpenMP
 $./bin/main --alg n1
 ..((((((((.......(.((((((....)))))).(((((((....))))))).).......))))))))..
 ```
 ### Loop + 2 Neighbors
 ```
-$export OMP_NUM_THREADS=4 # parallel computing eabled by OpenMP
+$export OMP_NUM_THREADS=8 # parallel computing eabled by OpenMP
 $./bin/main --alg n2
 ((.(..(.(....).(....).)..).(....).))
 ```
 ### Loop with 3+ Neighbors
 ```
-$export OMP_NUM_THREADS=4 # parallel computing eabled by OpenMP
+$export OMP_NUM_THREADS=8 # parallel computing eabled by OpenMP
 $./bin/main --alg n3
 ((.(((..(((.........)))..)))(...)(...((......)).).))
 ```
@@ -46,7 +46,7 @@ $./bin/main --alg n3
 
 ### Undesignability Alg1
 ```
-$export OMP_NUM_THREADS=4 # parallel computing eabled by OpenMP
+$export OMP_NUM_THREADS=8 # parallel computing eabled by OpenMP
 $./bin/main --alg 1
 AUAAGCGGUAAAAAAAGUGCGAAAAGCAUGAAAAAAAACAGAAAAAAAAAAAAAAAAAAAA
 ......(.........((((.....)))).........)......................
@@ -55,7 +55,7 @@ AUAAGCGGUAAAAAAAGUGCGAAAAGCAUGAAAAAAAACAGAAAAAAAAAAAAAAAAAAAA
 
 ### Undesignability Alg2
 ```
-$export OMP_NUM_THREADS=4 # parallel computing eabled by OpenMP
+$export OMP_NUM_THREADS=8 # parallel computing eabled by OpenMP
 $./bin/main --alg 2
 AAAAUGAGCCCCACGAAAGGAGAGUGCUCACAAA
 ....((((((((.(....)).).).)))))....
@@ -64,7 +64,7 @@ AAAAUGAGCCCCACGAAAGGAGAGUGCUCACAAA
 
 ### Undesignability Alg2 (constrained)
 ```
-$export OMP_NUM_THREADS=4 # parallel computing eabled by OpenMP, user-defined
+$export OMP_NUM_THREADS=8 # parallel computing eabled by OpenMP, user-defined
 $./bin/main --alg 2c
 UUAAGGGAAAAUCUUAGCCGAGAAAUCGGAUCCAAAGCGGCAUAAAAAAGAAAGCGCCGAAAUUCGCAGAAAUGCGAGAAAGGCAAGCAAAGAAUUCGGCAGAAAAAAUGCCGACCGGGCAAUGAAAAUUCGCCCGUGGAGCCAAGCGGG
 ((((((.....)))))(((((....)))).)((...(((((............(((((....((((((....))))))...)))..)).......((((((.......))))))(((((((((....))).))))).)..)))..)))))
@@ -72,7 +72,7 @@ UUAAGGGAAAAUCUUAGCCGAGAAAUCGGAUCCAAAGCGGCAUAAAAAAGAAAGCGCCGAAAUUCGCAGAAAUGCGAGAA
 ```
 ### Undesignability Alg3
 ```
-$export OMP_NUM_THREADS=4 # parallel computing eabled by OpenMP, user-defined
+$export OMP_NUM_THREADS=8 # parallel computing eabled by OpenMP, user-defined
 $./bin/main --alg 3
 ACUAAAUGGUGAGCAGACCCAGUGGAAACACACGCAGCCGAAAGGUACCCAUCCGAGAGGAAGUCAGGCGAAAGCUAACGGAAAGAACGUAGACAGGGAGCGAGGGACAAAGACUGCAAGGGAAAGUACACAAGACAAAGUAAAAAAAGGUGAGGCAGGGGAAACCCCGGGAAACCGGUCGAAAGACGCCAGCAAACCGCAGAAACAGCCACCCAGCGAGACAGACAAAAGCGGAUACGUAGUCGACGGAAACGUAGUCAGGGGAAACCCACGCAAUCGAAAGAUAGGGAGUCGGUGAAAACCAGAGAAAUCUACUCAAAAGAGGACAGGCAGCGGAACCCCUACACCGAAAAAA
 .......((((.((((.(((.(((....))).(((.(((....))).(((.(((....))).(((.(((....))).(((.......))).))).))).))).))).(...).)))).((((...((.(((...((...))........))).(((.(((....)))(((....)))(((....)))))).))...((((.(...).(((.(((.(((.(((.(((....(((....))).))).(((....))).))).(((....))).))).(((....))).))).((((((....)))(((....))).(((....)))))).))).))))...)))).)))).......
