@@ -271,12 +271,12 @@ std::string compose_pairsplot(std::string id, std::string y, std::vector<std::pa
 std::string compose_pairstr(std::vector<std::pair<int, int>>& pairs_inside, std::vector<std::pair<int, int>>& pairs_outside){
     std::string pairstring;
     // color designable pairs
-    pairstring += " inpairs:";
+    pairstring += " ipairs:";
     for(auto pair: pairs_inside){
         pairstring += std::to_string(pair.first) + "," + std::to_string(pair.second) + ";";
     }
     // color undesignable pairs
-    pairstring += " outpairs:";
+    pairstring += " bpairs:";
     for(auto pair: pairs_outside)
         pairstring += std::to_string(pair.first) + "," + std::to_string(pair.second) + ";";
 
@@ -403,7 +403,7 @@ std::vector<std::vector<std::string>> read_csv(const char* file){
 
 std::unordered_map<std::string, std::string> loadlib_eterna(std::string csv){
     auto df = read_csv(csv.c_str());
-    printf("df shape: %d, %d\n", df.size(), df[0].size());
+    // printf("df shape: %d, %d\n", df.size(), df[0].size());
     std::unordered_map<std::string, std::string> struct2seq;
     for(int i = 1; i < df.size(); i++){
         auto row = df[i];
