@@ -36,6 +36,9 @@ std::string fl2str(float x, int d=4);
 std::string replaceFileExtension(const std::string& filePath, const std::string& newExtension);
 std::map<std::string, std::set<std::string>> readMotif(const char* file);
 std::vector<std::vector<int>> PowerSet3(int start, int set_size);
+std::vector<std::vector<int>> PowerSet(int start, int set_size, int subset_size);
+std::vector<std::vector<std::pair<int, int>>> pairSubSet(std::vector<std::pair<int, int>> pairSet);
 std::vector<std::vector<std::string>> read_csv(const char* file);
 std::unordered_map<std::string, std::string> loadlib_eterna(std::string csv);
+std::string pairs2string(std::vector<std::pair<int, int>> pairs);
 #endif

@@ -7,8 +7,8 @@
 #include <cmath>
 #include <algorithm>
 
-#include "json.hpp"
-using json = nlohmann::json;
+// #include "json.hpp"
+// using json = nlohmann::json;
 
 #include "comps.h"
 #include "utils.h"
@@ -942,4 +942,19 @@ std::string LoopComplex::jsmotif(std::string id){
         }
     }
     return js.dump();
+}
+
+json jsrecords(LoopComplex lc, std::string y_star, std::string y_sub, std::vector<std::string> y_rivals, std::string id){
+    json js;
+    js["id"] = id;
+    js["y_star"] = y_star;
+    js["y_sub"] = y_sub;
+    js["y_rivals"] = y_rivals;
+    js["start"] = lc.node->first;
+    js["end"] = lc.node->second;
+    js["ipairs"] = lc.ps_inside;
+    js["bpairs"] = lc.ps_outside;
+    js["motif"] = json::parse(lc.jsmotif(id));
+    js["plotstr"] = compose_args4plot(id, y_star, lc.ps_outside, lc.ps_inside);
+    return js;
 }

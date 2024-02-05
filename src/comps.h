@@ -4,6 +4,8 @@
 #include<vector>
 #include<set>
 #include<string>
+#include "json.hpp"
+using json = nlohmann::json;
 
 /* Old compatibility names for C types.  */
 typedef unsigned long int ulong;
@@ -27,20 +29,19 @@ struct TreeNode {
     void printTree(std::string& ref, std::string& seq, std::vector<std::pair<std::string, std::string>>& subrefs);
 };
 
-// Define input for decomposition algs
-
+// Data structure for motif
 struct LoopComplex {
-    int count_uk;
-    std::string ref;
-    std::string constr;
-    int start;
-    int end;
-    TreeNode* node;
-    int left;
-    int right;
-    std::vector<std::pair<int, int>> ps_outside;
-    std::vector<std::pair<int, int>> ps_inside;
-    std::vector<int> neighbors;
+    int count_uk;   // count of unknow position
+    std::string ref;// the motif with only boundary pairs 
+    std::string constr; // constraint
+    int start;  // index of start of the whole motif
+    int end;    // index of end of the whole motif
+    TreeNode* node; // corresponding node in source tree
+    int left;   // index of left bracket of self loop
+    int right;  // index of right bracket of self loop
+    std::vector<std::pair<int, int>> ps_outside; // boundary pairs
+    std::vector<std::pair<int, int>> ps_inside; // inside pairs
+    std::vector<int> neighbors; // neighbors, 0: parent, 1: first child, ...
 
     LoopComplex(int count, std::string y, std::string cs, int s, int e, TreeNode* n, int l, int r, std::vector<std::pair<int, int>> p_out, std::vector<std::pair<int, int>> p_in);
     void set_neighbors(std::vector<int> nbs);
@@ -78,6 +79,5 @@ std::string removeThreeNeighbors(TreeNode* node, std::string ref, std::vector<in
 
 int max_single(TreeNode* root);
 std::string ml_degree(TreeNode* root);
-
-
+json jsrecords(LoopComplex lc, std::string y_star, std::string y_sub, std::vector<std::string> y_rivals, std::string id);
 #endif

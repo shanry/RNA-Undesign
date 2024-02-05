@@ -1510,29 +1510,144 @@ void csv_process(std::string csv, std::string alg){
                         std::cout<<"undesignable!"<<std::endl;
                         auto end_time = std::chrono::high_resolution_clock::now();
                         const std::chrono::duration<double, std::milli> time_ms = end_time - start_time;
-                        printf("time cost: %.4f seconds\n", time_ms/1000.f);
-                        size_t found = y_star.find(y_sub);
-                        assert (found != std::string::npos);
-                        int found_end = found+y_sub.length();
-                        std::string r = puzzle_id+","+y_star+",1,"+std::to_string(lc.node->first)+","+std::to_string(lc.node->second)+","+y_sub+","+std::to_string(y_rivals.size());
-                        for(auto rival: y_rivals)
-                            r += ","+rival;
-                        // Convert duration to seconds and then cast to float
                         float time_seconds = std::chrono::duration_cast<std::chrono::duration<float>>(time_ms).count();
-                        r += " time:" + fl2str(time_seconds, 4) + ";";
-                        std::cout<<r<<std::endl;
-                        records.push_back(r);
-                        std::string id = puzzle_id + "_" + alg;
-                        std::string args4plot = compose_args4plot(id, y_star, lc.ps_outside, lc.ps_inside);
-                        outputFile << r << std::endl;
-                        outputFile << args4plot << std::endl;
-                        std::string pairstring = id + ":" + compose_pairstr(lc.ps_inside, lc.ps_outside);
-                        std::cout << pairstring << std::endl;
-                        outputFile << pairstring << std::endl;
-                        std::string jstr = lc.jsmotif(puzzle_id);
-                        std::cout << jstr << std::endl;
-                        outputFile << jstr << std::endl;
+                        printf("time cost: %.4f seconds\n", time_ms/1000.f);
+                        auto js = jsrecords(lc, y_star, y_sub, y_rivals, puzzle_id);
+                        js["time"] = time_seconds;
+                        std::string jstring = js.dump();
+                        outputFile << jstring << std::endl;
+                        records.push_back(jstring);
+                        // size_t found = y_star.find(y_sub);
+                        // assert (found != std::string::npos);
+                        // int found_end = found+y_sub.length();
+                        // std::string r = puzzle_id+","+y_star+",1,"+std::to_string(lc.node->first)+","+std::to_string(lc.node->second)+","+y_sub+","+std::to_string(y_rivals.size());
+                        // for(auto rival: y_rivals)
+                        //     r += ","+rival;
+                        // // Convert duration to seconds and then cast to float
+                        // r += " time:" + fl2str(time_seconds, 4) + ";";
+                        // std::cout<<r<<std::endl;
+                        // records.push_back(r);
+                        // std::string id = puzzle_id + "_" + alg;
+                        // std::string args4plot = compose_args4plot(id, y_star, lc.ps_outside, lc.ps_inside);
+                        // outputFile << r << std::endl;
+                        // outputFile << args4plot << std::endl;
+                        // std::string pairstring = id + ":" + compose_pairstr(lc.ps_inside, lc.ps_outside);
+                        // std::cout << pairstring << std::endl;
+                        // outputFile << pairstring << std::endl;
+                        // std::string jstr = lc.jsmotif(puzzle_id);
+                        // std::cout << jstr << std::endl;
+                        // outputFile << jstr << std::endl;
                         // break;
+                    }
+                    printf("\n");
+                }
+            }
+            if (alg == "pn"){
+                auto start_time = std::chrono::high_resolution_clock::now();
+                std::vector<LoopComplex> lc_list;
+                TreeNode* root = parseStringToTree(y_star);
+                std::set<string> ds_ipairs;
+                std::set<string> ud_ipairs;
+                tree2Edges(root, y_star, lc_list);
+                printf("lc_list size: %d\n", lc_list.size());
+                // Sort the vector using a lambda expression
+                std::sort(lc_list.begin(), lc_list.end(), [](const LoopComplex &a, const LoopComplex &b) {
+                    return a.count_uk < b.count_uk;});
+                for (auto lc: lc_list){
+                    std::string target = y_star.substr(lc.start, lc.end-lc.start+1);
+                    std::string subseq = seq.substr(lc.start, lc.end-lc.start+1);
+                    printf(" count: %d\n", lc.count_uk);
+                    printf("target: %s\n", target.c_str());
+                    printf("   ref: %s\n", lc.ref.c_str());
+                    printf("constr: %s\n", lc.constr.c_str());
+                    std::string result;
+                    try{
+                        result = alg_5_helper_v2(target, lc.ref, lc.constr, subseq, verbose, dangle);
+                    }catch(...){
+                        // Code to handle any exception
+                        std::cerr << "An exception occurred" << std::endl;
+                        result = "exception";
+                    }
+                    if (result == "exception")
+                        continue;
+                    if (result == "UMFE"){
+                        ds_ipairs.insert(pairs2string(lc.ps_inside));
+                    }
+                    if (result == "undesignable"){
+                        std::cout<<"undesignable!"<<std::endl;
+                        auto end_time = std::chrono::high_resolution_clock::now();
+                        const std::chrono::duration<double, std::milli> time_ms = end_time - start_time;
+                        float time_seconds = std::chrono::duration_cast<std::chrono::duration<float>>(time_ms).count();
+                        printf("time cost: %.4f seconds\n", time_ms/1000.f);
+                        auto js = jsrecords(lc, y_star, y_sub, y_rivals, puzzle_id);
+                        js["time"] = time_seconds;
+                        js["ismin"] = true;
+                        ud_ipairs.insert(pairs2string(lc.ps_inside));
+                        std::string jstring = js.dump();
+                        outputFile << jstring << std::endl;
+                        records.push_back(jstring);
+                    }
+                    printf("\n");
+                }
+                // motif of more than 2 loops
+                lc_list.clear();
+                tree2TwoNeighbor(root, y_star, lc_list);
+                printf("lc_list size: %d\n", lc_list.size());
+                // Sort the vector using a lambda expression
+                std::sort(lc_list.begin(), lc_list.end(), [](const LoopComplex &a, const LoopComplex &b) {
+                    return a.count_uk < b.count_uk;});
+                for (auto lc: lc_list){
+                    std::string target = y_star.substr(lc.start, lc.end-lc.start+1);
+                    std::string subseq = seq.substr(lc.start, lc.end-lc.start+1);
+                    printf(" count: %d\n", lc.count_uk);
+                    printf("target: %s\n", target.c_str());
+                    printf("   ref: %s\n", lc.ref.c_str());
+                    printf("constr: %s\n", lc.constr.c_str());
+                    std::string result;
+                    auto ipairs_subsets = pairSubSet(lc.ps_inside);
+                    bool ud = false;
+                    for(auto ipairs: ipairs_subsets){
+                        if(ud_ipairs.find(pairs2string(ipairs))!=ud_ipairs.end()){
+                            ud = true;
+                            break;
+                        }
+                    }
+                    if(ud)
+                        continue;
+                    try{
+                        result = alg_5_helper_v2(target, lc.ref, lc.constr, subseq, verbose, dangle);
+                    }catch(...){
+                        // Code to handle any exception
+                        std::cerr << "An exception occurred" << std::endl;
+                        result = "exception";
+                    }
+                    if (result == "exception")
+                        continue;
+                    if (result == "UMFE"){
+                        ds_ipairs.insert(pairs2string(lc.ps_inside));
+                    }
+                    if (result == "undesignable"){
+                        std::cout<<"undesignable!"<<std::endl;
+                        auto end_time = std::chrono::high_resolution_clock::now();
+                        const std::chrono::duration<double, std::milli> time_ms = end_time - start_time;
+                        float time_seconds = std::chrono::duration_cast<std::chrono::duration<float>>(time_ms).count();
+                        printf("time cost: %.4f seconds\n", time_ms/1000.f);
+                        auto js = jsrecords(lc, y_star, y_sub, y_rivals, puzzle_id);
+                        js["time"] = time_seconds;
+                        ud_ipairs.insert(pairs2string(lc.ps_inside));
+                        std::vector<std::vector<std::pair<int, int>>> uk_pairs;
+                        for(auto ipairs: ipairs_subsets){
+                            if(ds_ipairs.find(pairs2string(ipairs))==ds_ipairs.end()){
+                                uk_pairs.push_back(ipairs);
+                            }
+                        }
+                        if(uk_pairs.size()){
+                            js["ismin"] = false;
+                            js["uk_ipairs"] = uk_pairs;
+                        }
+                        std::string jstring = js.dump();
+                        outputFile << jstring << std::endl;
+                        records.push_back(jstring);
                     }
                     printf("\n");
                 }
@@ -2256,6 +2371,48 @@ int main(int argc, char* argv[]) {
         while (std::getline(std::cin, ref)) {
             TreeNode* root = parseStringToTree(ref);
             root->printTree();
+        }
+    }else if (alg == "subset1" || alg == "subset2" || alg == "subset3"){
+        std::string ref;
+        // Read input line by line until EOF (end of file) is reached
+        while (std::getline(std::cin, ref)){
+            std::string seq;
+            if(struct2seq.find(ref) != struct2seq.end()){
+                seq = struct2seq[ref];
+                std::cout<<"seq found in design lib: "<<seq<<std::endl;
+            }
+            else{
+                seq = tg_init(ref);
+                std::cout<<"seq via targeted initialization: "<<seq<<std::endl;
+            }
+            std::vector<LoopComplex> lc_list;
+            TreeNode* root = parseStringToTree(ref);
+            if(alg == "subset1")
+                tree2Edges(root, ref, lc_list);
+            else if(alg == "subset2")
+                tree2TwoNeighbor(root, ref, lc_list);
+            else
+                tree2ThreeNeighbor(root, ref, lc_list);
+            printf("lc_list size: %d\n", lc_list.size());
+            // Sort the vector using a lambda expression
+            std::sort(lc_list.begin(), lc_list.end(), [](const LoopComplex &a, const LoopComplex &b) {
+                return a.count_uk < b.count_uk;});
+            std::vector<std::vector<std::string>> motif_records;
+            for (auto lc: lc_list){
+                std::cout<<lc.constr<<std::endl;
+                std::cout<<lc.ps_inside.size()<<std::endl;
+                for(auto pair: lc.ps_inside){
+                    std::cout<<pair.first<<","<<pair.second<<";";
+                }
+                std::cout<<std::endl;
+                auto subsets = pairSubSet(lc.ps_inside);
+                for(auto subset: subsets){
+                    for(auto pair: subset){
+                        std::cout<<pair.first<<","<<pair.second<<";";
+                    }
+                    std::cout<<std::endl;
+                }
+            }
         }
     }
     return 0;

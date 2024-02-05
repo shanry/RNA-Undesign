@@ -362,6 +362,54 @@ std::vector<std::vector<int>> PowerSet3(int start, int set_size){
     return powset_all;
 }
 
+std::vector<std::vector<int>> PowerSet(int start, int set_size, int subset_size){ 
+    std::vector<std::vector<int>> powset_all;
+    // Set_size of power set of a set with set_size 
+    // n is (2^n-1) 
+    unsigned int pow_set_size = pow(2, set_size); 
+    int counter, j; 
+  
+    // Run from counter 000..0 to 111..1 
+    for (counter = 0; counter < pow_set_size; counter++) { 
+        std::vector<int> powset;
+        for (j = 0; j < set_size; j++) { 
+            // Check if jth bit in the counter is set 
+            // If set then print jth element from set 
+            if (counter & (1 << j)) 
+                powset.push_back(j+start);
+        } 
+        if(powset.size() == subset_size)
+            powset_all.push_back(powset);
+    } 
+    return powset_all;
+}
+
+std::vector<std::vector<std::pair<int, int>>> pairSubSet(std::vector<std::pair<int, int>> pairSet){ 
+    int set_size = pairSet.size();
+    std::vector<std::vector<std::pair<int, int>>> subset_all;
+    // Set_size of power set of a set with set_size 
+    // n is (2^n-1) 
+    unsigned int pow_set_size = pow(2, set_size); 
+    int counter, j; 
+  
+    // Run from counter 000..0 to 111..1 
+    for (counter = 0; counter < pow_set_size; counter++) { 
+        std::vector<std::pair<int, int>> powset;
+        for (j = 0; j < set_size; j++) { 
+            // Check if jth bit in the counter is set 
+            // If set then print jth element from set 
+            if (counter & (1 << j)) 
+                powset.push_back(pairSet[j]);
+        } 
+        if(powset.size() > 0 && powset.size() < set_size)
+            subset_all.push_back(powset);
+    } 
+    std::sort(subset_all.begin(), subset_all.end(), [](std::vector<std::pair<int, int>> a, std::vector<std::pair<int, int>> b){
+        return a.size() < b.size();
+    });
+    return subset_all;
+}
+
 std::vector<std::vector<std::string>> read_csv(const char* file){
 
     std::vector<std::vector<std::string>> df;
@@ -410,4 +458,12 @@ std::unordered_map<std::string, std::string> loadlib_eterna(std::string csv){
         struct2seq[row[1]] = row[2]; 
     }
     return struct2seq;
+}
+
+std::string pairs2string(std::vector<std::pair<int, int>> pairs){
+    std:: string s;
+    for(std::pair<int, int> pair: pairs){
+        s += std::to_string(pair.first) + "," + std::to_string(pair.second) + ";";
+    }
+    return s;
 }
