@@ -1644,6 +1644,8 @@ void csv_process(std::string csv, std::string alg){
                         if(uk_pairs.size()){
                             js["ismin"] = false;
                             js["uk_ipairs"] = uk_pairs;
+                        }else{
+                            js["ismin"] = true;
                         }
                         std::string jstring = js.dump();
                         outputFile << jstring << std::endl;
