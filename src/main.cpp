@@ -1603,6 +1603,11 @@ void csv_process(std::string csv, std::string alg){
                 std::sort(lc_list.begin(), lc_list.end(), [](const LoopComplex &a, const LoopComplex &b) {
                     return a.count_uk < b.count_uk;});
                 for (auto lc: lc_list){
+                    lc.printLoopLens();
+                    if (lc.hasLongLoop()){
+                        printf("the loop exceeds length limit!");
+                        continue;
+                    }
                     std::string target = y_star.substr(lc.start, lc.end-lc.start+1);
                     std::string subseq = seq.substr(lc.start, lc.end-lc.start+1);
                     printf(" count: %d\n", lc.count_uk);
