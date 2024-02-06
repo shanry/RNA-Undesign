@@ -1555,6 +1555,11 @@ void csv_process(std::string csv, std::string alg){
                 std::sort(lc_list.begin(), lc_list.end(), [](const LoopComplex &a, const LoopComplex &b) {
                     return a.count_uk < b.count_uk;});
                 for (auto lc: lc_list){
+                    lc.printLoopLens();
+                    if (lc.hasLongLoop()){
+                        printf("the loop exceeds length limit!");
+                        continue;
+                    }
                     std::string target = y_star.substr(lc.start, lc.end-lc.start+1);
                     std::string subseq = seq.substr(lc.start, lc.end-lc.start+1);
                     printf(" count: %d\n", lc.count_uk);
@@ -1962,6 +1967,9 @@ void show_configuration(){
     #ifdef SPECIAL_HP_6
     printf("SPECIAL_HP_6 defined.\n");
     #endif
+    #ifdef SINGLE_MAX_LEN
+    printf("SINGLE_MAX_LEN: %d\n", SINGLE_MAX_LEN);
+    #endif
     return;
 }
 
@@ -2291,6 +2299,11 @@ int main(int argc, char* argv[]) {
                 return a.count_uk < b.count_uk;});
             std::vector<std::string> motif_records;
             for (auto lc: lc_list){
+                lc.printLoopLens();
+                if (lc.hasLongLoop()){
+                    printf("the loop exceeds length limit!");
+                    continue;
+                }
                 std::string target = ref.substr(lc.start, lc.end-lc.start+1);
                 std::string subseq = seq.substr(lc.start, lc.end-lc.start+1);
                 printf(" count: %d\n", lc.count_uk);
@@ -2315,16 +2328,16 @@ int main(int argc, char* argv[]) {
                     std::string jstring = js.dump();
                     motif_records.push_back(jstring);
                 }
-                printf("----------------------------------------------------------------------------------\n");
-                if(motif_records.size()){
+            }
+            printf("----------------------------------------------------------------------------------\n");
+            if(motif_records.size()){
                 std::cout<<"found "+std::to_string(motif_records.size())+ " undesignable motif(s)."<<std::endl;
                 for(int i=0; i < motif_records.size(); i++){
                     std::cout<<"motif: "<<std::to_string(i+1)<<std::endl;
                     std::cout<<motif_records[i]<<std::endl;
                 }
-                }else{
-                    std::cout<<"no undesignable motifs found."<<std::endl;
-                }
+            }else{
+                std::cout<<"no undesignable motifs found."<<std::endl;
             }
         }
     }else if (alg == "showtree"){
@@ -2373,6 +2386,62 @@ int main(int argc, char* argv[]) {
                         std::cout<<pair.first<<","<<pair.second<<";";
                     }
                     std::cout<<std::endl;
+                }
+            }
+        }
+    }else if (alg == "imax"){
+        std::string y;
+        // Read input line by line until EOF (end of file) is reached
+        while (std::getline(std::cin, y)){
+            TreeNode* root = parseStringToTree(y);
+            int max_internal = max_single(root);
+            printf("maximum internal loop length: %d\n", max_internal);
+        }
+    }else if (alg == "mmax"){
+        std::string y;
+        // Read input line by line until EOF (end of file) is reached
+        while (std::getline(std::cin, y)){
+            TreeNode* root = parseStringToTree(y);
+            int max_mul = max_multi(root);
+            printf("maximum multi-loop length: %d\n", max_mul);
+        }
+    }else if (alg == "l1" || alg == "l2" || alg == "l3"){ /* edges evaluation  */
+        std::string ref;
+        // Read input line by line until EOF (end of file) is reached
+        while (std::getline(std::cin, ref)){
+            std::string seq;
+            std::string puzzle_id = "id";
+            if(struct2seq.find(ref) != struct2seq.end()){
+                seq = struct2seq[ref];
+                std::cout<<"seq found in design lib: "<<seq<<std::endl;
+            }
+            else{
+                seq = tg_init(ref);
+                std::cout<<"seq via targeted initialization: "<<seq<<std::endl;
+            }
+            std::vector<LoopComplex> lc_list;
+            TreeNode* root = parseStringToTree(ref);
+            if(alg == "l1")
+                tree2Edges(root, ref, lc_list);
+            else if(alg == "l2")
+                tree2TwoNeighbor(root, ref, lc_list);
+            else
+                tree2ThreeNeighbor(root, ref, lc_list);
+            printf("lc_list size: %d\n", lc_list.size());
+            // Sort the vector using a lambda expression
+            std::sort(lc_list.begin(), lc_list.end(), [](const LoopComplex &a, const LoopComplex &b) {
+                return a.count_uk < b.count_uk;});
+            for (auto lc: lc_list){
+                std::string target = ref.substr(lc.start, lc.end-lc.start+1);
+                std::string subseq = seq.substr(lc.start, lc.end-lc.start+1);
+                printf(" count: %d\n", lc.count_uk);
+                printf("target: %s\n", target.c_str());
+                printf("   ref: %s\n", lc.ref.c_str());
+                printf("constr: %s\n", lc.constr.c_str());
+                lc.printLoopLens();
+                if (lc.hasLongLoop()){
+                    printf("the loop exceeds length limit!\n");
+                    continue;
                 }
             }
         }

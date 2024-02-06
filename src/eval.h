@@ -5,6 +5,16 @@
 #include <set>
 #include <string>
 
+#define EXPLICIT_MAX_LEN 4
+#define SINGLE_MIN_LEN 0
+#define SINGLE_MAX_LEN 30  // NOTE: *must* <= sizeof(char), otherwise modify State::TraceInfo accordingly
+
+#define HAIRPIN_MAX_LEN 30
+#define BULGE_MAX_LEN SINGLE_MAX_LEN
+#define INTERNAL_MAX_LEN SINGLE_MAX_LEN
+#define SYMMETRIC_MAX_LEN 15
+#define ASYMMETRY_MAX_LEN 28
+
 // Function to find critical values
 std::vector<std::vector<int>> find_critical(std::string ref1, std::string ref2, bool is_verbose);
 std::vector<std::vector<int>> find_critical_plus(std::string ref1, std::string ref2, std::set<int>& critical_positions, bool is_verbose);

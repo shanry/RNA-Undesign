@@ -9,9 +9,9 @@
 
 // #include "json.hpp"
 // using json = nlohmann::json;
-
-#include "comps.h"
 #include "utils.h"
+#include "eval.h"
+#include "comps.h"
 
 char nuc_all[] = "ACGU";
 char nuc_pair_all[][3] = {"GC", "CG", "AU", "UA", "GU", "UG"};
@@ -66,7 +66,9 @@ void TreeNode::setLoop(){
             looplens.push_back(second - children.back()->second - 1);
         }
         assert(looplens.size() == children.size()+1);
-
+        looplen = 0;
+        for(auto& seglen: looplens)
+            looplen += seglen;
         json js;
         js["type"] = looptype;
         js["neighbors"] = neighbors;
@@ -143,6 +145,17 @@ void TreeNode::printTree(std::string& ref, std::string& seq, std::vector<std::pa
     }       
 }
 
+bool TreeNode::isTooLong(){
+    printf("inside isTooLong\n");
+    if(looptype == "I" || looptype == "B")
+        return looplen > SINGLE_MAX_LEN;
+    else if(looptype == "H")
+        return looplen > HAIRPIN_MAX_LEN;
+    else if(looptype == "M")
+        return looplen > SINGLE_MAX_LEN;
+    return false;
+}
+
 LoopComplex::LoopComplex(int count, std::string y, std::string cs, int s, int e, TreeNode* n, int l, int r, std::vector<std::pair<int, int>> p_out, std::vector<std::pair<int, int>> p_in){
     count_uk = count;
     ref = y;
@@ -159,6 +172,33 @@ LoopComplex::LoopComplex(int count, std::string y, std::string cs, int s, int e,
 
 void LoopComplex::set_neighbors(std::vector<int> nbs){
     neighbors = nbs;
+}
+
+bool LoopComplex::hasLongLoop(){
+    printf("inside hasLongLoop\n");
+    if(node->isTooLong())
+        return true;
+    else{
+        for(int nb: neighbors){
+            if (nb == 0){
+                if (node->parent->isTooLong())
+                    return true;
+            }else if (node->children[nb-1]->isTooLong())
+                return true;
+        }
+    }
+    return false;
+}
+
+void LoopComplex::printLoopLens(){
+    printf("self loop: %s, %d\n", node->looptype.c_str(), node->looplen);
+    for(int nb: neighbors){
+        printf("nb: %d\n", nb);
+        if (nb == 0)
+            printf("parent loop: %s, %d\n", node->parent->looptype.c_str(), node->parent->looplen);
+        else
+            printf("child %d loop: %s, %d\n", nb, node->children[nb-1]->looptype.c_str(), node->children[nb-1]->looplen);
+    }
 }
 
 // Constructor that accepts two arguments to initialize the members
@@ -363,7 +403,7 @@ void tree2ThreeNeighbor(TreeNode* root, std::string& ref, std::vector<LoopComple
     }else if(root->children.size() > 1){
         printf("multi-loop: first: %d, second: %d; children: %d\n", root->first, root->second, root->children.size());
     }
-    printf("before if\n");
+    // printf("before if\n");
     if (root != NULL && root->children.size() > 1){
         printf("in if\n");
         printf("parent: first: %d, second: %d; children: %d\n", root->first, root->second, root->children.size());
@@ -844,6 +884,24 @@ int max_single(TreeNode* root){
     }
     for(TreeNode* child: root->children){
         int maxlen_child = max_single(child);
+        maxlen = std::max(maxlen, maxlen_child);
+    }
+    return maxlen;
+}
+
+int max_multi(TreeNode* root){
+    int maxlen = 0;
+    if (root->first!=-1&&root->children.size()>1){
+        for(int i = 0; i < root->children.size(); i++){
+            if(i == 0)
+                maxlen += root->children[i]->first - root->first;
+            else
+                maxlen += root->children[i]->first - root->children[i-1]->second;
+        }
+        maxlen += root->second - root->children[root->children.size()-1]->second;
+    }
+    for(TreeNode* child: root->children){
+        int maxlen_child = max_multi(child);
         maxlen = std::max(maxlen, maxlen_child);
     }
     return maxlen;

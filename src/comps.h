@@ -19,6 +19,7 @@ struct TreeNode {
     std::string looptype;
     std::vector<int> neighbors;
     std::vector<int> looplens;
+    int looplen;
     std::string jstring;
     TreeNode(int first_val, int second_val);
     void setLoop();
@@ -27,6 +28,8 @@ struct TreeNode {
     void printTree(std::string ref);
     void printTree(std::string& ref, std::string& seq);
     void printTree(std::string& ref, std::string& seq, std::vector<std::pair<std::string, std::string>>& subrefs);
+
+    bool isTooLong();
 };
 
 // Data structure for motif
@@ -45,7 +48,8 @@ struct LoopComplex {
 
     LoopComplex(int count, std::string y, std::string cs, int s, int e, TreeNode* n, int l, int r, std::vector<std::pair<int, int>> p_out, std::vector<std::pair<int, int>> p_in);
     void set_neighbors(std::vector<int> nbs);
-
+    bool hasLongLoop();
+    void printLoopLens();
     std::string jsmotif(std::string id);
 };
 
@@ -76,8 +80,8 @@ void tree2MLoops(TreeNode* root, std::string& ref, std::vector<LoopComplex>& lc_
 std::string removeMNodeFromTree(TreeNode* node, std::string ref);
 std::string removeTwoNeighbors(TreeNode* node, std::string ref, int n1, int n2);
 std::string removeThreeNeighbors(TreeNode* node, std::string ref, std::vector<int>& powset);
-
 int max_single(TreeNode* root);
+int max_multi(TreeNode* root);
 std::string ml_degree(TreeNode* root);
 json jsrecords(LoopComplex lc, std::string y_star, std::string y_sub, std::vector<std::string> y_rivals, std::string id);
 #endif
