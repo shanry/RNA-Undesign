@@ -1143,6 +1143,7 @@ std::string alg_5_helper_v2(std::string& ref1, std::string& ref2, std::string&co
     std::cout << "  y: " << ref1 << std::endl;
     seq_init = seq;
     std::vector<std::string> mfes = cs_fold(seq, constr, 0, false, verbose, dangle);
+    std::cout<<"mfes.size: "<<mfes.size()<<std::endl;
     std::string ref_mfe;
     if(isUMFE(mfes, ref1)){
         std::cout<<seq<<std::endl;
@@ -1996,7 +1997,7 @@ int main(int argc, char* argv[]) {
     std::unordered_map<std::string, std::string> struct2seq = loadlib_eterna("data/eterna_umfe_unsolved.csv");
 
 
-    if ( alg == "csfold" ){  /* constrained folding */
+    if ( alg == "csfold" || alg == "cf_vienna" ){  /* constrained folding */
         std::cout << alg << std::endl;
         int beamsize = 0;
         bool sharpturn = false;
@@ -2006,7 +2007,11 @@ int main(int argc, char* argv[]) {
         while (std::getline(std::cin, seq))
         {
             std::getline(std::cin, constr);
-            auto refs =  cs_fold(seq, constr, beamsize, sharpturn, verbose, dangle);
+            std::vector<std::string> refs;
+            if (alg == "csfold")
+                refs =  cs_fold(seq, constr, beamsize, sharpturn, verbose, dangle);
+            else
+                refs =  cs_fold_vienna(seq, constr, beamsize, sharpturn, verbose, dangle);
             std::cout<<"subopts size: "<<refs.size()<<std::endl;
             for(auto ref: refs)
                 std::cout<<ref<<std::endl;
@@ -2275,6 +2280,13 @@ int main(int argc, char* argv[]) {
                 printf("target: %s\n", target.c_str());
                 printf("constr: %s\n", cst.c_str());
                 // printf("   ref: %s\n", ref.c_str());
+                TreeNode* root = parseStringToTree(target);
+                int max_internal = max_single(root);
+                if(max_internal > 30){        
+                    std::cout<<"the internal loop is too long: "<<max_internal<<std::endl;            
+                    continue;
+                }
+                std::cout<<"max internal loop length: "<<max_internal<<std::endl;
                 if (true){
                     std::string result = alg_5_helper_v2(target, ref, cst, seq, verbose, dangle);
                     std::cout<<"result: "<<result<<std::endl;

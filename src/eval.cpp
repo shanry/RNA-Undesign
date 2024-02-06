@@ -3915,6 +3915,9 @@ std::vector<std::string> cs_fold(std::string seq, std::string& constr, int beams
     std::set<char> consSet {'?', '.', '(', ')'};
     if (seq.length() != constr.length()){
         printf("The lengths don't match between sequence and constraints: %s, %s\n", seq.c_str(), constr.c_str());
+        std::cout<<seq<<std::endl;
+        std::cout<<constr<<std::endl;
+        printf("seq len: %d; constr len: %d\n", seq.length(), constr.length());
         return subopts;
     }
     int n = seq.length();
@@ -3961,7 +3964,6 @@ std::vector<std::string> cs_fold(std::string seq, std::string& constr, int beams
                 double printscore = result.score;
         #endif
         // printf("%s (%.2f)\n", result.structure.c_str(), printscore);
-
         return subopts;
     }
     return subopts;
