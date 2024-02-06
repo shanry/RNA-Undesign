@@ -2307,6 +2307,7 @@ int main(int argc, char* argv[]) {
         // Read input line by line until EOF (end of file) is reached
         while (std::getline(std::cin, ref)){
             std::string seq;
+            std::string puzzle_id = "id";
             if(struct2seq.find(ref) != struct2seq.end()){
                 seq = struct2seq[ref];
                 std::cout<<"seq found in design lib: "<<seq<<std::endl;
@@ -2327,7 +2328,7 @@ int main(int argc, char* argv[]) {
             // Sort the vector using a lambda expression
             std::sort(lc_list.begin(), lc_list.end(), [](const LoopComplex &a, const LoopComplex &b) {
                 return a.count_uk < b.count_uk;});
-            std::vector<std::vector<std::string>> motif_records;
+            std::vector<std::string> motif_records;
             for (auto lc: lc_list){
                 std::string target = ref.substr(lc.start, lc.end-lc.start+1);
                 std::string subseq = seq.substr(lc.start, lc.end-lc.start+1);
@@ -2338,41 +2339,27 @@ int main(int argc, char* argv[]) {
                 auto start_time = std::chrono::high_resolution_clock::now();
                 std::string result = alg_5_helper_v2(target, lc.ref, lc.constr, subseq, verbose, dangle);
                 if (result == "undesignable"){
+                    // std::cout<<"undesignable!"<<std::endl;
+                    // auto end_time = std::chrono::high_resolution_clock::now();
+                    // const std::chrono::duration<double, std::milli> time_ms = end_time - start_time;
+                    // printf("time cost: %.4f seconds\n", time_ms/1000.f);
                     std::cout<<"undesignable!"<<std::endl;
                     auto end_time = std::chrono::high_resolution_clock::now();
                     const std::chrono::duration<double, std::milli> time_ms = end_time - start_time;
-                    printf("time cost: %.4f seconds\n", time_ms/1000.f);
-                    int count_pairs = lc.node->children.size() + 1;
-                    std::string r = seq+","+ref+","+std::to_string(count_pairs)+","+std::to_string(lc.node->first)+","+std::to_string(lc.node->second);
-                    for(auto child: lc.node->children)
-                        r += ","+std::to_string(child->first)+","+std::to_string(child->second);
-                    r = r + ","+y_sub+","+std::to_string(y_rivals.size());
-                    for(auto rival: y_rivals)
-                        r += ","+rival;
-                    // Convert duration to seconds and then cast to float
                     float time_seconds = std::chrono::duration_cast<std::chrono::duration<float>>(time_ms).count();
-                    r += " time:" + fl2str(time_seconds) + ";";
-                    std::cout<<r<<std::endl;
-                    // std::string id = puzzle_id + "_" + alg;
-                    std::string args4plot = compose_args4plot("id", ref, lc.ps_outside, lc.ps_inside);
-                    std::cout << args4plot <<std::endl;
-                    std::string pairstring = compose_pairstr(lc.ps_inside, lc.ps_outside);
-                    std::cout << pairstring << std::endl;
-                    std::string jstr = lc.jsmotif(std::to_string(motif_records.size()));
-                    std::vector<std::string> record;
-                    record.push_back(r);
-                    record.push_back(args4plot);
-                    record.push_back(pairstring);
-                    record.push_back(jstr);
-                    motif_records.push_back(record);
+                    printf("time cost: %.4f seconds\n", time_ms/1000.f);
+                    auto js = jsrecords(lc, target, y_sub, y_rivals, puzzle_id);
+                    js["time"] = time_seconds;
+                    js["ismin"] = true;
+                    std::string jstring = js.dump();
+                    motif_records.push_back(jstring);
                 }
                 printf("----------------------------------------------------------------------------------\n");
                 if(motif_records.size()){
                 std::cout<<"found "+std::to_string(motif_records.size())+ " undesignable motif(s)."<<std::endl;
                 for(int i=0; i < motif_records.size(); i++){
-                    std::cout<<"motif: "<<std::to_string(i)<<std::endl;
-                    for(auto r: motif_records[i])
-                        std::cout<<r<<std::endl;
+                    std::cout<<"motif: "<<std::to_string(i+1)<<std::endl;
+                    std::cout<<motif_records[i]<<std::endl;
                 }
                 }else{
                     std::cout<<"no undesignable motifs found."<<std::endl;
