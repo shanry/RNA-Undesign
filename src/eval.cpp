@@ -3418,8 +3418,8 @@ void BeamCKYParser::recover_hyperedges(int i, int j, BestTypes type, value_type 
             int nuci1 = nucs[i+1];
 
             int p, q;
-            for (q = j - 1; q >= max(0, j - SINGLE_MAX_LEN); q--) { // weiyu: not sure if this loop is correct
-                for (p = i + 1; p <= q - 9 && (p - i) + (j - q) - 2 <= SINGLE_MAX_LEN; p++){
+            for (q = j - 1; q >= i+1; q--) {
+                for (p = i + 1; p <= q - 9; p++) {
                     auto bestM2_iter = bestM2[q].find(p);
                     if(bestM2_iter != bestM2[q].end()){
                         if (!use_constraints || (allow_unpaired_range[i] >= p && allow_unpaired_range[q] >= j)) {
