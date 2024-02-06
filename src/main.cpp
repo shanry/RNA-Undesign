@@ -1997,7 +1997,7 @@ int main(int argc, char* argv[]) {
     std::unordered_map<std::string, std::string> struct2seq = loadlib_eterna("data/eterna_umfe_unsolved.csv");
 
 
-    if ( alg == "csfold" || alg == "cf_vienna" ){  /* constrained folding */
+    if ( alg == "csfold" || alg == "cf" ){  /* constrained folding */
         std::cout << alg << std::endl;
         int beamsize = 0;
         bool sharpturn = false;
@@ -2192,45 +2192,6 @@ int main(int argc, char* argv[]) {
             }
         }
     }
-    // else if (alg == "n1"){ /* edges evaluation  */
-    //     std::string ref;
-    //     // Read input line by line until EOF (end of file) is reached
-    //     while (std::getline(std::cin, ref)) {
-    //         // getline(std::cin, ref);
-    //         std::string seq;
-    //         if(struct2seq.find(ref) != struct2seq.end()){
-    //             seq = struct2seq[ref];
-    //             std::cout<<"seq found in design lib: "<<seq<<std::endl;
-    //         }
-    //         else{
-    //             seq = tg_init(ref);
-    //             std::cout<<"seq via targeted initialization: "<<seq<<std::endl;
-    //         }
-    //         std::vector<LoopComplex> lc_list;
-    //         TreeNode* root = parseStringToTree(ref);
-    //         tree2Edges(root, ref, lc_list);
-    //         printf("lc_list size: %d\n", lc_list.size());
-    //         // Sort the vector using a lambda expression
-    //         std::sort(lc_list.begin(), lc_list.end(), [](const LoopComplex &a, const LoopComplex &b) {
-    //             return a.count_uk < b.count_uk;});
-    //         for (auto lc: lc_list){
-    //             std::string target = ref.substr(lc.start, lc.end-lc.start+1);
-    //             std::string subseq = seq.substr(lc.start, lc.end-lc.start+1);
-    //             printf(" count: %d\n", lc.count_uk);
-    //             printf("target: %s\n", target.c_str());
-    //             printf("   ref: %s\n", lc.ref.c_str());
-    //             printf("constr: %s\n", lc.constr.c_str());
-
-    //             if (true){
-    //                 std::string result = alg_5_helper_v2(target, lc.ref, lc.constr, subseq, verbose, dangle);
-    //                 if (result == "undesignable")
-    //                     break;
-    //             }
-
-    //             printf("\n");
-    //         }
-    //     }
-    // }
     else if (alg == "mloop"){ /* multi-loops evaluation  */
         std::string seq;
         std::string ref;
