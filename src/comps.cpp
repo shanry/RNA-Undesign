@@ -146,7 +146,7 @@ void TreeNode::printTree(std::string& ref, std::string& seq, std::vector<std::pa
 }
 
 bool TreeNode::isTooLong(){
-    printf("inside isTooLong\n");
+    // printf("inside isTooLong\n");
     if(looptype == "I" || looptype == "B")
         return looplen > SINGLE_MAX_LEN;
     else if(looptype == "H")
@@ -175,7 +175,7 @@ void LoopComplex::set_neighbors(std::vector<int> nbs){
 }
 
 bool LoopComplex::hasLongLoop(){
-    printf("inside hasLongLoop\n");
+    // printf("inside hasLongLoop\n");
     if(node->isTooLong())
         return true;
     else{
@@ -877,6 +877,18 @@ std::string removeThreeNeighbors(TreeNode* node, std::string ref, std::vector<in
     return constr;
 }
 
+int max_hairpin(TreeNode* root){
+    int maxlen = 0;
+    if (root->first!=-1&&root->children.size()==0){
+        maxlen = root->second - root->first - 1;
+    }
+    for(TreeNode* child: root->children){
+        int maxlen_child = max_single(child);
+        maxlen = std::max(maxlen, maxlen_child);
+    }
+    return maxlen;
+}
+
 int max_single(TreeNode* root){
     int maxlen = 0;
     if (root->first!=-1&&root->children.size()==1){
@@ -894,11 +906,11 @@ int max_multi(TreeNode* root){
     if (root->first!=-1&&root->children.size()>1){
         for(int i = 0; i < root->children.size(); i++){
             if(i == 0)
-                maxlen += root->children[i]->first - root->first;
+                maxlen += root->children[i]->first - root->first - 1;
             else
-                maxlen += root->children[i]->first - root->children[i-1]->second;
+                maxlen += root->children[i]->first - root->children[i-1]->second - 1;
         }
-        maxlen += root->second - root->children[root->children.size()-1]->second;
+        maxlen += root->second - root->children[root->children.size()-1]->second - 1;
     }
     for(TreeNode* child: root->children){
         int maxlen_child = max_multi(child);

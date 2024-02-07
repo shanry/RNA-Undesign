@@ -41,4 +41,5 @@ std::vector<std::vector<std::pair<int, int>>> pairSubSet(std::vector<std::pair<i
 std::vector<std::vector<std::string>> read_csv(const char* file);
 std::unordered_map<std::string, std::string> loadlib_eterna(std::string csv);
 std::string pairs2string(std::vector<std::pair<int, int>> pairs);
+std::string genHelix(int len);
 #endif

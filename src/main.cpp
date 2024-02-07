@@ -1566,9 +1566,32 @@ void csv_process(std::string csv, std::string alg){
                     printf("target: %s\n", target.c_str());
                     printf("   ref: %s\n", lc.ref.c_str());
                     printf("constr: %s\n", lc.constr.c_str());
+
+                    std::string ref_lc = lc.ref;
+                    std::string constr_lc = lc.constr;
+                    for( int ib = 1; ib < lc.ps_outside.size(); ib++){ // skip the most outside boudary pair
+                        auto bpair = lc.ps_outside[ib];
+                        std::cout<<"bpair: "<<bpair.first<<"\t"<<bpair.second<<std::endl;
+                        int len_branch =  bpair.second - bpair.first + 1;
+                        std::string y_branch = y_star.substr(bpair.first, len_branch);
+                        std::cout<<"y_branch:"<<std::endl;
+                        std::cout<<y_branch<<std::endl;
+                        TreeNode* root_branch = parseStringToTree(y_branch);
+                        if(max_hairpin(root_branch)>HAIRPIN_MAX_LEN || max_single(root_branch) > SINGLE_MAX_LEN || max_multi(root_branch)){
+                            std::string helix_branch = genHelix(len_branch);
+                            std::string seq_branch = tg_init(helix_branch);
+                            target.replace(bpair.first - lc.start, len_branch, helix_branch);
+                            ref_lc.replace(bpair.first - lc.start, len_branch, helix_branch);
+                            constr_lc.replace(bpair.first - lc.start, len_branch, helix_branch);
+                            subseq.replace(bpair.first - lc.start, len_branch, seq_branch);
+                        }
+                    }
+                    printf("target: %s\n", target.c_str());
+                    printf("   ref: %s\n", ref_lc.c_str());
+                    printf("constr: %s\n", constr_lc.c_str());
                     std::string result;
                     try{
-                        result = alg_5_helper_v2(target, lc.ref, lc.constr, subseq, verbose, dangle);
+                        result = alg_5_helper_v2(target, ref_lc, constr_lc, subseq, verbose, dangle);
                     }catch(...){
                         // Code to handle any exception
                         std::cerr << "An exception occurred" << std::endl;
@@ -1614,6 +1637,26 @@ void csv_process(std::string csv, std::string alg){
                     printf("target: %s\n", target.c_str());
                     printf("   ref: %s\n", lc.ref.c_str());
                     printf("constr: %s\n", lc.constr.c_str());
+                    
+                    std::string ref_lc = lc.ref;
+                    std::string constr_lc = lc.constr;
+                    for( int ib = 1; ib < lc.ps_outside.size(); ib++){ // skip the most outside boudary pair
+                        auto bpair = lc.ps_outside[ib];
+                        // std::cout<<"bpair: "<<bpair.first<<"\t"<<bpair.second<<std::endl;
+                        int len_branch =  bpair.second - bpair.first + 1;
+                        std::string y_branch = y_star.substr(bpair.first, len_branch);
+                        // std::cout<<"y_branch:"<<std::endl;
+                        std::cout<<y_branch<<std::endl;
+                        TreeNode* root_branch = parseStringToTree(y_branch);
+                        if(max_hairpin(root_branch)>HAIRPIN_MAX_LEN || max_single(root_branch) > SINGLE_MAX_LEN || max_multi(root_branch)){
+                            std::string helix_branch = genHelix(len_branch);
+                            std::string seq_branch = tg_init(helix_branch);
+                            target.replace(bpair.first - lc.start, len_branch, helix_branch);
+                            ref_lc.replace(bpair.first - lc.start, len_branch, helix_branch);
+                            constr_lc.replace(bpair.first - lc.start, len_branch, helix_branch);
+                            subseq.replace(bpair.first - lc.start, len_branch, seq_branch);
+                        }
+                    }
                     std::string result;
                     auto ipairs_subsets = pairSubSet(lc.ps_inside);
                     bool ud = false;
@@ -1626,7 +1669,7 @@ void csv_process(std::string csv, std::string alg){
                     if(ud)
                         continue;
                     try{
-                        result = alg_5_helper_v2(target, lc.ref, lc.constr, subseq, verbose, dangle);
+                        result = alg_5_helper_v2(target, ref_lc, constr_lc, subseq, verbose, dangle);
                     }catch(...){
                         // Code to handle any exception
                         std::cerr << "An exception occurred" << std::endl;
@@ -2303,6 +2346,7 @@ int main(int argc, char* argv[]) {
             std::sort(lc_list.begin(), lc_list.end(), [](const LoopComplex &a, const LoopComplex &b) {
                 return a.count_uk < b.count_uk;});
             std::vector<std::string> motif_records;
+            auto start_time = std::chrono::high_resolution_clock::now();
             for (auto lc: lc_list){
                 lc.printLoopLens();
                 if (lc.hasLongLoop()){
@@ -2315,13 +2359,29 @@ int main(int argc, char* argv[]) {
                 printf("target: %s\n", target.c_str());
                 printf("   ref: %s\n", lc.ref.c_str());
                 printf("constr: %s\n", lc.constr.c_str());
-                auto start_time = std::chrono::high_resolution_clock::now();
-                std::string result = alg_5_helper_v2(target, lc.ref, lc.constr, subseq, verbose, dangle);
+                
+                std::string ref_lc = lc.ref;
+                std::string constr_lc = lc.constr;
+                for( int ib = 1; ib < lc.ps_outside.size(); ib++){ // skip the most outside boudary pair
+                    auto bpair = lc.ps_outside[ib];
+                    // std::cout<<"bpair: "<<bpair.first<<"\t"<<bpair.second<<std::endl;
+                    int len_branch =  bpair.second - bpair.first + 1;
+                    std::string y_branch = ref.substr(bpair.first, len_branch);
+                    // std::cout<<"y_branch:"<<std::endl;
+                    std::cout<<y_branch<<std::endl;
+                    TreeNode* root_branch = parseStringToTree(y_branch);
+                    if(max_hairpin(root_branch)>HAIRPIN_MAX_LEN || max_single(root_branch) > SINGLE_MAX_LEN || max_multi(root_branch)){
+                        std::string helix_branch = genHelix(len_branch);
+                        std::string seq_branch = tg_init(helix_branch);
+                        target.replace(bpair.first - lc.start, len_branch, helix_branch);
+                        ref_lc.replace(bpair.first - lc.start, len_branch, helix_branch);
+                        constr_lc.replace(bpair.first - lc.start, len_branch, helix_branch);
+                        subseq.replace(bpair.first - lc.start, len_branch, seq_branch);
+                    }
+                }
+
+                std::string result = alg_5_helper_v2(target, ref_lc, constr_lc, subseq, verbose, dangle);
                 if (result == "undesignable"){
-                    // std::cout<<"undesignable!"<<std::endl;
-                    // auto end_time = std::chrono::high_resolution_clock::now();
-                    // const std::chrono::duration<double, std::milli> time_ms = end_time - start_time;
-                    // printf("time cost: %.4f seconds\n", time_ms/1000.f);
                     std::cout<<"undesignable!"<<std::endl;
                     auto end_time = std::chrono::high_resolution_clock::now();
                     const std::chrono::duration<double, std::milli> time_ms = end_time - start_time;
@@ -2448,7 +2508,41 @@ int main(int argc, char* argv[]) {
                     printf("the loop exceeds length limit!\n");
                     continue;
                 }
+                std::string ref_lc = lc.ref;
+                std::string constr_lc = lc.constr;
+                for( int ib = 1; ib < lc.ps_outside.size(); ib++){ // skip the most outside boudary pair
+                    auto bpair = lc.ps_outside[ib];
+                    // std::cout<<"bpair: "<<bpair.first<<"\t"<<bpair.second<<std::endl;
+                    int len_branch =  bpair.second - bpair.first + 1;
+                    std::string y_branch = ref.substr(bpair.first, len_branch);
+                    // std::cout<<"y_branch:"<<std::endl;
+                    std::cout<<y_branch<<std::endl;
+                    TreeNode* root_branch = parseStringToTree(y_branch);
+                    if(max_hairpin(root_branch)>HAIRPIN_MAX_LEN || max_single(root_branch) > SINGLE_MAX_LEN || max_multi(root_branch)){
+                        std::string helix_branch = genHelix(len_branch);
+                        std::string seq_branch = tg_init(helix_branch);
+                        target.replace(bpair.first - lc.start, len_branch, helix_branch);
+                        ref_lc.replace(bpair.first - lc.start, len_branch, helix_branch);
+                        constr_lc.replace(bpair.first - lc.start, len_branch, helix_branch);
+                        subseq.replace(bpair.first - lc.start, len_branch, seq_branch);
+                    }
+                }
+                std::cout<<subseq<<std::endl;
+                std::cout<<constr_lc<<std::endl;
+                std::vector<std::string>  refs =  cs_fold(subseq, constr_lc, 0, false, verbose, dangle);
+                std::cout<<"subopts size: "<<refs.size()<<std::endl;
+                for(auto ref: refs)
+                    std::cout<<ref<<std::endl;
             }
+        }
+    }else if (alg == "helix"){
+        std::string lenstr;
+        while(std::getline(std::cin, lenstr)){
+            int len = std::stoi(lenstr);
+            std::string h = genHelix(len);
+            std::string x = tg_init(h);
+            std::cout<<h<<std::endl;
+            std::cout<<x<<std::endl;
         }
     }
     return 0;

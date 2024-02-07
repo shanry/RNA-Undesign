@@ -467,3 +467,15 @@ std::string pairs2string(std::vector<std::pair<int, int>> pairs){
     }
     return s;
 }
+
+std::string genHelix(int len){
+    assert (len > 10);
+    std::string helix(len, '.');
+    int i = 0;
+    while(len - 2*i > 4){
+        helix[i] = '(';
+        helix[len-1-i] = ')';
+        i++;
+    }
+    return helix;
+}

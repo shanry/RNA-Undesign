@@ -80,6 +80,7 @@ void tree2MLoops(TreeNode* root, std::string& ref, std::vector<LoopComplex>& lc_
 std::string removeMNodeFromTree(TreeNode* node, std::string ref);
 std::string removeTwoNeighbors(TreeNode* node, std::string ref, int n1, int n2);
 std::string removeThreeNeighbors(TreeNode* node, std::string ref, std::vector<int>& powset);
+int max_hairpin(TreeNode* root);
 int max_single(TreeNode* root);
 int max_multi(TreeNode* root);
 std::string ml_degree(TreeNode* root);
