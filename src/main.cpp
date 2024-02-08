@@ -1350,19 +1350,22 @@ void csv_process(std::string csv, std::string alg){
         std::cerr << "Error opening the file: " << fileName << std::endl;
         return;
     }
-    
+    std::unordered_set<std::string> constrs_udsn; // undesignable constraints
     for(int i = 1; i < df.size(); i++){
         auto row = df[i];
         {
-            // std::cout<<"Puzzle name: "<<row[2]<<std::endl;
-            // std::cout<<row[8]<<std::endl;
-            // std::cout<<row[4]<<std::endl;
-            // std::cout<<row[7]<<std::endl;
-            // std::cout<<std::endl;
+            string sharph0 = "()";
+            string sharph1 = "(.)";
+            string sharph2 = "(..)";
 
             std::string puzzle_id = row[0];
             std::string seq;
             std::string y_star = row[1];
+            if(y_star.find(sharph0) != std::string::npos || y_star.find(sharph1) != std::string::npos || y_star.find(sharph2) != std::string::npos){
+                std::cout<<"sharp turn!"<<std::endl;
+                std::cout<<y_star<<std::endl;
+                continue;
+            }
             if(row.size() > 2)
                 seq = row[2];
             else
@@ -1566,44 +1569,49 @@ void csv_process(std::string csv, std::string alg){
                     printf("target: %s\n", target.c_str());
                     printf("   ref: %s\n", lc.ref.c_str());
                     printf("constr: %s\n", lc.constr.c_str());
-
-                    std::string ref_lc = lc.ref;
-                    std::string constr_lc = lc.constr;
-                    for( int ib = 1; ib < lc.ps_outside.size(); ib++){ // skip the most outside boudary pair
-                        auto bpair = lc.ps_outside[ib];
-                        std::cout<<"bpair: "<<bpair.first<<"\t"<<bpair.second<<std::endl;
-                        int len_branch =  bpair.second - bpair.first + 1;
-                        std::string y_branch = y_star.substr(bpair.first, len_branch);
-                        std::cout<<"y_branch:"<<std::endl;
-                        std::cout<<y_branch<<std::endl;
-                        TreeNode* root_branch = parseStringToTree(y_branch);
-                        if(max_single(root_branch) > SINGLE_MAX_LEN || max_multi(root_branch)){
-                            std::string helix_branch = genHelix(len_branch);
-                            std::string seq_branch = tg_init(helix_branch);
-                            target.replace(bpair.first - lc.start, len_branch, helix_branch);
-                            ref_lc.replace(bpair.first - lc.start, len_branch, helix_branch);
-                            constr_lc.replace(bpair.first - lc.start, len_branch, helix_branch);
-                            subseq.replace(bpair.first - lc.start, len_branch, seq_branch);
-                        }
-                    }
-                    printf("target: %s\n", target.c_str());
-                    printf("   ref: %s\n", ref_lc.c_str());
-                    printf("constr: %s\n", constr_lc.c_str());
+                    // auto ipairs_subsets = pairSubSet(lc.ps_inside);
                     std::string result;
-                    try{
-                        result = alg_5_helper_v2(target, ref_lc, constr_lc, subseq, verbose, dangle);
-                    }catch(...){
-                        // Code to handle any exception
-                        std::cerr << "An exception occurred" << std::endl;
-                        result = "exception";
-                    }
-                    if (result == "exception")
-                        continue;
-                    if (result == "UMFE"){
-                        ds_ipairs.insert(pairs2string(lc.ps_inside));
+                    if(constrs_udsn.find(lc.constr) != constrs_udsn.end()){
+                        result = "undesignable";
+                    }else{
+                        std::string ref_lc = lc.ref;
+                        std::string constr_lc = lc.constr;
+                        for( int ib = 1; ib < lc.ps_outside.size(); ib++){ // skip the most outside boudary pair
+                            auto bpair = lc.ps_outside[ib];
+                            std::cout<<"bpair: "<<bpair.first<<"\t"<<bpair.second<<std::endl;
+                            int len_branch =  bpair.second - bpair.first + 1;
+                            std::string y_branch = y_star.substr(bpair.first, len_branch);
+                            std::cout<<"y_branch:"<<std::endl;
+                            std::cout<<y_branch<<std::endl;
+                            TreeNode* root_branch = parseStringToTree(y_branch);
+                            if(max_single(root_branch) > SINGLE_MAX_LEN || max_multi(root_branch)){
+                                std::string helix_branch = genHelix(len_branch);
+                                std::string seq_branch = tg_init(helix_branch);
+                                target.replace(bpair.first - lc.start, len_branch, helix_branch);
+                                ref_lc.replace(bpair.first - lc.start, len_branch, helix_branch);
+                                constr_lc.replace(bpair.first - lc.start, len_branch, helix_branch);
+                                subseq.replace(bpair.first - lc.start, len_branch, seq_branch);
+                            }
+                        }
+                        printf("target: %s\n", target.c_str());
+                        printf("   ref: %s\n", ref_lc.c_str());
+                        printf("constr: %s\n", constr_lc.c_str());
+                        try{
+                            result = alg_5_helper_v2(target, ref_lc, constr_lc, subseq, verbose, dangle);
+                        }catch(...){
+                            // Code to handle any exception
+                            std::cerr << "An exception occurred" << std::endl;
+                            result = "exception";
+                        }
+                        if (result == "exception")
+                            continue;
+                        if (result == "UMFE"){
+                            ds_ipairs.insert(pairs2string(lc.ps_inside));
+                        }
                     }
                     if (result == "undesignable"){
                         std::cout<<"undesignable!"<<std::endl;
+                        constrs_udsn.insert(lc.constr);
                         auto end_time = std::chrono::high_resolution_clock::now();
                         const std::chrono::duration<double, std::milli> time_ms = end_time - start_time;
                         float time_seconds = std::chrono::duration_cast<std::chrono::duration<float>>(time_ms).count();
@@ -1637,51 +1645,56 @@ void csv_process(std::string csv, std::string alg){
                     printf("target: %s\n", target.c_str());
                     printf("   ref: %s\n", lc.ref.c_str());
                     printf("constr: %s\n", lc.constr.c_str());
-
-                    std::string ref_lc = lc.ref;
-                    std::string constr_lc = lc.constr;
-                    for( int ib = 1; ib < lc.ps_outside.size(); ib++){ // skip the most outside boudary pair
-                        auto bpair = lc.ps_outside[ib];
-                        // std::cout<<"bpair: "<<bpair.first<<"\t"<<bpair.second<<std::endl;
-                        int len_branch =  bpair.second - bpair.first + 1;
-                        std::string y_branch = y_star.substr(bpair.first, len_branch);
-                        // std::cout<<"y_branch:"<<std::endl;
-                        std::cout<<y_branch<<std::endl;
-                        TreeNode* root_branch = parseStringToTree(y_branch);
-                        if(max_single(root_branch) > SINGLE_MAX_LEN || max_multi(root_branch)){
-                            std::string helix_branch = genHelix(len_branch);
-                            std::string seq_branch = tg_init(helix_branch);
-                            target.replace(bpair.first - lc.start, len_branch, helix_branch);
-                            ref_lc.replace(bpair.first - lc.start, len_branch, helix_branch);
-                            constr_lc.replace(bpair.first - lc.start, len_branch, helix_branch);
-                            subseq.replace(bpair.first - lc.start, len_branch, seq_branch);
-                        }
-                    }
-                    std::string result;
                     auto ipairs_subsets = pairSubSet(lc.ps_inside);
-                    bool ud = false;
-                    for(auto ipairs: ipairs_subsets){
-                        if(ud_ipairs.find(pairs2string(ipairs))!=ud_ipairs.end()){
-                            ud = true;
-                            break;
+                    std::string result;
+                    if(constrs_udsn.find(lc.constr) != constrs_udsn.end()){
+                        result = "undesignable";
+                    }else{
+                        std::string ref_lc = lc.ref;
+                        std::string constr_lc = lc.constr;
+                        for( int ib = 1; ib < lc.ps_outside.size(); ib++){ // skip the most outside boudary pair
+                            auto bpair = lc.ps_outside[ib];
+                            // std::cout<<"bpair: "<<bpair.first<<"\t"<<bpair.second<<std::endl;
+                            int len_branch =  bpair.second - bpair.first + 1;
+                            std::string y_branch = y_star.substr(bpair.first, len_branch);
+                            // std::cout<<"y_branch:"<<std::endl;
+                            std::cout<<y_branch<<std::endl;
+                            TreeNode* root_branch = parseStringToTree(y_branch);
+                            if(max_single(root_branch) > SINGLE_MAX_LEN || max_multi(root_branch)){
+                                std::string helix_branch = genHelix(len_branch);
+                                std::string seq_branch = tg_init(helix_branch);
+                                target.replace(bpair.first - lc.start, len_branch, helix_branch);
+                                ref_lc.replace(bpair.first - lc.start, len_branch, helix_branch);
+                                constr_lc.replace(bpair.first - lc.start, len_branch, helix_branch);
+                                subseq.replace(bpair.first - lc.start, len_branch, seq_branch);
+                            }
                         }
-                    }
-                    if(ud)
-                        continue;
-                    try{
-                        result = alg_5_helper_v2(target, ref_lc, constr_lc, subseq, verbose, dangle);
-                    }catch(...){
-                        // Code to handle any exception
-                        std::cerr << "An exception occurred" << std::endl;
-                        result = "exception";
-                    }
-                    if (result == "exception")
-                        continue;
-                    if (result == "UMFE"){
-                        ds_ipairs.insert(pairs2string(lc.ps_inside));
+                        // ipairs_subsets = pairSubSet(lc.ps_inside);
+                        bool ud = false;
+                        for(auto ipairs: ipairs_subsets){
+                            if(ud_ipairs.find(pairs2string(ipairs))!=ud_ipairs.end()){
+                                ud = true;
+                                break;
+                            }
+                        }
+                        if(ud)
+                            continue;
+                        try{
+                            result = alg_5_helper_v2(target, ref_lc, constr_lc, subseq, verbose, dangle);
+                        }catch(...){
+                            // Code to handle any exception
+                            std::cerr << "An exception occurred" << std::endl;
+                            result = "exception";
+                        }
+                        if (result == "exception")
+                            continue;
+                        if (result == "UMFE"){
+                            ds_ipairs.insert(pairs2string(lc.ps_inside));
+                        }
                     }
                     if (result == "undesignable"){
                         std::cout<<"undesignable!"<<std::endl;
+                        constrs_udsn.insert(lc.constr);
                         auto end_time = std::chrono::high_resolution_clock::now();
                         const std::chrono::duration<double, std::milli> time_ms = end_time - start_time;
                         float time_seconds = std::chrono::duration_cast<std::chrono::duration<float>>(time_ms).count();
