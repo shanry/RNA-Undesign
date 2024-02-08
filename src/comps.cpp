@@ -642,6 +642,7 @@ std::string removeMNodeFromTree(TreeNode* node, std::string ref){
 std::string removeTwoNeighbors(TreeNode* node, std::string ref, int n1, int n2){
     std::string constr(ref.length(), '?');
     // the parent of node and a child of the current node
+    printf("n1: %d, n2: %d\n", n1, n2);
     if (n1 == 0){
         int len_p = node->parent->second - node->parent->first + 1;
         if (node->parent->first >= 0){
@@ -703,7 +704,7 @@ std::string removeTwoNeighbors(TreeNode* node, std::string ref, int n1, int n2){
             printf("   ref: %s\n", ref.substr(node->first, len_p).c_str());
             constr[node->first] = '(';
             constr[node->second] = ')';
-            printf("constr: %s\n", constr.substr(node->parent->first, len_p).c_str());
+            printf("constr: %s\n", constr.substr(node->first, len_p).c_str());
             pairs_outside.push_back(std::make_pair(node->first, node->second));
         }else{
             printf(" len_p: %d\n", ref.length());
