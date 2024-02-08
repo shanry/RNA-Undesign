@@ -149,10 +149,8 @@ bool TreeNode::isTooLong(){
     // printf("inside isTooLong\n");
     if(looptype == "I" || looptype == "B")
         return looplen > SINGLE_MAX_LEN;
-    else if(looptype == "H")
-        return looplen > HAIRPIN_MAX_LEN;
     else if(looptype == "M")
-        return looplen > SINGLE_MAX_LEN;
+        return looplens[0] > MULTIPLE_FIRST_MAX_LEN;
     return false;
 }
 
@@ -892,7 +890,7 @@ int max_hairpin(TreeNode* root){
 int max_single(TreeNode* root){
     int maxlen = 0;
     if (root->first!=-1&&root->children.size()==1){
-        maxlen = (root->children[0]->first - root->first) + (root->second - root->children[0]->second)-2;
+        maxlen = root->looplen;
     }
     for(TreeNode* child: root->children){
         int maxlen_child = max_single(child);
@@ -904,13 +902,7 @@ int max_single(TreeNode* root){
 int max_multi(TreeNode* root){
     int maxlen = 0;
     if (root->first!=-1&&root->children.size()>1){
-        for(int i = 0; i < root->children.size(); i++){
-            if(i == 0)
-                maxlen += root->children[i]->first - root->first - 1;
-            else
-                maxlen += root->children[i]->first - root->children[i-1]->second - 1;
-        }
-        maxlen += root->second - root->children[root->children.size()-1]->second - 1;
+        maxlen = root->looplens[0];
     }
     for(TreeNode* child: root->children){
         int maxlen_child = max_multi(child);

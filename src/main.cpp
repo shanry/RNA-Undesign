@@ -1577,7 +1577,7 @@ void csv_process(std::string csv, std::string alg){
                         std::cout<<"y_branch:"<<std::endl;
                         std::cout<<y_branch<<std::endl;
                         TreeNode* root_branch = parseStringToTree(y_branch);
-                        if(max_hairpin(root_branch)>HAIRPIN_MAX_LEN || max_single(root_branch) > SINGLE_MAX_LEN || max_multi(root_branch)){
+                        if(max_single(root_branch) > SINGLE_MAX_LEN || max_multi(root_branch)){
                             std::string helix_branch = genHelix(len_branch);
                             std::string seq_branch = tg_init(helix_branch);
                             target.replace(bpair.first - lc.start, len_branch, helix_branch);
@@ -1637,7 +1637,7 @@ void csv_process(std::string csv, std::string alg){
                     printf("target: %s\n", target.c_str());
                     printf("   ref: %s\n", lc.ref.c_str());
                     printf("constr: %s\n", lc.constr.c_str());
-                    
+
                     std::string ref_lc = lc.ref;
                     std::string constr_lc = lc.constr;
                     for( int ib = 1; ib < lc.ps_outside.size(); ib++){ // skip the most outside boudary pair
@@ -1648,7 +1648,7 @@ void csv_process(std::string csv, std::string alg){
                         // std::cout<<"y_branch:"<<std::endl;
                         std::cout<<y_branch<<std::endl;
                         TreeNode* root_branch = parseStringToTree(y_branch);
-                        if(max_hairpin(root_branch)>HAIRPIN_MAX_LEN || max_single(root_branch) > SINGLE_MAX_LEN || max_multi(root_branch)){
+                        if(max_single(root_branch) > SINGLE_MAX_LEN || max_multi(root_branch)){
                             std::string helix_branch = genHelix(len_branch);
                             std::string seq_branch = tg_init(helix_branch);
                             target.replace(bpair.first - lc.start, len_branch, helix_branch);
@@ -2370,7 +2370,7 @@ int main(int argc, char* argv[]) {
                     // std::cout<<"y_branch:"<<std::endl;
                     std::cout<<y_branch<<std::endl;
                     TreeNode* root_branch = parseStringToTree(y_branch);
-                    if(max_hairpin(root_branch)>HAIRPIN_MAX_LEN || max_single(root_branch) > SINGLE_MAX_LEN || max_multi(root_branch)){
+                    if(max_single(root_branch) > SINGLE_MAX_LEN || max_multi(root_branch)){
                         std::string helix_branch = genHelix(len_branch);
                         std::string seq_branch = tg_init(helix_branch);
                         target.replace(bpair.first - lc.start, len_branch, helix_branch);
@@ -2518,7 +2518,7 @@ int main(int argc, char* argv[]) {
                     // std::cout<<"y_branch:"<<std::endl;
                     std::cout<<y_branch<<std::endl;
                     TreeNode* root_branch = parseStringToTree(y_branch);
-                    if(max_hairpin(root_branch)>HAIRPIN_MAX_LEN || max_single(root_branch) > SINGLE_MAX_LEN || max_multi(root_branch)){
+                    if(max_single(root_branch) > SINGLE_MAX_LEN || max_multi(root_branch)){
                         std::string helix_branch = genHelix(len_branch);
                         std::string seq_branch = tg_init(helix_branch);
                         target.replace(bpair.first - lc.start, len_branch, helix_branch);

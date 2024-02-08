@@ -1996,7 +1996,7 @@ BeamCKYParser::DecoderResult BeamCKYParser::parse(string& seq, vector<int>* cons
 #else
                         precomputed = score_junction_B(j, i, nucj, nucj1, nuci_1, nuci);
 #endif
-                    for (int p = i - 1; p >= std::max(i - SINGLE_MAX_LEN, 0); --p) {
+                    for (int p = i - 1; p >= std::max(i - SINGLE_MAX_LEN - 1, 0); --p) {
                         int nucp = nucs[p];
                         int nucp1 = nucs[p + 1]; // hzhang: move here
                         int q = next_pair[nucp][j];
@@ -2186,7 +2186,7 @@ BeamCKYParser::DecoderResult BeamCKYParser::parse(string& seq, vector<int>* cons
 
                 // 1. multi-loop
                 {
-                    for (int p = i-1; p >= std::max(i - SINGLE_MAX_LEN, 0); --p) {
+                    for (int p = i-1; p >= std::max(i - MULTIPLE_FIRST_MAX_LEN - 1, 0); --p) {
                         int nucp = nucs[p];
                         int q = next_pair[nucp][j];
 
@@ -2204,7 +2204,7 @@ BeamCKYParser::DecoderResult BeamCKYParser::parse(string& seq, vector<int>* cons
                                 continue;
                         }
 
-                        if (q != -1 && ((i - p - 1) <= SINGLE_MAX_LEN)) {
+                        if (q != -1 && ((i - p - 1) <= MULTIPLE_FIRST_MAX_LEN)) {
                             // the current shape is p..i M2 j ..q
 
                             value_type newscore;
@@ -2784,7 +2784,7 @@ BeamCKYParser::DecoderResult BeamCKYParser::parse(string& seq, vector<int>* cons
 #else
                         precomputed = score_junction_B(j, i, nucj, nucj1, nuci_1, nuci);
 #endif
-                    for (int p = i - 1; p >= std::max(i - SINGLE_MAX_LEN, 0); --p) {
+                    for (int p = i - 1; p >= std::max(i - SINGLE_MAX_LEN - 1, 0); --p) {
                         int nucp = nucs[p];
                         int nucp1 = nucs[p + 1]; // hzhang: move here
                         int q = next_pair[nucp][j];
@@ -2974,7 +2974,7 @@ BeamCKYParser::DecoderResult BeamCKYParser::parse(string& seq, vector<int>* cons
 
                 // 1. multi-loop
                 {
-                    for (int p = i-1; p >= std::max(i - SINGLE_MAX_LEN, 0); --p) {
+                    for (int p = i-1; p >= std::max(i - MULTIPLE_FIRST_MAX_LEN - 1, 0); --p) {
                         int nucp = nucs[p];
                         int q = next_pair[nucp][j];
 
@@ -2992,7 +2992,7 @@ BeamCKYParser::DecoderResult BeamCKYParser::parse(string& seq, vector<int>* cons
                                 continue;
                         }
 
-                        if (q != -1 && ((i - p - 1) <= SINGLE_MAX_LEN)) {
+                        if (q != -1 && ((i - p - 1) <= MULTIPLE_FIRST_MAX_LEN)) {
                             // the current shape is p..i M2 j ..q
 
                             value_type newscore;
@@ -3262,7 +3262,7 @@ void BeamCKYParser::recover_hyperedges(int i, int j, BestTypes type, value_type 
             int p, q, nucq, nucq1, nucp, nucp_1;
 
             // stacking, bulge, internal loop
-            for (q = j - 1; q >= std::max(j - SINGLE_MAX_LEN, i+5); --q) { // no sharp turn
+            for (q = j - 1; q >= std::max(j - SINGLE_MAX_LEN - 1, i+5); --q) { // no sharp turn
                 nucq = nucs[q];
                 nucq1 = nucs[q + 1];
                 p = next_pair[nucq][i]; 
@@ -3421,8 +3421,8 @@ void BeamCKYParser::recover_hyperedges(int i, int j, BestTypes type, value_type 
             // for (q = j - 1; q >= max(0, j - SINGLE_MAX_LEN); q--) { // weiyu: not sure if this loop is correct
             //     for (p = i + 1; p <= q - 9 && (p - i) + (j - q) - 2 <= SINGLE_MAX_LEN; p++){
             // ts zhou, revise search space for multi-loop, the shape is i..p M2 q..j
-            for (p = i + 1; p <= min(i + SINGLE_MAX_LEN, j-10); p++) {
-                for (q = j - 1; q >= p + 9; q--) {
+            for (q = j - 1; q >= i + 10; q--){
+                for (p = i + 1; p <= min(i + MULTIPLE_FIRST_MAX_LEN + 1, q-9); p++){
                     auto bestM2_iter = bestM2[q].find(p);
                     if(bestM2_iter != bestM2[q].end()){
                         if (!use_constraints || (allow_unpaired_range[i] >= p && allow_unpaired_range[q] >= j)) {
@@ -3551,10 +3551,10 @@ void BeamCKYParser::outside(vector<int> next_pair[]){
 
                 // 1. multi-loop
                 {
-                    for (int p = i-1; p >= std::max(i - SINGLE_MAX_LEN, 0); --p) {
+                    for (int p = i-1; p >= std::max(i - MULTIPLE_FIRST_MAX_LEN - 1, 0); --p) {
                         int nucp = nucs[p];
                         int q = next_pair[nucp][j];
-                        if (q != -1 && ((i - p - 1) <= SINGLE_MAX_LEN)) {
+                        if (q != -1 && ((i - p - 1) <= MULTIPLE_FIRST_MAX_LEN)) {
 #ifdef lv
                             if (bestMulti_beta[q][p].manner != 0){
                                 update_if_better(state, bestMulti_beta[q][p].score, MANNER_MULTI, static_cast<char>(i - p), q - j);
@@ -3591,7 +3591,7 @@ void BeamCKYParser::outside(vector<int> next_pair[]){
 #ifndef lv
                     value_type precomputed = score_junction_B(j, i, nucj, nucj1, nuci_1, nuci);
 #endif
-                    for (int p = i - 1; p >= std::max(i - SINGLE_MAX_LEN, 0); --p) {
+                    for (int p = i - 1; p >= std::max(i - SINGLE_MAX_LEN - 1, 0); --p) {
                         int nucp = nucs[p];
                         int nucp1 = nucs[p + 1]; 
                         int q = next_pair[nucp][j];
