@@ -33,6 +33,7 @@ $./make main_hp3_mac  # only turn on special hairpin of triloop
 <p align="center">
 <img src="figs/rotation_invariance.png" width="700">
 </p>
+
 ## Scalable Identification of Minimum Undesignable Motifs
 
 ### Loop + 1 Neighbor
