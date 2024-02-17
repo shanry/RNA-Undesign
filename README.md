@@ -34,7 +34,7 @@ $./make main_hp3_mac  # only turn on special hairpin of triloop
 <img src="figs/rotation_invariance.png" width="700">
 </p>
 
---
+----
 
 <p align="center">
 <img src="figs/rotation_invariance_86.png" width="640">
