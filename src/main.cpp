@@ -1584,7 +1584,7 @@ void csv_process(std::string csv, std::string alg){
                             std::cout<<"y_branch:"<<std::endl;
                             std::cout<<y_branch<<std::endl;
                             TreeNode* root_branch = parseStringToTree(y_branch);
-                            if(max_single(root_branch) > SINGLE_MAX_LEN || max_multi(root_branch)){
+                            if(max_single(root_branch) > SINGLE_MAX_LEN || max_multi(root_branch) > MULTIPLE_FIRST_MAX_LEN){
                                 std::string helix_branch = genHelix(len_branch);
                                 std::string seq_branch = tg_init(helix_branch);
                                 target.replace(bpair.first - lc.start, len_branch, helix_branch);
@@ -1633,6 +1633,12 @@ void csv_process(std::string csv, std::string alg){
                 // Sort the vector using a lambda expression
                 std::sort(lc_list.begin(), lc_list.end(), [](const LoopComplex &a, const LoopComplex &b) {
                     return a.count_uk < b.count_uk;});
+                std::vector<LoopComplex> lc_list_plus;
+                tree2ThreeNeighbor(root, y_star, lc_list_plus);
+                printf("lc_list_plus size: %d\n", lc_list_plus.size());
+                std::sort(lc_list_plus.begin(), lc_list_plus.end(), [](const LoopComplex &a, const LoopComplex &b) {
+                    return a.count_uk < b.count_uk;});
+                lc_list.insert(lc_list.end(), lc_list_plus.begin(), lc_list_plus.end());
                 for (auto lc: lc_list){
                     lc.printLoopLens();
                     if (lc.hasLongLoop()){
@@ -1660,7 +1666,7 @@ void csv_process(std::string csv, std::string alg){
                             // std::cout<<"y_branch:"<<std::endl;
                             std::cout<<y_branch<<std::endl;
                             TreeNode* root_branch = parseStringToTree(y_branch);
-                            if(max_single(root_branch) > SINGLE_MAX_LEN || max_multi(root_branch)){
+                            if(max_single(root_branch) > SINGLE_MAX_LEN || max_multi(root_branch) > MULTIPLE_FIRST_MAX_LEN){
                                 std::string helix_branch = genHelix(len_branch);
                                 std::string seq_branch = tg_init(helix_branch);
                                 target.replace(bpair.first - lc.start, len_branch, helix_branch);
@@ -2031,6 +2037,9 @@ void show_configuration(){
     #ifdef SINGLE_MAX_LEN
     printf("SINGLE_MAX_LEN: %d\n", SINGLE_MAX_LEN);
     #endif
+    #ifdef MULTIPLE_FIRST_MAX_LEN
+    printf("MULTIPLE_FIRST_MAX_LEN: %d\n", MULTIPLE_FIRST_MAX_LEN);
+    #endif
     return;
 }
 
@@ -2053,6 +2062,8 @@ int main(int argc, char* argv[]) {
     printf("alg: %s, verbose: %d, dangle: %d\n", alg.c_str(), verbose, dangle);
     show_configuration();
 
+    std::unordered_map<std::string, std::string> struct2seq = loadlib_eterna("data/eterna_umfe_unsolved.csv");
+
     if (alg == "0"){
         std::cout<<"no alg was selected!"<<std::endl;
         return 0;
@@ -2062,8 +2073,6 @@ int main(int argc, char* argv[]) {
         csv_process(csv, alg);
         return 0;
     }
-
-    std::unordered_map<std::string, std::string> struct2seq = loadlib_eterna("data/eterna_umfe_unsolved.csv");
 
 
     if ( alg == "csfold" || alg == "cf" ){  /* constrained folding */
@@ -2383,7 +2392,7 @@ int main(int argc, char* argv[]) {
                     // std::cout<<"y_branch:"<<std::endl;
                     std::cout<<y_branch<<std::endl;
                     TreeNode* root_branch = parseStringToTree(y_branch);
-                    if(max_single(root_branch) > SINGLE_MAX_LEN || max_multi(root_branch)){
+                    if(max_single(root_branch) > SINGLE_MAX_LEN || max_multi(root_branch) > MULTIPLE_FIRST_MAX_LEN){
                         std::string helix_branch = genHelix(len_branch);
                         std::string seq_branch = tg_init(helix_branch);
                         target.replace(bpair.first - lc.start, len_branch, helix_branch);
@@ -2531,7 +2540,7 @@ int main(int argc, char* argv[]) {
                     // std::cout<<"y_branch:"<<std::endl;
                     std::cout<<y_branch<<std::endl;
                     TreeNode* root_branch = parseStringToTree(y_branch);
-                    if(max_single(root_branch) > SINGLE_MAX_LEN || max_multi(root_branch)){
+                    if(max_single(root_branch) > SINGLE_MAX_LEN || max_multi(root_branch) > MULTIPLE_FIRST_MAX_LEN){
                         std::string helix_branch = genHelix(len_branch);
                         std::string seq_branch = tg_init(helix_branch);
                         target.replace(bpair.first - lc.start, len_branch, helix_branch);
