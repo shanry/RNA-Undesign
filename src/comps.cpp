@@ -823,7 +823,7 @@ std::string removeThreeNeighbors(TreeNode* node, std::string ref, std::vector<in
             printf("   ref: %s\n", ref.substr(node->first, len_p).c_str());
             constr[node->first] = '(';
             constr[node->second] = ')';
-            printf("constr: %s\n", constr.substr(node->parent->first, len_p).c_str());
+            printf("constr: %s\n", constr.substr(node->first, len_p).c_str());
             pairs_outside.push_back(std::make_pair(node->first, node->second));
         }else{
             printf(" len_p: %d\n", ref.length());
