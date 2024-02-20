@@ -1724,6 +1724,8 @@ void csv_process(std::string csv, std::string alg){
                         outputFile << jstring << std::endl;
                         records.push_back(jstring);
                     }
+                    for(auto pair: ds_ipairs)
+                        std::cout<<pair<<"  ";
                     printf("\n");
                 }
             }
