@@ -1004,6 +1004,62 @@ std::string LoopComplex::jsmotif(std::string id){
             js["root"] = child_j;
         }
     }
+    else{
+        assert(neighbors.size() > 2);
+        std::cout<<"neighbors.size() > 2"<<std::endl;
+        if(neighbors[0] == 0){
+            json parent_j = json::parse(node->parent->jstring);
+            json child_j = json::parse(node->jstring);
+            std::unordered_map<int, json> gcid2json;
+            for(int idx_nb = 1; idx_nb < neighbors.size(); idx_nb++){
+                gcid2json[idx_nb] = json::parse(node->children[neighbors[idx_nb]-1]->jstring);
+            }
+            // json grandchild_j = json::parse(node->children[neighbors[1]-1]->jstring);
+            json children_j;
+            json grandchildren_j;
+            for(int i = 0; i < node->children.size(); i++){
+                if(gcid2json.find(i+1) != gcid2json.end())
+                    grandchildren_j.push_back(gcid2json[i+1]);
+                else
+                    grandchildren_j.push_back(nullptr);
+            }
+            child_j["children"] = grandchildren_j;
+            for(int i = 0; i < node->parent->children.size(); i++){
+                if(i+1 == node->child_id)
+                    children_j.push_back(child_j);
+                else
+                    children_j.push_back(nullptr);
+            }
+            parent_j["children"] = children_j;
+            js["root"] = parent_j;
+        }else{
+            // json parent_j = json::parse(node->parent->jstring);
+            json child_j = json::parse(node->jstring);
+            // json grandchild_1j = json::parse(node->children[neighbors[0]-1]->jstring);
+            // json grandchild_2j = json::parse(node->children[neighbors[1]-1]->jstring);
+            std::unordered_map<int, json> gcid2json;
+            for(int idx_nb = 1; idx_nb < neighbors.size(); idx_nb++){
+                gcid2json[idx_nb] = json::parse(node->children[neighbors[idx_nb]-1]->jstring);
+            }
+            // json children_j;
+            json grandchildren_j;
+            for(int i = 0; i < node->children.size(); i++){
+                // if(i+1 == node->children[neighbors[0]-1]->child_id)
+                //     grandchildren_j.push_back(grandchild_1j);
+                // else if(i+1 == node->children[neighbors[1]-1]->child_id)
+                //     grandchildren_j.push_back(grandchild_2j);
+                // else
+                //     grandchildren_j.push_back(nullptr);
+                if(gcid2json.find(i+1) != gcid2json.end())
+                    grandchildren_j.push_back(gcid2json[i+1]);
+                else
+                    grandchildren_j.push_back(nullptr);
+            }
+            child_j["children"] = grandchildren_j;
+            // parent_j["children"] = children_j;
+            js["root"] = child_j;
+        }
+    }
     return js.dump();
 }
 
