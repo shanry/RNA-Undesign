@@ -439,7 +439,7 @@ std::vector<std::string> alg_1(std::string& y, std::string& y_prime, std::vector
 
 std::vector<std::string> alg_1_v2(std::string& y, std::string& y_prime, std::string& seq, bool is_verbose, int dangle_model){
     std::cout<<"inside alg1_v2"<<std::endl;
-    std::cout << "    x:" << seq << std::endl;
+    std::cout << "    x: " << seq << std::endl;
     std::cout << "ystar: " << y << std::endl;
     std::cout << "yprim: " << y_prime << std::endl;
     std::set<int> critical_positions;
@@ -1298,6 +1298,21 @@ std::string alg_5_helper_v2(std::string& ref1, std::string& ref2, std::string&co
         }
     }
     // finish the first check
+    if(ref_mfe == ref2){
+        if(cs_flag){
+            Constraint cs_ref2 = Constraint(&critical_positions, &X);
+            cs_ref2.setStructure(ref2);
+            cs_vec.push_back(cs_ref2);
+            refs_checked.insert(ref2);
+        }
+        if(cs_vec.size())
+            return alg_5_cs(ref1, refs_checked, cs_vec, constr, verbose, dangle_model);
+        else{
+            std::cout<<"intial y' has too many constraints!"<<std::endl;
+            assert (X.size() > 0);
+            return alg_5_cs_plus(ref1, refs_checked, cs_vec, X, constr, verbose, dangle_model);
+        }
+    }
 
     // check the ref from mfe
     std::set<int> critical_positions_mfe;
