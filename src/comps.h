@@ -68,6 +68,15 @@ struct Constraint {
     void setStructure(std::string& ref);
 };
 
+// Group of y and its rivials
+struct GroupY{
+    /* data */
+    std::string star;
+    std::vector<std::string> rivals;
+    std::string constr;
+};
+
+
 void print(Constraint& cs);
 std::string enumerate(std::vector<std::tuple<int, int>>& pairs_diff, ulong order, std::string& seq);
 

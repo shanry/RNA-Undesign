@@ -1472,7 +1472,7 @@ void csv_process(std::string csv, std::string alg){
         std::cerr << "Error opening the file: " << fileName << std::endl;
         return;
     }
-    std::unordered_set<std::string> constrs_udsn; // undesignable constraints
+    std::unordered_map<std::string, GroupY> constr2groupy;
     for(int i = 1; i < df.size(); i++){
         auto row = df[i];
         {
@@ -1693,7 +1693,7 @@ void csv_process(std::string csv, std::string alg){
                     printf("constr: %s\n", lc.constr.c_str());
                     // auto ipairs_subsets = pairSubSet(lc.ps_inside);
                     std::string result;
-                    if(constrs_udsn.find(lc.constr) != constrs_udsn.end()){
+                    if(constr2groupy.find(lc.constr) != constr2groupy.end()){
                         result = "undesignable";
                     }else{
                         std::string ref_lc = lc.ref;
@@ -1733,7 +1733,13 @@ void csv_process(std::string csv, std::string alg){
                     }
                     if (result == "undesignable"){
                         std::cout<<"undesignable!"<<std::endl;
-                        constrs_udsn.insert(lc.constr);
+                        if(constr2groupy.find(lc.constr) != constr2groupy.end()){
+                            y_sub = constr2groupy[lc.constr].star;
+                            y_rivals = constr2groupy[lc.constr].rivals;
+                        }else{
+                            GroupY gy{y_sub, y_rivals, lc.constr};
+                            constr2groupy[lc.constr] = gy;
+                        }
                         auto end_time = std::chrono::high_resolution_clock::now();
                         const std::chrono::duration<double, std::milli> time_ms = end_time - start_time;
                         float time_seconds = std::chrono::duration_cast<std::chrono::duration<float>>(time_ms).count();
@@ -1775,7 +1781,7 @@ void csv_process(std::string csv, std::string alg){
                     printf("constr: %s\n", lc.constr.c_str());
                     auto ipairs_subsets = pairSubSet(lc.ps_inside);
                     std::string result;
-                    if(constrs_udsn.find(lc.constr) != constrs_udsn.end()){
+                    if(constr2groupy.find(lc.constr) != constr2groupy.end()){
                         result = "undesignable";
                     }else{
                         std::string ref_lc = lc.ref;
@@ -1822,7 +1828,13 @@ void csv_process(std::string csv, std::string alg){
                     }
                     if (result == "undesignable"){
                         std::cout<<"undesignable!"<<std::endl;
-                        constrs_udsn.insert(lc.constr);
+                        if(constr2groupy.find(lc.constr) != constr2groupy.end()){
+                            y_sub = constr2groupy[lc.constr].star;
+                            y_rivals = constr2groupy[lc.constr].rivals;
+                        }else{
+                            GroupY gy{y_sub, y_rivals, lc.constr};
+                            constr2groupy[lc.constr] = gy;
+                        }
                         auto end_time = std::chrono::high_resolution_clock::now();
                         const std::chrono::duration<double, std::milli> time_ms = end_time - start_time;
                         float time_seconds = std::chrono::duration_cast<std::chrono::duration<float>>(time_ms).count();
