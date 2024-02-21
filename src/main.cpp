@@ -2439,16 +2439,17 @@ int main(int argc, char* argv[]) {
         while (std::getline(std::cin, seq)) {
             getline(std::cin, target);
             getline(std::cin, cst);
+            getline(std::cin, ref);
                 printf(" count: %d\n", countOccurrences(cst, '?'));
                 printf("target: %s\n", target.c_str());
                 printf("constr: %s\n", cst.c_str());
-                // printf("   ref: %s\n", ref.c_str());
+                printf("   ref: %s\n", ref.c_str());
                 TreeNode* root = parseStringToTree(target);
                 int max_internal = max_single(root);
-                if(max_internal > 30){        
-                    std::cout<<"the internal loop is too long: "<<max_internal<<std::endl;            
-                    continue;
-                }
+                // if(max_internal > 30){        
+                //     std::cout<<"the internal loop is too long: "<<max_internal<<std::endl;            
+                //     continue;
+                // }
                 std::cout<<"max internal loop length: "<<max_internal<<std::endl;
                 if (true){
                     std::string result = alg_5_helper_v2(target, ref, cst, seq, verbose, dangle);
