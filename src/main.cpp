@@ -439,6 +439,9 @@ std::vector<std::string> alg_1(std::string& y, std::string& y_prime, std::vector
 
 std::vector<std::string> alg_1_v2(std::string& y, std::string& y_prime, std::string& seq, bool is_verbose, int dangle_model){
     std::cout<<"inside alg1_v2"<<std::endl;
+    std::cout << "    x:" << seq << std::endl;
+    std::cout << "ystar: " << y << std::endl;
+    std::cout << "yprim: " << y_prime << std::endl;
     std::set<int> critical_positions;
     std::vector<std::vector<int>> cr_loops = find_critical_plus(y, y_prime, critical_positions, is_verbose);
     std::set<int> critical_positions_v2 = loops2positions(cr_loops, y.length());
@@ -496,6 +499,7 @@ std::vector<std::string> alg_1_v2(std::string& y, std::string& y_prime, std::str
         std::sort(idX.begin(), idX.end());
         for(auto p: idX)
         X.push_back(p.second);
+        printf("alg1.X size: %d\n", X.size());
         return X;
     }
     std::vector<std::string> X;
@@ -544,6 +548,7 @@ std::vector<std::string> alg_1_v2(std::string& y, std::string& y_prime, std::str
     std::sort(idX.begin(), idX.end());
     for(auto p: idX)
         X.push_back(p.second);
+    printf("alg1.X size: %d\n", X.size());
     return X;
 }
 
