@@ -971,6 +971,11 @@ std::string alg_3_span_helper(std::string& ref, std::string& seq, std::vector<st
 
 std::string alg_5_cs(std::string& ref1, std::set<std::string>& refs_checked, std::vector<Constraint>& cs_vec, std::string& constr, bool verbose, int dangle_model){ // ref1, ref2, X, is_verbose, dangle_model
     int count_cs = cs_vec.size();
+    std::cout<<"design constraints:"<<std::endl;
+    for(int idx_cs; idx_cs < count_cs; idx_cs++){
+        std::cout<<cs_vec[idx_cs].structure<<std::endl;
+        std::cout<<cs_vec[idx_cs].seqs->size()<<std::endl;
+    }
     std::vector<std::pair<ulong, std::pair<std::string, std::string>>> y_primes;
     std::cout<<"inside alg5cs"<<std::endl;
     std::vector<std::string> X;
