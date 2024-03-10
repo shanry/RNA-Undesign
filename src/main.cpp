@@ -2558,7 +2558,7 @@ int main(int argc, char* argv[]) {
                     const std::chrono::duration<double, std::milli> time_ms = end_time - start_time;
                     float time_seconds = std::chrono::duration_cast<std::chrono::duration<float>>(time_ms).count();
                     printf("time cost: %.4f seconds\n", time_ms/1000.f);
-                    auto js = jsrecords(lc, target, y_sub, y_rivals, puzzle_id);
+                    auto js = jsrecords(lc, ref, y_sub, y_rivals, puzzle_id);
                     js["time"] = time_seconds;
                     js["ismin"] = true;
                     std::string jstring = js.dump();
