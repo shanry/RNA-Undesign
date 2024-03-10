@@ -2298,13 +2298,14 @@ int main(int argc, char* argv[]) {
         std::string line;
 
         // Read input line by line until EOF (end of file) is reached
-        while (std::getline(std::cin, seq)) {
+        while (std::getline(std::cin, ref1)) {
             // Process the line as needed
             // std::cout<<"got seq"<<std::endl;
-            getline(std::cin, ref1);
+            // getline(std::cin, ref1);
             getline(std::cin, ref2);
             auto start_time = std::chrono::high_resolution_clock::now();
             // std::vector<std::string> X = alg_1_v2(ref1, ref2, seq, verbose, dangle);
+            seq = tg_init(ref1);
             alg1_helper(seq, ref1, ref2, verbose, dangle);
             auto end_time = std::chrono::high_resolution_clock::now();
             const std::chrono::duration<double, std::milli> time_ms = end_time - start_time;
