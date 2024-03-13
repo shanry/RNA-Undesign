@@ -2588,8 +2588,8 @@ int main(int argc, char* argv[]) {
                 if (result == "undesignable"){
                     std::cout<<"undesignable!"<<std::endl;
                     auto end_time_lc = std::chrono::high_resolution_clock::now();
-                    const std::chrono::duration<double, std::milli> time_ms = end_time_lc - start_time_lc;
-                    float time_seconds_lc = std::chrono::duration_cast<std::chrono::duration<float>>(time_ms).count();
+                    const std::chrono::duration<double, std::milli> time_ms_lc = end_time_lc - start_time_lc;
+                    float time_seconds_lc = std::chrono::duration_cast<std::chrono::duration<float>>(time_ms_lc).count();
                     printf("time cost for the motif: %.4f seconds\n", time_seconds_lc/1000.f);
                     auto js = jsrecords(lc, ref, y_sub, y_rivals, puzzle_id);
                     js["time"] = time_seconds_lc;
@@ -2606,10 +2606,11 @@ int main(int argc, char* argv[]) {
                     std::cout<<motif_records[i]<<std::endl;
                 }
                 auto end_time = std::chrono::high_resolution_clock::now();
-                const std::chrono::duration<double, std::milli> time_ms = end_time - start_time;
-                float time_seconds_y = std::chrono::duration_cast<std::chrono::duration<float>>(time_ms).count();
+                const std::chrono::duration<double, std::milli> time_ms_y = end_time - start_time;
+                float time_seconds_y = std::chrono::duration_cast<std::chrono::duration<float>>(time_ms_y).count();
                 for(int i=0; i < motif_records.size(); i++){
-                    printf("time cost for the motif: %.4f seconds\n", json::parse(motif_records[i])["time"]);
+                    float jtime = json::parse(motif_records[i])["time"];
+                    printf("time cost for the motif: %.4f seconds\n", jtime);
                 }
                 printf("time cost for the structure: %.4f seconds\n", time_seconds_y/1000.f);
             }else{
