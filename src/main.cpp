@@ -1867,7 +1867,7 @@ void csv_process(std::string csv, std::string alg){
                         auto end_time_lc = std::chrono::high_resolution_clock::now();
                         const std::chrono::duration<double, std::milli> time_ms = end_time_lc - start_time_lc;
                         float time_seconds = std::chrono::duration_cast<std::chrono::duration<float>>(time_ms).count();
-                        printf("time cost: %.4f seconds\n", time_ms/1000.f);
+                        printf("time cost: %.4f seconds\n", time_seconds);
                         auto js = jsrecords(lc, y_star, y_sub, y_rivals, puzzle_id);
                         js["time"] = time_seconds;
                         ud_ipairs.insert(pairs2string(lc.ps_inside));
@@ -2590,7 +2590,7 @@ int main(int argc, char* argv[]) {
                     auto end_time_lc = std::chrono::high_resolution_clock::now();
                     const std::chrono::duration<double, std::milli> time_ms_lc = end_time_lc - start_time_lc;
                     float time_seconds_lc = std::chrono::duration_cast<std::chrono::duration<float>>(time_ms_lc).count();
-                    printf("time cost for the motif: %.4f seconds\n", time_seconds_lc/1000.f);
+                    printf("time cost for the motif: %.4f seconds\n", time_seconds_lc);
                     auto js = jsrecords(lc, ref, y_sub, y_rivals, puzzle_id);
                     js["time"] = time_seconds_lc;
                     js["ismin"] = true;
@@ -2612,7 +2612,7 @@ int main(int argc, char* argv[]) {
                     float jtime = json::parse(motif_records[i])["time"];
                     printf("time cost for the motif: %.4f seconds\n", jtime);
                 }
-                printf("time cost for the structure: %.4f seconds\n", time_seconds_y/1000.f);
+                printf("time cost for the structure: %.4f seconds\n", time_seconds_y);
             }else{
                 std::cout<<"no undesignable motifs found."<<std::endl;
             }
