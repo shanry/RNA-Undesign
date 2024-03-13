@@ -17,7 +17,7 @@
 // nucleotides: CONTRAfold: 0:A 1:C 2:G 3:U 4:N ; Vienna: 0:N 1:A 2:C 3:G 4:U
 // TODO: unify
 
-#define SPECIAL_HP
+// #define SPECIAL_HP
 //int special_hp = 1;
 
 double lxc37=107.856;

@@ -27,9 +27,6 @@ using namespace std;
 #define MAX_CONSTRAINT 100000
 #define MAX_SEQ 500
 
-#define SPECIAL_HP
-#define SPECIAL_HP_3
-// #define SPECIAL_HP_6
 
 /* Old compatibility names for C types.  */
 // typedef unsigned long int ulong;
@@ -1475,6 +1472,10 @@ void csv_process(std::string csv, std::string alg){
     std::vector<std::string> records;
     // Specify the file name
     std::string fileName = csv + "." + alg + ".log."+getCurrentTimestamp()+".txt";
+    #ifdef SPECIAL_HP
+    #else
+        fileName = csv + "." + alg + ".log.nosh."+getCurrentTimestamp()+".txt";
+    #endif
     // Open the file for writing
     std::ofstream outputFile(fileName);
 
@@ -1483,7 +1484,11 @@ void csv_process(std::string csv, std::string alg){
         std::cerr << "Error opening the file: " << fileName << std::endl;
         return;
     }
-     std::string fileTime = csv + "." + alg + ".time."+getCurrentTimestamp()+".csv";
+    std::string fileTime = csv + "." + alg + ".time."+getCurrentTimestamp()+".csv";
+    #ifdef SPECIAL_HP
+    #else
+        fileTime = csv + "." + alg + ".time.nosh."+getCurrentTimestamp()+".csv";
+    #endif
     // Open the file for writing
     std::ofstream timeFile(fileTime);
 
@@ -1491,6 +1496,8 @@ void csv_process(std::string csv, std::string alg){
     if (!timeFile.is_open()) {
         std::cerr << "Error opening the file: " << fileTime << std::endl;
         return;
+    }else{
+        timeFile << "ID,Time(s)" << std::endl;
     }
     std::unordered_map<std::string, GroupY> constr2groupy;
     for(int i = 1; i < df.size(); i++){
@@ -2185,22 +2192,27 @@ void csv_process(std::string csv, std::string alg){
 
 void show_configuration(){
     #ifdef SPECIAL_HP
-    printf("SPECIAL_HP   defined.\n");
+        printf("SPECIAL_HP   defined.\n");
+        #define SPECIAL_HP_3
+        #define SPECIAL_HP_4
+        #define SPECIAL_HP_6
+    #else
+        printf("SPECIAL_HP undefined.\n");
     #endif
     #ifdef SPECIAL_HP_3
-    printf("SPECIAL_HP_3 defined.\n");
+        printf("SPECIAL_HP_3 defined.\n");
     #endif
     #ifdef SPECIAL_HP_4
-    printf("SPECIAL_HP_4 defined.\n");
+        printf("SPECIAL_HP_4 defined.\n");
     #endif
     #ifdef SPECIAL_HP_6
-    printf("SPECIAL_HP_6 defined.\n");
+        printf("SPECIAL_HP_6 defined.\n");
     #endif
     #ifdef SINGLE_MAX_LEN
-    printf("SINGLE_MAX_LEN: %d\n", SINGLE_MAX_LEN);
+        printf("SINGLE_MAX_LEN: %d\n", SINGLE_MAX_LEN);
     #endif
     #ifdef MULTIPLE_FIRST_MAX_LEN
-    printf("MULTIPLE_FIRST_MAX_LEN: %d\n", MULTIPLE_FIRST_MAX_LEN);
+        printf("MULTIPLE_FIRST_MAX_LEN: %d\n", MULTIPLE_FIRST_MAX_LEN);
     #endif
     return;
 }

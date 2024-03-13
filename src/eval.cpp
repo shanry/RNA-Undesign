@@ -38,9 +38,12 @@
 #include "utils.h"
 
 #define BASE 1000
-#define SPECIAL_HP
-#define SPECIAL_HP_3
-// #define SPECIAL_HP_6
+#ifdef SPECIAL_HP
+    #define SPECIAL_HP_3
+    #define SPECIAL_HP_4
+    #define SPECIAL_HP_6
+#endif
+
 using namespace std;
 
 enum loops {
