@@ -1483,6 +1483,15 @@ void csv_process(std::string csv, std::string alg){
         std::cerr << "Error opening the file: " << fileName << std::endl;
         return;
     }
+     std::string fileTime = csv + "." + alg + ".time."+getCurrentTimestamp()+".csv";
+    // Open the file for writing
+    std::ofstream timeFile(fileTime);
+
+    // Check if the file is open
+    if (!timeFile.is_open()) {
+        std::cerr << "Error opening the file: " << fileTime << std::endl;
+        return;
+    }
     std::unordered_map<std::string, GroupY> constr2groupy;
     for(int i = 1; i < df.size(); i++){
         auto row = df[i];
@@ -1691,6 +1700,7 @@ void csv_process(std::string csv, std::string alg){
                 std::sort(lc_list.begin(), lc_list.end(), [](const LoopComplex &a, const LoopComplex &b) {
                     return a.count_uk < b.count_uk;});
                 for (auto lc: lc_list){
+                    auto start_time_lc = std::chrono::high_resolution_clock::now();
                     lc.printLoopLens();
                     if (lc.hasLongLoop()){
                         printf("the loop exceeds length limit!");
@@ -1751,8 +1761,8 @@ void csv_process(std::string csv, std::string alg){
                             GroupY gy{y_sub, y_rivals, lc.constr};
                             constr2groupy[lc.constr] = gy;
                         }
-                        auto end_time = std::chrono::high_resolution_clock::now();
-                        const std::chrono::duration<double, std::milli> time_ms = end_time - start_time;
+                        auto end_time_lc = std::chrono::high_resolution_clock::now();
+                        const std::chrono::duration<double, std::milli> time_ms = end_time_lc - start_time_lc;
                         float time_seconds = std::chrono::duration_cast<std::chrono::duration<float>>(time_ms).count();
                         printf("time cost: %.4f seconds\n", time_ms/1000.f);
                         auto js = jsrecords(lc, y_star, y_sub, y_rivals, puzzle_id);
@@ -1779,6 +1789,7 @@ void csv_process(std::string csv, std::string alg){
                     return a.count_uk < b.count_uk;});
                 lc_list.insert(lc_list.end(), lc_list_plus.begin(), lc_list_plus.end());
                 for (auto lc: lc_list){
+                    auto start_time_lc = std::chrono::high_resolution_clock::now();
                     lc.printLoopLens();
                     if (lc.hasLongLoop()){
                         printf("the loop exceeds length limit!");
@@ -1846,8 +1857,8 @@ void csv_process(std::string csv, std::string alg){
                             GroupY gy{y_sub, y_rivals, lc.constr};
                             constr2groupy[lc.constr] = gy;
                         }
-                        auto end_time = std::chrono::high_resolution_clock::now();
-                        const std::chrono::duration<double, std::milli> time_ms = end_time - start_time;
+                        auto end_time_lc = std::chrono::high_resolution_clock::now();
+                        const std::chrono::duration<double, std::milli> time_ms = end_time_lc - start_time_lc;
                         float time_seconds = std::chrono::duration_cast<std::chrono::duration<float>>(time_ms).count();
                         printf("time cost: %.4f seconds\n", time_ms/1000.f);
                         auto js = jsrecords(lc, y_star, y_sub, y_rivals, puzzle_id);
@@ -1873,6 +1884,11 @@ void csv_process(std::string csv, std::string alg){
                         std::cout<<pair<<"  ";
                     printf("\n");
                 }
+                auto end_time = std::chrono::high_resolution_clock::now();
+                const std::chrono::duration<double, std::milli> time_ms_y = end_time - start_time;
+                float time_seconds_lc = std::chrono::duration_cast<std::chrono::duration<float>>(time_ms_y).count();
+                printf("time cost for whole structure: %.4f seconds\n", time_seconds_lc);
+                timeFile << puzzle_id << "," << time_seconds_lc <<std::endl;
             }
             if (alg == "loop"){
                 seq = tg_init(y_star);
@@ -2162,7 +2178,6 @@ void csv_process(std::string csv, std::string alg){
     }
     for (auto r: records)
         std::cout<<r<<std::endl;
-    
     // Close the file
     outputFile.close();
     std::cout << "Strings written to file: " << fileName << std::endl;
@@ -2494,6 +2509,7 @@ int main(int argc, char* argv[]) {
         std::string ref;
         // Read input line by line until EOF (end of file) is reached
         while (std::getline(std::cin, ref)){
+            auto start_time = std::chrono::high_resolution_clock::now();
             std::string seq;
             std::string puzzle_id = "id";
             if(struct2seq.find(ref) != struct2seq.end()){
@@ -2510,27 +2526,33 @@ int main(int argc, char* argv[]) {
                 tree2Edges(root, ref, lc_list);
             else if(alg == "n2")
                 tree2TwoNeighbor(root, ref, lc_list);
-            else
+            else{
+                assert (alg == "n3");
                 tree2ThreeNeighbor(root, ref, lc_list);
+            }
             printf("lc_list size: %d\n", lc_list.size());
             // Sort the vector using a lambda expression
             std::sort(lc_list.begin(), lc_list.end(), [](const LoopComplex &a, const LoopComplex &b) {
                 return a.count_uk < b.count_uk;});
             std::vector<std::string> motif_records;
-            auto start_time = std::chrono::high_resolution_clock::now();
             for (auto lc: lc_list){
+                 auto start_time_lc = std::chrono::high_resolution_clock::now();
                 lc.printLoopLens();
                 if (lc.hasLongLoop()){
                     printf("the loop exceeds length limit!");
                     continue;
                 }
                 std::string target = ref.substr(lc.start, lc.end-lc.start+1);
+
                 std::string subseq = seq.substr(lc.start, lc.end-lc.start+1);
                 printf(" count: %d\n", lc.count_uk);
                 printf("target: %s\n", target.c_str());
                 printf("   ref: %s\n", lc.ref.c_str());
                 printf("constr: %s\n", lc.constr.c_str());
-                
+                for(auto bp: lc.ps_outside)
+                    printf("bpair: %d, %d\n", bp.first, bp.second);
+                for(auto ip: lc.ps_inside)
+                    printf("ipair: %d, %d\n", ip.first, ip.second);
                 std::string ref_lc = lc.ref;
                 std::string constr_lc = lc.constr;
                 for( int ib = 1; ib < lc.ps_outside.size(); ib++){ // skip the most outside boudary pair
@@ -2554,12 +2576,12 @@ int main(int argc, char* argv[]) {
                 std::string result = alg_5_helper_v2(target, ref_lc, constr_lc, subseq, verbose, dangle);
                 if (result == "undesignable"){
                     std::cout<<"undesignable!"<<std::endl;
-                    auto end_time = std::chrono::high_resolution_clock::now();
-                    const std::chrono::duration<double, std::milli> time_ms = end_time - start_time;
-                    float time_seconds = std::chrono::duration_cast<std::chrono::duration<float>>(time_ms).count();
-                    printf("time cost: %.4f seconds\n", time_ms/1000.f);
+                    auto end_time_lc = std::chrono::high_resolution_clock::now();
+                    const std::chrono::duration<double, std::milli> time_ms = end_time_lc - start_time_lc;
+                    float time_seconds_lc = std::chrono::duration_cast<std::chrono::duration<float>>(time_ms).count();
+                    printf("time cost for the motif: %.4f seconds\n", time_seconds_lc/1000.f);
                     auto js = jsrecords(lc, ref, y_sub, y_rivals, puzzle_id);
-                    js["time"] = time_seconds;
+                    js["time"] = time_seconds_lc;
                     js["ismin"] = true;
                     std::string jstring = js.dump();
                     motif_records.push_back(jstring);
@@ -2572,6 +2594,13 @@ int main(int argc, char* argv[]) {
                     std::cout<<"motif: "<<std::to_string(i+1)<<std::endl;
                     std::cout<<motif_records[i]<<std::endl;
                 }
+                auto end_time = std::chrono::high_resolution_clock::now();
+                const std::chrono::duration<double, std::milli> time_ms = end_time - start_time;
+                float time_seconds_y = std::chrono::duration_cast<std::chrono::duration<float>>(time_ms).count();
+                for(int i=0; i < motif_records.size(); i++){
+                    printf("time cost for the motif: %.4f seconds\n", json::parse(motif_records[i])["time"]);
+                }
+                printf("time cost for the structure: %.4f seconds\n", time_seconds_y/1000.f);
             }else{
                 std::cout<<"no undesignable motifs found."<<std::endl;
             }

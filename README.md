@@ -52,7 +52,7 @@ $./bin/main --alg n1
 ```
 $export OMP_NUM_THREADS=8 # parallel computing eabled by OpenMP
 $./bin/main --alg n2
-((.(..(.(....).(....).)..).(....).))
+.....((((.(...(.((((.(.((((.((.((((.((.(((....))).).)))))).)))))....).)))).)...).))))....................
 ```
 ### Loop with 3+ Neighbors
 ```
