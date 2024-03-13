@@ -29,7 +29,7 @@ using namespace std;
 
 #define SPECIAL_HP
 #define SPECIAL_HP_3
-#define SPECIAL_HP_6
+// #define SPECIAL_HP_6
 
 /* Old compatibility names for C types.  */
 // typedef unsigned long int ulong;
@@ -2212,8 +2212,7 @@ int main(int argc, char* argv[]) {
     ("c,csv", "csv file", cxxopts::value<std::string>()->default_value(""))
     ("t,txt", "txt file", cxxopts::value<std::string>()->default_value(""))
     ("d,dangle", "Dangle mode", cxxopts::value<int>()->default_value("2"))
-    ("v,verbose", "Verbose output", cxxopts::value<bool>()->default_value("false"))
-    ;
+    ("v,verbose", "Verbose output", cxxopts::value<bool>()->default_value("false"));
 
     auto result = options.parse(argc, argv);
     std::string alg = result["alg"].as<std::string>();

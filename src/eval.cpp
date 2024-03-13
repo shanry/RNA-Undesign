@@ -40,7 +40,7 @@
 #define BASE 1000
 #define SPECIAL_HP
 #define SPECIAL_HP_3
-#define SPECIAL_HP_6
+// #define SPECIAL_HP_6
 using namespace std;
 
 enum loops {

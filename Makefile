@@ -25,7 +25,7 @@ main_hp3_mac: main0.o utils.o comps.o eval0.o # only special hp of triloop
 	$(CC)  $(CFLAGS) -Wl,-ld_classic  bin/main0.o bin/utils.o bin/comps.o bin/eval0.o  -o bin/main_hp3
 
 main.o: src/main.cpp $(DEPS)
-	$(CC) src/main.cpp -c $(CFLAGS) -Dlv -DSPECIAL_HP_4 -Dis_cube_pruning -Dis_candidate_list -o bin/main.o
+	$(CC) src/main.cpp -c $(CFLAGS) -Dlv -DSPECIAL_HP_4 -DSPECIAL_HP_6 -Dis_cube_pruning -Dis_candidate_list -o bin/main.o
 
 main0.o: src/main.cpp $(DEPS)
 	$(CC) src/main.cpp -c $(CFLAGS) -Dlv -Dis_cube_pruning -Dis_candidate_list -o bin/main0.o
@@ -37,7 +37,7 @@ comps.o: src/comps.cpp src/comps.h
 	$(CC) -c src/comps.cpp $(CFLAGS) -o bin/comps.o
 
 eval.o: src/eval.cpp src/eval.h
-	$(CC) -c src/eval.cpp $(CFLAGS) -Dlv -DSPECIAL_HP_4 -Dis_cube_pruning -Dis_candidate_list  -o bin/eval.o
+	$(CC) -c src/eval.cpp $(CFLAGS) -Dlv -DSPECIAL_HP_4 -DSPECIAL_HP_6 -Dis_cube_pruning -Dis_candidate_list  -o bin/eval.o
 
 eval0.o: src/eval.cpp src/eval.h
 	$(CC) -c src/eval.cpp $(CFLAGS) -Dlv -Dis_cube_pruning -Dis_candidate_list  -o bin/eval0.o
