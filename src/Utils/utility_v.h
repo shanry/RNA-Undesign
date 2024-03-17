@@ -79,23 +79,23 @@ inline int v_score_special_hairpin(int i, int j, int nuci, int nuci1, int nucj_1
     if(size < 3) return energy; /* should only be the case when folding alignments */
 #ifdef SPECIAL_HP
     // if(special_hp){
-#ifdef SPECIAL_HP_4
+// #ifdef SPECIAL_HP_4
         if (size == 4 && tetra_hex_tri_index > -1)
             return Tetraloop37[tetra_hex_tri_index];
-#endif
+// #endif
 
-#ifdef SPECIAL_HP_6
+// #ifdef SPECIAL_HP_6
         if (size == 6 && tetra_hex_tri_index > -1)
             return Hexaloop37[tetra_hex_tri_index];
-#endif
+// #endif
 
-#ifdef SPECIAL_HP_3        
+// #ifdef SPECIAL_HP_3        
         if (size == 3) {
             if (tetra_hex_tri_index > -1)
                 return Triloop37[tetra_hex_tri_index];
             // return (energy + (type>2 ? TerminalAU37 : 0));
         }
-#endif
+// #endif
     // }
 #endif
 

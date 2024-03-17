@@ -718,6 +718,7 @@ long linear_eval(string& seq, string& ref, bool& is_verbose, int& dangle_model) 
                 
                 int newscore = - v_score_special_hairpin(i, j, nuci, nuci1, nucj_1, nucj, tetra_hex_tri);
                 if (is_verbose)
+                    printf("tetra_hex_tri: %d\n", tetra_hex_tri);
                     printf("Hairpin loop ( %d, %d) %c%c : %.2f\n", i+1, j+1, seq[i], seq[j], newscore / -100.0);
                 total_energy += newscore;
             }

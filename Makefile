@@ -10,18 +10,18 @@ DEPS=src/*.hpp src/LinearFold.h src/Utils/energy_parameter.h src/Utils/feature_w
 CFLAGS=-std=c++11 -O3 -fopenmp
 objects=bin/main bin/main4
 
-all: main main0
+all: main main_nosh
 
 main: main.o utils.o comps.o eval.o
 	$(CC)  $(CFLAGS)  bin/main.o bin/utils.o bin/comps.o bin/eval.o  -o bin/main
 
-main_nosh: main_nosh.o utils.o comps.o eval_nosh.o # only special hp of triloop
+main_nosh: main_nosh.o utils.o comps.o eval_nosh.o # no special hp 
 	$(CC)  $(CFLAGS)  bin/main_nosh.o bin/utils.o bin/comps.o bin/eval_nosh.o  -o bin/main_nosh
 
 main_mac: main.o utils.o comps.o eval.o
 	$(CC)  $(CFLAGS) -Wl,-ld_classic  bin/main.o bin/utils.o bin/comps.o bin/eval.o  -o bin/main
 
-main_nosh_mac: main_nosh.o utils.o comps.o eval_nosh.o # only special hp of triloop
+main_nosh_mac: main_nosh.o utils.o comps.o eval_nosh.o # no special hp
 	$(CC)  $(CFLAGS) -Wl,-ld_classic  bin/main_nosh.o bin/utils.o bin/comps.o bin/eval_nosh.o  -o bin/main_nosh
 
 main.o: src/main.cpp $(DEPS)
