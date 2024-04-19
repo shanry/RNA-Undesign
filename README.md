@@ -9,9 +9,9 @@ This project explores the unndesignability of RNA secondary structures, under th
 
 [1] Zhou, T., Tang, W.Y., Mathews, D.H. and Huang, L. 
 "Undesignable RNA Structure Identification via Rival Structure Generation and Structure Decomposition." 
-arXiv preprint arXiv:2311.08339 (2023). To appear in Proceedings of RECOMB 2024. \
+To appear in Proceedings of RECOMB 2024. ([arXiv preprint](https://arxiv.org/abs/2311.08339)) \
 [2] Zhou, T., Tang, W.Y., Mathews, D.H. and Huang, L. 
-"Scalable Identification of Minimum Undesignable RNA Motifs on Loop-Pair Graphs"
+"Scalable Identification of Minimum Undesignable RNA Motifs on Loop-Pair Graphs" ([arXiv preprint](https://arxiv.org/abs/2402.17206))
 
 ## Dependencies
 - GCC 4.8.5 or above
