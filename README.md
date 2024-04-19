@@ -20,14 +20,14 @@ To appear in Proceedings of RECOMB 2024. ([arXiv preprint](https://arxiv.org/abs
 ### Linux
 ```
 # Test with CentOS
-$./make main   
-$./make main_hp3  # only turn on special hairpin of triloop
+$ make main   
+$ make main_nosh  # turn off special hairpins
 ```
 ### Mac
 ```
 # Test with Apple Silicon
-$./make main_mac   
-$./make main_hp3_mac  # only turn on special hairpin of triloop
+$ make main_mac   
+$ make main_nosh_mac  # turn off special hairpins
 ```
 ## Rotation Invariance of Motifs
 <p align="center">
