@@ -10,20 +10,20 @@ DEPS=src/*.hpp src/LinearFold.h src/Utils/energy_parameter.h src/Utils/feature_w
 CFLAGS=-std=c++11 -O3 -fopenmp
 objects=bin/*
 
-all: bin/main bin/main_nosh
-all_mac: bin/main_mac bin/main_nosh_mac
+all: main main_nosh
+all_mac: main_mac main_nosh_mac
 
 
-bin/main: bin/main.o bin/utils.o bin/comps.o bin/eval.o
+main: bin/main.o bin/utils.o bin/comps.o bin/eval.o
 	$(CC)  $(CFLAGS)  bin/main.o bin/utils.o bin/comps.o bin/eval.o  -o bin/main
 
-bin/main_nosh: bin/main_nosh.o bin/utils.o bin/comps.o bin/eval_nosh.o # no special hp 
+main_nosh: bin/main_nosh.o bin/utils.o bin/comps.o bin/eval_nosh.o # no special hp 
 	$(CC)  $(CFLAGS)  bin/main_nosh.o bin/utils.o bin/comps.o bin/eval_nosh.o  -o bin/main_nosh
 
-bin/main_mac: bin/main.o bin/utils.o bin/comps.o bin/eval.o
+main_mac: bin/main.o bin/utils.o bin/comps.o bin/eval.o
 	$(CC)  $(CFLAGS) -Wl,-ld_classic  bin/main.o bin/utils.o bin/comps.o bin/eval.o  -o bin/main
 
-bin/main_nosh_mac: bin/main_nosh.o bin/utils.o bin/comps.o bin/eval_nosh.o # no special hp
+main_nosh_mac: bin/main_nosh.o bin/utils.o bin/comps.o bin/eval_nosh.o # no special hp
 	$(CC)  $(CFLAGS) -Wl,-ld_classic  bin/main_nosh.o bin/utils.o bin/comps.o bin/eval_nosh.o  -o bin/main_nosh
 
 bin/main.o: src/main.cpp $(DEPS)
