@@ -179,21 +179,6 @@ std::string exec_command(const char* cmd) {
     return result;
 }
 
-std::vector<std::string> subopt(std::string& seq, std::string constr){
-    // std::string cmd_str = "echo -ne" + "\"" + seq + "\\n" + constr + "\"" + "|" + "/nfs/stak/users/zhoutian/acl/rna_tool/v251/bin/RNAsubopt -C --enforceConstraint -e 0";
-    std::replace(constr.begin(), constr.end(), '.', 'x');
-    std::replace(constr.begin(), constr.end(), '?', '.');
-    std::string cmd_str = "echo -ne \"" + seq + "\\n" + constr + "\" | /nfs/stak/users/zhoutian/acl/rna_tool/v251/bin/RNAsubopt -C --enforceConstraint -e 0";
-    const char* cmd_cstr = cmd_str.c_str();
-    // printf("%s\n", cmd_cstr);
-    std::string output = exec_command(cmd_cstr);
-    std::vector<std::string> array = split_string(output, '\n');
-    std::vector<std::string> structures;
-    for(int i = 1; i < array.size(); i++){
-        structures.push_back(split_string(array[i], ' ')[0]);
-    }
-    return structures;
-}
 
 std::string tg_init(std::string& y){
     std::string x(y.length(), 'A');

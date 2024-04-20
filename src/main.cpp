@@ -2224,15 +2224,17 @@ int main(int argc, char* argv[]) {
     ("c,csv", "csv file", cxxopts::value<std::string>()->default_value(""))
     ("t,txt", "txt file", cxxopts::value<std::string>()->default_value(""))
     ("d,dangle", "Dangle mode", cxxopts::value<int>()->default_value("2"))
+    ("vrna,vienna", "Use ViennaRNA to fold, the environment variable VRNABIN has to be set", cxxopts::value<bool>()->default_value("false"))
     ("v,verbose", "Verbose output", cxxopts::value<bool>()->default_value("false"));
 
     auto result = options.parse(argc, argv);
     std::string alg = result["alg"].as<std::string>();
     std::string csv = result["csv"].as<std::string>();
     std::string txt = result["txt"].as<std::string>();
+    bool vrna = result["vienna"].as<bool>();
     verbose = result["verbose"].as<bool>();
     dangle = result["dangle"].as<int>();
-    printf("alg: %s, verbose: %d, dangle: %d\n", alg.c_str(), verbose, dangle);
+    printf("alg: %s, vienna: %d, verbose: %d, dangle: %d\n", alg.c_str(), vrna, verbose, dangle);
     show_configuration();
 
     std::unordered_map<std::string, std::string> struct2seq = loadlib_eterna("data/eterna_umfe_unsolved.csv");
@@ -2272,9 +2274,16 @@ int main(int argc, char* argv[]) {
         int beamsize = 0;
         bool sharpturn = false;
         std::string seq;
+        std::vector<std::string> refs;
         while (std::getline(std::cin, seq))
-        {
-            std::vector<std::string> refs =  fold(seq, beamsize, sharpturn, verbose, dangle, 0.);
+        {   
+            if (!vrna)
+                refs =  fold(seq, beamsize, sharpturn, verbose, dangle, 0.);
+            else{
+                std::string constr(seq.size(), '?');
+                std::cout<<constr<<std::endl;
+                refs = subopt_vienna(seq, constr);
+            }
             std::cout<<"subopts size: "<<refs.size()<<std::endl;
             for(auto ref: refs)
                 std::cout<<ref<<std::endl;
@@ -2443,6 +2452,15 @@ int main(int argc, char* argv[]) {
                 printf("\n");
             }
         }
+    }
+    else if (alg == "foldv"){ /* loops evaluation  */
+        std::string seq;
+        // Read input line by line until EOF (end of file) is reached
+        while (std::getline(std::cin, seq)) {
+                std::string mfe = fold_vienna(seq);
+                std::cout<<seq<<std::endl;
+                std::cout<<mfe<<std::endl;
+            }
     }
     else if (alg == "mloop"){ /* multi-loops evaluation  */
         std::string seq;
