@@ -4011,7 +4011,7 @@ std::vector<std::string> subopt_vienna(std::string& seq, std::string constr){
 
 std::vector<std::string> fold(std::string seq, int beamsize, bool sharpturn, bool verbose, int dangle, float energy_delta){
         // lhuang: moved inside loop, fixing an obscure but crucial bug in initialization
-        BeamCKYParser parser(beamsize, !sharpturn, verbose, false, true, false, energy_delta, "", false, dangle);
+        BeamCKYParser parser(beamsize, !sharpturn, verbose, false, false, true, energy_delta, "", false, dangle);
         std::vector<std::string> subopts;
         BeamCKYParser::DecoderResult result = parser.parse(seq, NULL, subopts);
         return subopts;
