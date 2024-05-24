@@ -3,13 +3,13 @@ Algorithms for Identifying the Undesignability of RNA secondary structures
 
 ## Introduction
 
-This project explores the unndesignability of RNA secondary structures, under the context of RNA design, building upon the research presented in the paper by T. Zhou et al. [1][2].
+This project explores the undesignability of RNA secondary structures, under the context of RNA design, building upon the research presented in the paper by T. Zhou et al. [1][2].
 
 ## References
 
 [1] Zhou, T., Tang, W.Y., Mathews, D.H. and Huang, L. 
 "Undesignable RNA Structure Identification via Rival Structure Generation and Structure Decomposition." 
-To appear in Proceedings of RECOMB 2024. ([arXiv preprint](https://arxiv.org/abs/2311.08339)) \
+(RECOMB 2024, [arXiv preprint](https://arxiv.org/abs/2311.08339)) \
 [2] Zhou, T., Tang, W.Y., Mathews, D.H. and Huang, L. 
 "Scalable Identification of Minimum Undesignable RNA Motifs on Loop-Pair Graphs" ([arXiv preprint](https://arxiv.org/abs/2402.17206))
 
