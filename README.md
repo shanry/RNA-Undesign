@@ -1,5 +1,5 @@
 # RNA-Undesign
-Undesignability of RNA secondary structures
+Algorithms for Identifying the Undesignability of RNA secondary structures
 
 ## Introduction
 
