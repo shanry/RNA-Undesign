@@ -167,6 +167,7 @@ txts/
 csvs/
 logs/
 cpps/
+misc/
 .vscode/
 algs_inout/
 *.txt
