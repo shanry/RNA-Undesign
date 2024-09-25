@@ -1,15 +1,12 @@
 #!/bin/bash
-# need pip3 install PyMuPDF
-# plot puzzle ID; if alg3 is used, color the substructure
-# ./plot_id.sh ID
-# `cat plotstrs.txt | xargs -L 1 ./plot_motif.sh` generates pdf fils for each plotstr in plotstrs.txt
+# dependency: `pip install pdfCropMargins`
+# usage: `cat plotstrs.txt | xargs -L 1 ./plot_motif.sh` generates pdf fils for each plotstr in plotstrs.txt
 
 # Check if the environment variable is not set
 if [ -z "${VIENNA}" ]; then
     # Set the variable if it's not set
     VIENNA=~/biology/ViennaRNA-2.5.1
 fi
-
 echo "\$VIENNA: $VIENNA"
 
 mode=0
