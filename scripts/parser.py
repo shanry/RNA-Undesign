@@ -4,6 +4,21 @@ import argparse
 import json
 import glob
 
+'''
+python parser.py --path log.txt
+
+where each line in log.txt is a json string representaing a motif
+{"bpairs":[[72,79]],"end":77,"id":"5s_ref2","ipairs":[[73,77]],"ismin":true,"motif":{"id":"5s_ref2","root":{"child_id":1,"children":[{"child_id":1,"loops":[3],"neighbors":[0],"type":"H"}],"loops":[0,1],"neighbors":[0,1],"type":"B"}},"plotstr":"\"5s_ref2,(.....(.((((((.....((((((.............))))..))....))))))..).((.((....(((((...).))))....)).))...).......,73 80 GREEN Fomark 73 80 0.70 0.5 colorpair 74 78 0.1667 1.0 colorpair \"","start":73,"time":0.004015999846160412,"y_rivals":["(......)"],"y_star":"(.....(.((((((.....((((((.............))))..))....))))))..).((.((....(((((...).))))....)).))...).......","y_sub":"((...).)"}
+
+output the list of string to plot corresponding motif.
+
+parse the log of applying undesignability detection to 5s:
+
+python parser.py --path 5s_ref.txt.pn.log.20240221092905.txt
+
+the output file is named as 5s_ref.txt.pn.plotstr.20240221092905.txt
+
+'''
 
 def shrink(i, j, bpairs, SIZE = 2):
     inew, jnew = i, j
