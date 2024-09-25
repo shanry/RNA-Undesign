@@ -3,7 +3,14 @@
 # plot puzzle ID; if alg3 is used, color the substructure
 # ./plot_id.sh ID
 # `cat plotstrs.txt | xargs -L 1 ./plot_motif.sh` generates pdf fils for each plotstr in plotstrs.txt
-VIENNA=~/biology/ViennaRNA-2.5.1/
+
+# Check if the environment variable is not set
+if [ -z "${VIENNA}" ]; then
+    # Set the variable if it's not set
+    VIENNA=~/biology/ViennaRNA-2.5.1
+fi
+
+echo "\$VIENNA: $VIENNA"
 
 mode=0
 echo "mode:" $mode
@@ -76,7 +83,8 @@ echo "prestring " $prestring
 # # -t 0 means layout mode 0 (default 1)
 echo -ne ">$id\n$seq\n$struct" | $VIENNA/bin/RNAplot -t $mode --pre "$prestring " # --post "$poststring" # the final space is important to keep "" #"$span GREEN Fomark"
 ps2pdf -dEPSCrop ${id}_ss.ps # bounding box
-pdfcrop ${id}_ss.pdf # crop margin automatically
+# pdfcrop ${id}_ss.pdf # crop margin automatically
+pdfcropmargins -v -u -s ${id}_ss.pdf -o ${id}_ss-crop.pdf # pip install pdfCropMargins
 mv ${id}_ss-crop.pdf ${id}.pdf # final output
 rm ${id}_ss.p* # remove temp files
 
