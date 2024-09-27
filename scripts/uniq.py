@@ -149,8 +149,10 @@ def check_eq(a, b):
 
 def dedup(path):
 	uniqs = defaultdict(list) # loop-signature -> [motifs]
+	id_uniqs = set()
 	for i, line in enumerate(open(path)):
 		js = json.loads(line)
+		id_uniqs.add(js['id'])
 		# js_full = json.loads(line)
 		ids, motif = js['motif']['id'], js['motif']['root']
 		signature = str(sorted(loop_stats(motif).items())) # "{B:1, M:3, ..}"
@@ -164,11 +166,14 @@ def dedup(path):
 				break
 		else: # new uniq
 			uniqs[signature].append((tree, [js]))
+	total = 0
 	for signature in uniqs:
 		for tree, jss in uniqs[signature]:
+			total += len(jss)
 			for js in jss:
 				print(json.dumps(js['motif']))
-	print("tot", i+1, "uniq", sum(map(len, uniqs.values())))
+	print("motif total:", total, "motif uniq:", sum(map(len, uniqs.values())), "struct. uniq:", len(id_uniqs))
+	print(sorted(list(id_uniqs)))
 	return uniqs
 
 
