@@ -24,6 +24,7 @@ prestring=$(echo "$line" | cut -d',' -f3) # annotation
 # if [ -e "${id}otif1${mode}.pdf" ]; then
 order=0
 while [ -e "${id}otif${order}_mode${mode}.pdf" ]; do
+    echo "exist: ${id}otif${order}_mode${mode}.pdf"
     ((order++))
 done
 id="${id}otif${order}_mode${mode}"
@@ -38,7 +39,10 @@ echo "seq   " $seq
 echo struct $struct
 
 prestring=$(echo "$line" | cut -d',' -f3) # annotation
+poststring=$(echo "$line" | cut -d',' -f4) # annotation
+
 echo "prestring " $prestring
+echo "poststring " $poststring
 
 # exit
 
@@ -76,7 +80,8 @@ echo "prestring " $prestring
 # # echo $prestring
 # # exit 0
 # # -t 0 means layout mode 0 (default 1)
-echo -ne ">$id\n$seq\n$struct" | $VIENNA/bin/RNAplot -t $mode --pre "$prestring " # --post "$poststring" # the final space is important to keep "" #"$span GREEN Fomark"
+echo -ne ">$id\n$seq\n$struct" | $VIENNA/bin/RNAplot -t $mode --pre "$prestring " --post "$poststring" # the final space is important to keep "" #"$span GREEN Fomark"
+
 ps2pdf -dEPSCrop ${id}_ss.ps # bounding box
 # pdfcrop ${id}_ss.pdf # crop margin automatically
 pdfcropmargins -v -u -s ${id}_ss.pdf -o ${id}_ss-crop.pdf # pip install pdfCropMargins
