@@ -31,6 +31,7 @@ struct TreeNode {
     void printTree(std::string& ref, std::string& seq, std::vector<std::pair<std::string, std::string>>& subrefs);
 
     bool isTooLong();
+    bool isTooShort();
 };
 
 // Data structure for motif
@@ -50,6 +51,7 @@ struct LoopComplex {
     LoopComplex(int count, std::string y, std::string cs, int s, int e, TreeNode* n, int l, int r, std::vector<std::pair<int, int>> p_out, std::vector<std::pair<int, int>> p_in);
     void set_neighbors(std::vector<int> nbs);
     bool hasLongLoop();
+    bool hasShortLoop();
     void printLoopLens();
     std::string jsmotif(std::string id);
 };

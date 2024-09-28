@@ -146,11 +146,16 @@ void TreeNode::printTree(std::string& ref, std::string& seq, std::vector<std::pa
 }
 
 bool TreeNode::isTooLong(){
-    // printf("inside isTooLong\n");
     if(looptype == "I" || looptype == "B")
         return looplen > SINGLE_MAX_LEN;
     else if(looptype == "M")
         return looplens[0] > MULTIPLE_FIRST_MAX_LEN;
+    return false;
+}
+
+bool TreeNode::isTooShort(){
+    if(looptype == "H")
+        return looplen < 3; // minimum hairpin loop length
     return false;
 }
 
@@ -182,6 +187,22 @@ bool LoopComplex::hasLongLoop(){
                 if (node->parent->isTooLong())
                     return true;
             }else if (node->children[nb-1]->isTooLong())
+                return true;
+        }
+    }
+    return false;
+}
+
+bool LoopComplex::hasShortLoop(){
+    // printf("inside hasShortLoop\n");
+    if(node->isTooShort())
+        return true;
+    else{
+        for(int nb: neighbors){
+            if (nb == 0){
+                if (node->parent->isTooShort())
+                    return true;
+            }else if (node->children[nb-1]->isTooShort())
                 return true;
         }
     }
