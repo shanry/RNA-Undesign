@@ -1,3 +1,27 @@
+/**
+ * @file uniq.cpp
+ * @brief This script processes RNA tree structures from JSON data, deduplicates them, and prints unique tree structures.
+ *
+ * This script reads RNA tree structures from a file, constructs tree representations, generates all possible rotations
+ * of these trees, and identifies unique tree structures. The unique trees and their counts are then printed to the console.
+ *
+ * The script uses the nlohmann::json library for JSON parsing and a custom Node class to represent the tree structure.
+ *
+ * Dependencies:
+ * - nlohmann::json library
+ * - utils.h (for readLinesFromFile function)
+ *
+ * Classes:
+ * - Node: Represents a node in the RNA tree structure.
+ *
+ * Functions:
+ * - dedup: Reads RNA tree structures from a file, deduplicates them, and prints unique trees.
+ * - main: Entry point of the script. Reads the file path from command line arguments and calls the dedup function.
+ *
+ * Usage:
+ * Compile the script and run it with the path to the input file as an argument.
+ * Example: ./uniq path/to/input/file
+ */
 #include <iostream>
 #include <fstream>
 
@@ -7,6 +31,7 @@
 
 using json = nlohmann::json;
 using namespace std;
+
 
 
 // Node class definition to represent the tree structure
@@ -136,52 +161,51 @@ public:
     }
 };
 
+
 void dedup(string path){
     vector<std::string> lines = readLinesFromFile(path);
-    std::cout << "lines size: " << lines.size() << endl;
 
-    map<string, vector<string>> uniqs;
+    map<string, vector<json>> uniqs;
     set<string> ids;
-    vector<Node*> trees;
 
     for (auto& line : lines) {
         json js = json::parse(line);
         ids.insert(js["id"]); 
         json motif = js["motif"];
         Node* tree = new Node(motif, nullptr, -1);
-        trees.push_back(tree);
-    }
-
-    if(trees.size()){
-        std::cout<<trees[0]->toString()<<endl;
-        std::cout<<trees.back()->toString()<<endl;
-        Node* node = trees[trees.size()-1];
-        Node* pr = node->children[0]->children[0]->parent;
-        // cout<<"m:"<<pr->child_id<<endl;
-        if (pr != nullptr) {
-            cout << "m child_id " << pr->child_id << endl;
-            cout << "m type " << pr->type << endl;
-        } else {
-            cout << "Parent pointer is null" << endl;
-        }
-        // for (auto& tree : trees) {
-        vector<Node*> rotated_trees = trees[trees.size()-1]->rotated();
-        for (auto& rotated_tree : rotated_trees) {
+        // all_rotations = set([str(tree)])
+        vector<Node*> all_rotations = tree->rotated(0);
+        all_rotations.push_back(tree);
+        bool flag = false;
+        for (auto& rotated_tree : all_rotations) {
             string tree_str = rotated_tree->toString();
-            std::cout << tree_str << endl;
+            // all_rotations.add(tree_str);
+            if (uniqs.find(tree_str) != uniqs.end()) {
+                uniqs[tree_str].push_back(js);
+                flag = true;
+            }
         }
-        // }
+        if (!flag) {
+            uniqs[tree->toString()] = vector<json>{js};
+        }
     }
 
-    std::cout<< "uniqs size: " << uniqs.size() << endl;
-    std::cout<< "ids size: " << ids.size() << endl;
-
+    for(const auto&pair : uniqs){
+        std::cout<<pair.first<<endl;
+    }
+    std::cout<< "uniq trees count: " << uniqs.size() << endl;
+    std::cout<< "uniq   ids count: " << ids.size() << endl;
 }
 
 
-int main() {
+int main(int argc, char* argv[]) {
 
-    string path = "et21.csv.pn.log.20240925154158.txt";
-    dedup(path);
+    if (argc > 1) {
+        std::string path = argv[1];
+        std::cout << "path: " << path << std::endl;
+        dedup(path);
+    } else {
+        std::cout << "No argument provided." << std::endl;
+    }
 
 }
