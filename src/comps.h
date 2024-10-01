@@ -78,6 +78,28 @@ struct GroupY{
     std::string constr;
 };
 
+// Node structure definition
+class Node {
+    public:
+        std::string type;
+        std::vector<int> unpaired_bases;
+        std::vector<Node*> children;
+        Node* parent;
+        int child_id;
+
+    // Constructor to initialize the Node from JSON data
+    Node(json jsontree = {}, Node* parent = nullptr, int child_id = -1);
+
+    // Function to create a tree from a child ID
+    Node* makeTree(int child_id);
+
+    // Function to convert Node to string representation
+    std::string toString() const;
+
+    // Function to get rotated trees
+    std::vector<Node*> rotated(int dep = 0);
+};
+
 
 void print(Constraint& cs);
 std::string enumerate(std::vector<std::tuple<int, int>>& pairs_diff, ulong order, std::string& seq);

@@ -1500,6 +1500,7 @@ void csv_process(std::string csv, std::string alg){
         timeFile << "ID,Time(s)" << std::endl;
     }
     std::unordered_map<std::string, GroupY> constr2groupy;
+    std::set<std::string> uniq_ud; 
     for(int i = 1; i < df.size(); i++){
         auto row = df[i];
         {
@@ -1721,8 +1722,18 @@ void csv_process(std::string csv, std::string alg){
                     printf("constr: %s\n", lc.constr.c_str());
                     // auto ipairs_subsets = pairSubSet(lc.ps_inside);
                     std::string result;
-                    if(constr2groupy.find(lc.constr) != constr2groupy.end()){
+                    json js_motif = json::parse(lc.jsmotif(puzzle_id));
+                    std::cout<<"js_motif: "<<js_motif<<std::endl;
+                    Node* tree = new Node(js_motif);
+                    std::string treestr = tree->toString();
+                    std::cout<<"treestr: "<<treestr<<std::endl;
+                    if(constr2groupy.find(lc.constr) != constr2groupy.end() && constr2groupy[lc.constr].star == target){
                         result = "undesignable";
+                        std::cout<<"recur lc.constr: "<<lc.constr<<std::endl;
+                        std::cout<<"recur    groupy: "<<constr2groupy[lc.constr].constr<<std::endl;
+                        std::cout<<"recur lc.constr: "<<target<<std::endl;
+                        std::cout<<"recur     ystar: "<<constr2groupy[lc.constr].star<<std::endl;
+                        assert (uniq_ud.find(treestr) != uniq_ud.end());
                     }else{
                         std::string ref_lc = lc.ref;
                         std::string constr_lc = lc.constr;
@@ -1761,12 +1772,13 @@ void csv_process(std::string csv, std::string alg){
                     }
                     if (result == "undesignable"){
                         std::cout<<"undesignable!"<<std::endl;
-                        if(constr2groupy.find(lc.constr) != constr2groupy.end()){
+                        if(constr2groupy.find(lc.constr) != constr2groupy.end() && constr2groupy[lc.constr].star == target){
                             y_sub = constr2groupy[lc.constr].star;
                             y_rivals = constr2groupy[lc.constr].rivals;
                         }else{
                             GroupY gy{y_sub, y_rivals, lc.constr};
                             constr2groupy[lc.constr] = gy;
+                            uniq_ud.insert(treestr);
                         }
                         auto end_time_lc = std::chrono::high_resolution_clock::now();
                         const std::chrono::duration<double, std::milli> time_ms = end_time_lc - start_time_lc;
@@ -1810,8 +1822,20 @@ void csv_process(std::string csv, std::string alg){
                     printf("constr: %s\n", lc.constr.c_str());
                     auto ipairs_subsets = pairSubSet(lc.ps_inside);
                     std::string result;
-                    if(constr2groupy.find(lc.constr) != constr2groupy.end()){
+                    // check if the (rotated) motif is already found undesignable
+                    json js_motif = json::parse(lc.jsmotif(puzzle_id));
+                    std::cout<<"js_motif: "<<js_motif<<std::endl;
+                    Node* tree = new Node(js_motif);
+                    std::string treestr = tree->toString();
+                    std::cout<<"treestr: "<<treestr<<std::endl;
+
+                    if(constr2groupy.find(lc.constr) != constr2groupy.end() && constr2groupy[lc.constr].star == target){
                         result = "undesignable";
+                        std::cout<<"recur lc.constr: "<<lc.constr<<std::endl;
+                        std::cout<<"recur    groupy: "<<constr2groupy[lc.constr].constr<<std::endl;
+                        std::cout<<"recur lc.constr: "<<target<<std::endl;
+                        std::cout<<"recur     ystar: "<<constr2groupy[lc.constr].star<<std::endl;
+                        assert (uniq_ud.find(treestr) != uniq_ud.end());
                     }else{
                         std::string ref_lc = lc.ref;
                         std::string constr_lc = lc.constr;
@@ -1857,12 +1881,13 @@ void csv_process(std::string csv, std::string alg){
                     }
                     if (result == "undesignable"){
                         std::cout<<"undesignable!"<<std::endl;
-                        if(constr2groupy.find(lc.constr) != constr2groupy.end()){
+                        if(constr2groupy.find(lc.constr) != constr2groupy.end() && constr2groupy[lc.constr].star == target){
                             y_sub = constr2groupy[lc.constr].star;
                             y_rivals = constr2groupy[lc.constr].rivals;
                         }else{
                             GroupY gy{y_sub, y_rivals, lc.constr};
                             constr2groupy[lc.constr] = gy;
+                            uniq_ud.insert(treestr);
                         }
                         auto end_time_lc = std::chrono::high_resolution_clock::now();
                         const std::chrono::duration<double, std::milli> time_ms = end_time_lc - start_time_lc;
