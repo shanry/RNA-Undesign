@@ -95,6 +95,7 @@ class Node {
 
     // Function to convert Node to string representation
     std::string toString() const;
+    std::string toDotBracket() const;
 
     // Function to get rotated trees
     std::vector<Node*> rotated(int dep = 0);

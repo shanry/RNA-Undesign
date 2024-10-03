@@ -240,7 +240,12 @@ Node::Node(json jsontree, Node* parent, int child_id){
         type = "p";  // Default type for null
     } else if (!jsontree.empty()) {
         if (jsontree.contains("root")) {  // Root node
-            type = "p";
+            if (jsontree["root"]["child_id"] == -1){
+                type = "53"; // 5' and 3' end
+                this->child_id = -1;
+            }else{
+                type = "p";
+            }
             children.push_back(new Node(jsontree["root"], this, 0));
         } else {  // Non-root node
             type = jsontree["type"];
@@ -314,7 +319,7 @@ Node* Node::makeTree(int child_id){
 // Function to get all rotated trees
 std::vector<Node*> Node::rotated(int dep){
     std::vector<Node*> rotated_trees;
-    if(dep == 0 && this->type == "E"){
+    if(dep == 0 && this->type == "53"){ // 5' and 3' end
         return rotated_trees;
     }
     if(dep > 0 && this->type == "p"){
@@ -345,6 +350,36 @@ std::string Node::toString() const{
         result += children[i]->toString();
     }
     result += ")";
+    return result;
+}
+
+// Function to print the tree structure 
+std::string Node::toDotBracket() const{
+    std::string result = "";
+    if (this->type == "53"){ // root: 5' and 3' end
+        result += "5";
+        result += this->children[0]->toDotBracket();
+        result += "3";
+    }else if (this->type == "p"){ // leaf or root
+        if(this->child_id == -1)
+            result = this->children[0]->toDotBracket();
+        else
+            result = "(***)";
+    }else if (this->type == "H"){ // hairpin
+        result = "(" + std::string(this->unpaired_bases[0], '.') + ")";
+    }else{ // multi-loop, external, internal, bulge, stack
+        result = ""; //  + this->children[0]->toDotBracket() + ")" + this->children[1]->toDotBracket();
+        if (this->type != "E")
+            result += "(";
+        result += std::string(this->unpaired_bases[0], '.');
+        for(int i = 0; i < this->children.size(); i++){
+            result += this->children[i]->toDotBracket();
+            assert (i + 1 < this->unpaired_bases.size());
+            result += std::string(this->unpaired_bases[i+1], '.');
+        }
+        if (this->type != "E")
+            result += ")";
+    }
     return result;
 }
 
