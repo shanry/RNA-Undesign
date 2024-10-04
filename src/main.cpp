@@ -1702,126 +1702,36 @@ void csv_process(std::string csv, std::string alg){
             // std::string goal_test = "p [] (M [0, 5, 0] (p [] (), B [1, 0] (S [0, 0] (p [] ()))))";
             if (alg == "pn"){
                 auto start_time = std::chrono::high_resolution_clock::now();
-                std::vector<LoopComplex> lc_list;
                 TreeNode* root = parseStringToTree(y_star);
                 std::set<string> ds_ipairs; // designable internal pairs
                 std::set<string> ud_ipairs; // undesinable internal pairs
+
+                // motif of 2 loops (1 edge/internal pair)
+                std::vector<LoopComplex> lc_list;
                 tree2Edges(root, y_star, lc_list);
                 printf("lc_list size: %d\n", lc_list.size());
-                // Sort the vector using a lambda expression
+                // sort motifs by the number of unknown positions
                 std::sort(lc_list.begin(), lc_list.end(), [](const LoopComplex &a, const LoopComplex &b) {
                     return a.count_uk < b.count_uk;});
-                for (auto lc: lc_list){
-                    auto start_time_lc = std::chrono::high_resolution_clock::now();
-                    lc.printLoopLens();
-                    if (lc.hasLongLoop()){
-                        printf("the loop exceeds length limit!");
-                        continue;
-                    }
-                    std::string target = y_star.substr(lc.start, lc.end-lc.start+1);
-                    std::string subseq = seq.substr(lc.start, lc.end-lc.start+1);
-                    printf(" count: %d\n", lc.count_uk);
-                    printf("target: %s\n", target.c_str());
-                    printf("   ref: %s\n", lc.ref.c_str());
-                    printf("constr: %s\n", lc.constr.c_str());
-                    // auto ipairs_subsets = pairSubSet(lc.ps_inside);
-                    std::string result;
-                    json js_motif = json::parse(lc.jsmotif(puzzle_id));
-                    std::cout<<"js_motif: "<<js_motif<<std::endl;
-                    Node* tree = new Node(js_motif);
-                    std::string treestr = tree->toString();
-                    // if(!goal_test.empty() && treestr != goal_test){
-                    //     delete tree;
-                    //     continue;
-                    // }
-                    std::cout<<"treestr: "<<treestr<<std::endl;
-                    if(uniq_ud.find(treestr) != uniq_ud.end()){
-                        result = "undesignable";
-                        std::cout<<"recur lc.constr: "<<lc.constr<<std::endl;
-                        // std::cout<<"recur    groupy: "<<constr2groupy[lc.constr].constr<<std::endl;
-                        std::cout<<"recur lc.constr: "<<target<<std::endl;
-                        std::cout<<"recur   treestr: "<<treestr<<std::endl;
-                        // std::cout<<"recur     ystar: "<<constr2groupy[lc.constr].star<<std::endl;
-                    }else{
-                        std::string ref_lc = lc.ref;
-                        std::string constr_lc = lc.constr;
-                        for( int ib = 1; ib < lc.ps_outside.size(); ib++){ // skip the most outside boudary pair
-                            auto bpair = lc.ps_outside[ib];
-                            std::cout<<"bpair: "<<bpair.first<<"\t"<<bpair.second<<std::endl;
-                            int len_branch =  bpair.second - bpair.first + 1;
-                            std::string y_branch = y_star.substr(bpair.first, len_branch);
-                            std::cout<<"y_branch:"<<std::endl;
-                            std::cout<<y_branch<<std::endl;
-                            TreeNode* root_branch = parseStringToTree(y_branch);
-                            if(max_single(root_branch) > SINGLE_MAX_LEN || max_multi(root_branch) > MULTIPLE_FIRST_MAX_LEN){
-                                std::string helix_branch = genHelix(len_branch);
-                                std::string seq_branch = tg_init(helix_branch);
-                                target.replace(bpair.first - lc.start, len_branch, helix_branch);
-                                ref_lc.replace(bpair.first - lc.start, len_branch, helix_branch);
-                                constr_lc.replace(bpair.first - lc.start, len_branch, helix_branch);
-                                subseq.replace(bpair.first - lc.start, len_branch, seq_branch);
-                            }
-                        }
-                        printf("target: %s\n", target.c_str());
-                        printf("   ref: %s\n", ref_lc.c_str());
-                        printf("constr: %s\n", constr_lc.c_str());
-                        try{
-                            result = alg_5_helper_v2(target, ref_lc, constr_lc, subseq, verbose, dangle);
-                        }catch(...){
-                            // Code to handle any exception
-                            std::cerr << "An exception occurred" << std::endl;
-                            result = "exception";
-                        }
-                        if (result == "exception")
-                            continue;
-                        if (result == "UMFE"){
-                            ds_ipairs.insert(pairs2string(lc.ps_inside));
-                        }
-                    }
-                    if (result == "undesignable"){
-                        std::cout<<"undesignable!"<<std::endl;
-                        // if(constr2groupy.find(lc.constr) != constr2groupy.end() && constr2groupy[lc.constr].star == target)
-                        if(uniq_ud.find(treestr) != uniq_ud.end()){
-                            // y_sub = constr2groupy[lc.constr].star;
-                            // y_rivals = constr2groupy[lc.constr].rivals;
-                        }else{
-                            // GroupY gy{y_sub, y_rivals, lc.constr};
-                            // constr2groupy[lc.constr] = gy;
-                            uniq_ud.insert(treestr);
-                            for(Node* rotree: tree->rotated(0)){
-                                std::string rotreestr = rotree->toString();
-                                uniq_ud.insert(rotreestr);
-                                delete rotree;
-                            }
-                        }
-                        auto end_time_lc = std::chrono::high_resolution_clock::now();
-                        const std::chrono::duration<double, std::milli> time_ms = end_time_lc - start_time_lc;
-                        float time_seconds = std::chrono::duration_cast<std::chrono::duration<float>>(time_ms).count();
-                        printf("time cost: %.4f seconds\n", time_seconds);
-                        auto js = jsrecords(lc, y_star, y_sub, y_rivals, puzzle_id);
-                        js["time"] = time_seconds;
-                        js["ismin"] = true;
-                        ud_ipairs.insert(pairs2string(lc.ps_inside));
-                        std::string jstring = js.dump();
-                        outputFile << jstring << std::endl;
-                        records.push_back(jstring);
-                    }
-                    delete tree;
-                    printf("\n");
-                }
-                // motif of more than 2 loops
-                lc_list.clear();
-                tree2TwoNeighbor(root, y_star, lc_list);
-                printf("lc_list size: %d\n", lc_list.size());
-                // Sort the vector using a lambda expression
-                std::sort(lc_list.begin(), lc_list.end(), [](const LoopComplex &a, const LoopComplex &b) {
+
+                // motif of 3 loops (2 edges/internal pairs)
+                std::vector<LoopComplex> lc_list_2nbs;
+                tree2TwoNeighbor(root, y_star, lc_list_2nbs);
+                printf("lc_list_2nbs size: %d\n", lc_list_2nbs.size());
+                // sort motifs by the number of unknown positions
+                std::sort(lc_list_2nbs.begin(), lc_list_2nbs.end(), [](const LoopComplex &a, const LoopComplex &b) {
                     return a.count_uk < b.count_uk;});
-                std::vector<LoopComplex> lc_list_plus;
-                tree2ThreeNeighbor(root, y_star, lc_list_plus);
-                printf("lc_list_plus size: %d\n", lc_list_plus.size());
-                std::sort(lc_list_plus.begin(), lc_list_plus.end(), [](const LoopComplex &a, const LoopComplex &b) {
+                lc_list.insert(lc_list.end(), lc_list_2nbs.begin(), lc_list_2nbs.end());
+
+                // motif of 4 loops (3 edges/internal pairs)
+                std::vector<LoopComplex> lc_list_3nbs;
+                tree2ThreeNeighbor(root, y_star, lc_list_3nbs);
+                printf("lc_list_3nbs size: %d\n", lc_list_3nbs.size());
+                // sort motifs by the number of unknown positions
+                std::sort(lc_list_3nbs.begin(), lc_list_3nbs.end(), [](const LoopComplex &a, const LoopComplex &b) {
                     return a.count_uk < b.count_uk;});
-                lc_list.insert(lc_list.end(), lc_list_plus.begin(), lc_list_plus.end());
+                lc_list.insert(lc_list.end(), lc_list_3nbs.begin(), lc_list_3nbs.end());
+
                 for (auto lc: lc_list){
                     auto start_time_lc = std::chrono::high_resolution_clock::now();
                     lc.printLoopLens();
@@ -1877,8 +1787,7 @@ void csv_process(std::string csv, std::string alg){
                         printf("target: %s\n", target.c_str());
                         printf("   ref: %s\n", ref_lc.c_str());
                         printf("constr: %s\n", constr_lc.c_str());
-                        // ipairs_subsets = pairSubSet(lc.ps_inside);
-                        bool ud = false;
+                        bool ud = false; // check if the motif is already found undesignable
                         for(auto ipairs: ipairs_subsets){
                             if(ud_ipairs.find(pairs2string(ipairs))!=ud_ipairs.end()){
                                 ud = true;
