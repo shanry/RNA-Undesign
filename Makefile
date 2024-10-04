@@ -26,22 +26,22 @@ main_mac: bin/main.o bin/utils.o bin/comps.o bin/eval.o
 main_nosh_mac: bin/main_nosh.o bin/utils.o bin/comps.o bin/eval_nosh.o # no special hp
 	$(CC)  $(CFLAGS) -Wl,-ld_classic  bin/main_nosh.o bin/utils.o bin/comps.o bin/eval_nosh.o  -o bin/main_nosh
 
-bin/main.o: src/main.cpp $(DEPS)
+bin/main.o: src/main.cpp $(DEPS) src/utils.h src/comps.h src/eval.h
 	$(CC) src/main.cpp -c $(CFLAGS) -Dlv -DSPECIAL_HP -Dis_cube_pruning -Dis_candidate_list -o bin/main.o
 
-bin/main_nosh.o: src/main.cpp $(DEPS)
+bin/main_nosh.o: src/main.cpp $(DEPS) src/utils.h src/comps.h src/eval.h
 	$(CC) src/main.cpp -c $(CFLAGS) -Dlv -Dis_cube_pruning -Dis_candidate_list -o bin/main_nosh.o
 
 bin/utils.o: src/utils.cpp src/utils.h
 	$(CC) -c src/utils.cpp $(CFLAGS) -o bin/utils.o
 
-bin/comps.o: src/comps.cpp src/comps.h
+bin/comps.o: src/comps.cpp src/comps.h src/utils.h src/eval.h
 	$(CC) -c src/comps.cpp $(CFLAGS) -o bin/comps.o
 
-bin/eval.o: src/eval.cpp src/eval.h
+bin/eval.o: src/eval.cpp src/eval.h src/utils.h
 	$(CC) -c src/eval.cpp $(CFLAGS) -Dlv -DSPECIAL_HP -Dis_cube_pruning -Dis_candidate_list  -o bin/eval.o
 
-bin/eval_nosh.o: src/eval.cpp src/eval.h
+bin/eval_nosh.o: src/eval.cpp src/eval.h "src/utils.h"
 	$(CC) -c src/eval.cpp $(CFLAGS) -Dlv -Dis_cube_pruning -Dis_candidate_list  -o bin/eval_nosh.o
 
 .PHONY: clean
