@@ -66,6 +66,8 @@ std::vector<std::string> y_rivals;
 std::vector<std::pair<int, int>> pairs_outside;
 std::vector<std::pair<int, int>> pairs_inside;
 
+int SEED_RAND = 2024;
+
 ulong count_enum(std::vector<std::tuple<int, int>>& pairs_diff);
 
 // std::string removeNodeFromTree(TreeNode* node, std::string ref);
@@ -1500,6 +1502,7 @@ void csv_process(std::string csv, std::string alg){
         timeFile << "ID,Time(s)" << std::endl;
     }
     std::unordered_map<std::string, GroupY> constr2groupy;
+    // std::unordered_map<std::string, std::string> uniq_ud;
     std::set<std::string> uniq_ud; 
     for(int i = 1; i < df.size(); i++){
         auto row = df[i];
@@ -1696,6 +1699,7 @@ void csv_process(std::string csv, std::string alg){
                     printf("\n");
                 }
             }
+            // std::string goal_test = "p [] (M [0, 5, 0] (p [] (), B [1, 0] (S [0, 0] (p [] ()))))";
             if (alg == "pn"){
                 auto start_time = std::chrono::high_resolution_clock::now();
                 std::vector<LoopComplex> lc_list;
@@ -1726,14 +1730,19 @@ void csv_process(std::string csv, std::string alg){
                     std::cout<<"js_motif: "<<js_motif<<std::endl;
                     Node* tree = new Node(js_motif);
                     std::string treestr = tree->toString();
+                    // if(!goal_test.empty() && treestr != goal_test){
+                    //     delete tree;
+                    //     continue;
+                    // }
                     std::cout<<"treestr: "<<treestr<<std::endl;
-                    if(constr2groupy.find(lc.constr) != constr2groupy.end() && constr2groupy[lc.constr].star == target){
+                    // if(constr2groupy.find(lc.constr) != constr2groupy.end() && constr2groupy[lc.constr].star == target)
+                    if(uniq_ud.find(treestr) != uniq_ud.end()){
                         result = "undesignable";
                         std::cout<<"recur lc.constr: "<<lc.constr<<std::endl;
-                        std::cout<<"recur    groupy: "<<constr2groupy[lc.constr].constr<<std::endl;
+                        // std::cout<<"recur    groupy: "<<constr2groupy[lc.constr].constr<<std::endl;
                         std::cout<<"recur lc.constr: "<<target<<std::endl;
-                        std::cout<<"recur     ystar: "<<constr2groupy[lc.constr].star<<std::endl;
-                        assert (uniq_ud.find(treestr) != uniq_ud.end());
+                        std::cout<<"recur   treestr: "<<treestr<<std::endl;
+                        // std::cout<<"recur     ystar: "<<constr2groupy[lc.constr].star<<std::endl;
                     }else{
                         std::string ref_lc = lc.ref;
                         std::string constr_lc = lc.constr;
@@ -1772,13 +1781,19 @@ void csv_process(std::string csv, std::string alg){
                     }
                     if (result == "undesignable"){
                         std::cout<<"undesignable!"<<std::endl;
-                        if(constr2groupy.find(lc.constr) != constr2groupy.end() && constr2groupy[lc.constr].star == target){
-                            y_sub = constr2groupy[lc.constr].star;
-                            y_rivals = constr2groupy[lc.constr].rivals;
+                        // if(constr2groupy.find(lc.constr) != constr2groupy.end() && constr2groupy[lc.constr].star == target)
+                        if(uniq_ud.find(treestr) != uniq_ud.end()){
+                            // y_sub = constr2groupy[lc.constr].star;
+                            // y_rivals = constr2groupy[lc.constr].rivals;
                         }else{
-                            GroupY gy{y_sub, y_rivals, lc.constr};
-                            constr2groupy[lc.constr] = gy;
+                            // GroupY gy{y_sub, y_rivals, lc.constr};
+                            // constr2groupy[lc.constr] = gy;
                             uniq_ud.insert(treestr);
+                            for(Node* rotree: tree->rotated(0)){
+                                std::string rotreestr = rotree->toString();
+                                uniq_ud.insert(rotreestr);
+                                delete rotree;
+                            }
                         }
                         auto end_time_lc = std::chrono::high_resolution_clock::now();
                         const std::chrono::duration<double, std::milli> time_ms = end_time_lc - start_time_lc;
@@ -1792,6 +1807,7 @@ void csv_process(std::string csv, std::string alg){
                         outputFile << jstring << std::endl;
                         records.push_back(jstring);
                     }
+                    delete tree;
                     printf("\n");
                 }
                 // motif of more than 2 loops
@@ -1827,15 +1843,20 @@ void csv_process(std::string csv, std::string alg){
                     std::cout<<"js_motif: "<<js_motif<<std::endl;
                     Node* tree = new Node(js_motif);
                     std::string treestr = tree->toString();
+                    // if(!goal_test.empty() && treestr != goal_test){
+                    //     delete tree;
+                    //     continue;
+                    // }
                     std::cout<<"treestr: "<<treestr<<std::endl;
 
-                    if(constr2groupy.find(lc.constr) != constr2groupy.end() && constr2groupy[lc.constr].star == target){
+                    if(uniq_ud.find(treestr) != uniq_ud.end())
+                    {
                         result = "undesignable";
                         std::cout<<"recur lc.constr: "<<lc.constr<<std::endl;
-                        std::cout<<"recur    groupy: "<<constr2groupy[lc.constr].constr<<std::endl;
+                        // std::cout<<"recur    groupy: "<<constr2groupy[lc.constr].constr<<std::endl;
                         std::cout<<"recur lc.constr: "<<target<<std::endl;
-                        std::cout<<"recur     ystar: "<<constr2groupy[lc.constr].star<<std::endl;
-                        assert (uniq_ud.find(treestr) != uniq_ud.end());
+                        std::cout<<"recur   treestr: "<<treestr<<std::endl;
+                        // std::cout<<"recur     ystar: "<<constr2groupy[lc.constr].star<<std::endl;
                     }else{
                         std::string ref_lc = lc.ref;
                         std::string constr_lc = lc.constr;
@@ -1881,13 +1902,19 @@ void csv_process(std::string csv, std::string alg){
                     }
                     if (result == "undesignable"){
                         std::cout<<"undesignable!"<<std::endl;
-                        if(constr2groupy.find(lc.constr) != constr2groupy.end() && constr2groupy[lc.constr].star == target){
-                            y_sub = constr2groupy[lc.constr].star;
-                            y_rivals = constr2groupy[lc.constr].rivals;
+                        // if(constr2groupy.find(lc.constr) != constr2groupy.end() && constr2groupy[lc.constr].star == target)
+                        if(uniq_ud.find(treestr) != uniq_ud.end()){
+                            // y_sub = constr2groupy[lc.constr].star;
+                            // y_rivals = constr2groupy[lc.constr].rivals;
                         }else{
-                            GroupY gy{y_sub, y_rivals, lc.constr};
-                            constr2groupy[lc.constr] = gy;
+                            // GroupY gy{y_sub, y_rivals, lc.constr};
+                            // constr2groupy[lc.constr] = gy;
                             uniq_ud.insert(treestr);
+                            for(Node* rotree: tree->rotated(0)){
+                                std::string rotreestr = rotree->toString();
+                                uniq_ud.insert(rotreestr);
+                                delete rotree;
+                            }
                         }
                         auto end_time_lc = std::chrono::high_resolution_clock::now();
                         const std::chrono::duration<double, std::milli> time_ms = end_time_lc - start_time_lc;
@@ -1914,6 +1941,7 @@ void csv_process(std::string csv, std::string alg){
                     }
                     for(auto pair: ds_ipairs)
                         std::cout<<pair<<"  ";
+                    delete tree;
                     printf("\n");
                 }
                 auto end_time = std::chrono::high_resolution_clock::now();
