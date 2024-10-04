@@ -180,12 +180,15 @@ std::string exec_command(const char* cmd) {
 }
 
 
-std::string tg_init(std::string& y){
+std::string tg_init(std::string& y, int seed){
     std::string x(y.length(), 'A');
     std::vector<int> pair_map = ref2pairs(y);
     assert(pair_map.size() == y.length());
-    // Seed the random number generator with the current time
-    std::srand(static_cast<unsigned int>(std::time(nullptr)));
+    // Seed the random number generator with the provided seed
+    if (seed == -1) {
+        seed = std::time(nullptr);
+    }
+    std::srand(seed);
     for(int i = 0; i < pair_map.size(); i ++){
         int j = pair_map[i];
         if(i < j){

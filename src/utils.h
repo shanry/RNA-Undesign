@@ -7,6 +7,7 @@
 #include <map>
 #include <unordered_map>
 #include <utility>
+// #include <ctime>
 
 /* Old compatibility names for C types.  */
 typedef unsigned long int ulong;
@@ -27,7 +28,7 @@ std::set<T> setIntersection(const std::set<T>& set1, const std::set<T>& set2);
 std::string getSubstrings(std::set<int>& indices, std::string& str);
 std::string exec_command(const char* cmd); 
 std::vector<std::string> subopt(std::string& seq, std::string constr);
-std::string tg_init(std::string& y);
+std::string tg_init(std::string& y, int seed = 0);
 int countOccurrences(const std::string& str, char target); 
 std::string compose_args4plot(std::string id, std::string y, std::vector<std::pair<int, int>>& pairs_outside, std::vector<std::pair<int, int>>& pairs_inside);
 std::string compose_pairsplot(std::string id, std::string y, std::vector<std::pair<int, int>>& pairs_ds, std::vector<std::pair<int, int>>& pairs_ud);
