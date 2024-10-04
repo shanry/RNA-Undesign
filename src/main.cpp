@@ -2276,6 +2276,7 @@ int main(int argc, char* argv[]) {
     ("a,alg", "Algorithm", cxxopts::value<std::string>()->default_value("0"))
     ("c,csv", "csv file", cxxopts::value<std::string>()->default_value(""))
     ("t,txt", "txt file", cxxopts::value<std::string>()->default_value(""))
+    ("s,seed", "random seed", cxxopts::value<int>()->default_value("2024"))
     ("d,dangle", "Dangle mode", cxxopts::value<int>()->default_value("2"))
     ("vrna,vienna", "Use ViennaRNA to fold, the environment variable VRNABIN has to be set", cxxopts::value<bool>()->default_value("false"))
     ("v,verbose", "Verbose output", cxxopts::value<bool>()->default_value("false"));
@@ -2287,7 +2288,9 @@ int main(int argc, char* argv[]) {
     bool vrna = result["vienna"].as<bool>();
     verbose = result["verbose"].as<bool>();
     dangle = result["dangle"].as<int>();
+    SEED_RAND = result["seed"].as<int>();
     printf("alg: %s, vienna: %d, verbose: %d, dangle: %d\n", alg.c_str(), vrna, verbose, dangle);
+    printf("random seed for target initialization: %d\n", SEED_RAND);
     show_configuration();
 
     std::unordered_map<std::string, std::string> struct2seq = loadlib_eterna("data/eterna_umfe_unsolved.csv");
