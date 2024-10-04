@@ -177,6 +177,42 @@ def dedup(path):
 	return uniqs
 
 
+def dedup_lines(path):
+	uniqs = defaultdict(list) # loop-signature -> [motifs]
+	id_uniqs = set()
+	lines_uniqs = []
+	for i, line in enumerate(open(path)):
+		js = json.loads(line)
+		id_uniqs.add(js['id'])
+		# js_full = json.loads(line)
+		ids, motif = js['motif']['id'], js['motif']['root']
+		signature = str(sorted(loop_stats(motif).items())) # "{B:1, M:3, ..}"
+		tree = Node(js['motif'])
+		all_rotations = set([str(tree)])
+		for newtree in tree.rotated(0):
+			all_rotations.add(str(newtree))
+		for othertree, otherjss in uniqs[signature]:
+			if str(othertree) in all_rotations:
+				otherjss.append(js)
+				break
+		else: # new uniq
+			uniqs[signature].append((tree, [js]))
+			lines_uniqs.append(line)
+	total = 0
+	# for signature in uniqs:
+	# 	for tree, jss in uniqs[signature]:
+	# 		total += len(jss)
+	# 		for js in jss:
+	# 			print(json.dumps(js['motif']))
+	print("motif total:", total, "motif uniq:", sum(map(len, uniqs.values())), "struct. uniq:", len(id_uniqs))
+	print(sorted(list(id_uniqs)))
+	filename = path.replace('.txt', '.uniq.txt')
+	with open(filename, 'w') as f:
+		for line in lines_uniqs:
+			f.write(line)
+	return uniqs
+
+
 def count_occurs(uniqs):
 	motif2family = defaultdict(lambda: defaultdict(int))
 	motif2js = defaultdict(list)
@@ -201,5 +237,5 @@ if __name__ == "__main__":
 	uniqs = defaultdict(list) # loop-signature -> [motifs]
 	path = sys.argv[1]
 	print('path:', path)
-	uniqs = dedup(path)
+	uniqs = dedup_lines(path)
 	count_occurs(uniqs)
