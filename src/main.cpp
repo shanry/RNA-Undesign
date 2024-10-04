@@ -1704,8 +1704,8 @@ void csv_process(std::string csv, std::string alg){
                 auto start_time = std::chrono::high_resolution_clock::now();
                 std::vector<LoopComplex> lc_list;
                 TreeNode* root = parseStringToTree(y_star);
-                std::set<string> ds_ipairs;
-                std::set<string> ud_ipairs;
+                std::set<string> ds_ipairs; // designable internal pairs
+                std::set<string> ud_ipairs; // undesinable internal pairs
                 tree2Edges(root, y_star, lc_list);
                 printf("lc_list size: %d\n", lc_list.size());
                 // Sort the vector using a lambda expression
@@ -1735,7 +1735,6 @@ void csv_process(std::string csv, std::string alg){
                     //     continue;
                     // }
                     std::cout<<"treestr: "<<treestr<<std::endl;
-                    // if(constr2groupy.find(lc.constr) != constr2groupy.end() && constr2groupy[lc.constr].star == target)
                     if(uniq_ud.find(treestr) != uniq_ud.end()){
                         result = "undesignable";
                         std::cout<<"recur lc.constr: "<<lc.constr<<std::endl;
@@ -1798,7 +1797,7 @@ void csv_process(std::string csv, std::string alg){
                         auto end_time_lc = std::chrono::high_resolution_clock::now();
                         const std::chrono::duration<double, std::milli> time_ms = end_time_lc - start_time_lc;
                         float time_seconds = std::chrono::duration_cast<std::chrono::duration<float>>(time_ms).count();
-                        printf("time cost: %.4f seconds\n", time_ms/1000.f);
+                        printf("time cost: %.4f seconds\n", time_seconds);
                         auto js = jsrecords(lc, y_star, y_sub, y_rivals, puzzle_id);
                         js["time"] = time_seconds;
                         js["ismin"] = true;
@@ -1848,9 +1847,7 @@ void csv_process(std::string csv, std::string alg){
                     //     continue;
                     // }
                     std::cout<<"treestr: "<<treestr<<std::endl;
-
-                    if(uniq_ud.find(treestr) != uniq_ud.end())
-                    {
+                    if(uniq_ud.find(treestr) != uniq_ud.end()){
                         result = "undesignable";
                         std::cout<<"recur lc.constr: "<<lc.constr<<std::endl;
                         // std::cout<<"recur    groupy: "<<constr2groupy[lc.constr].constr<<std::endl;
@@ -1862,10 +1859,10 @@ void csv_process(std::string csv, std::string alg){
                         std::string constr_lc = lc.constr;
                         for( int ib = 1; ib < lc.ps_outside.size(); ib++){ // skip the most outside boudary pair
                             auto bpair = lc.ps_outside[ib];
-                            // std::cout<<"bpair: "<<bpair.first<<"\t"<<bpair.second<<std::endl;
+                            std::cout<<"bpair: "<<bpair.first<<"\t"<<bpair.second<<std::endl;
                             int len_branch =  bpair.second - bpair.first + 1;
                             std::string y_branch = y_star.substr(bpair.first, len_branch);
-                            // std::cout<<"y_branch:"<<std::endl;
+                            std::cout<<"y_branch:"<<std::endl;
                             std::cout<<y_branch<<std::endl;
                             TreeNode* root_branch = parseStringToTree(y_branch);
                             if(max_single(root_branch) > SINGLE_MAX_LEN || max_multi(root_branch) > MULTIPLE_FIRST_MAX_LEN){
@@ -1877,6 +1874,9 @@ void csv_process(std::string csv, std::string alg){
                                 subseq.replace(bpair.first - lc.start, len_branch, seq_branch);
                             }
                         }
+                        printf("target: %s\n", target.c_str());
+                        printf("   ref: %s\n", ref_lc.c_str());
+                        printf("constr: %s\n", constr_lc.c_str());
                         // ipairs_subsets = pairSubSet(lc.ps_inside);
                         bool ud = false;
                         for(auto ipairs: ipairs_subsets){
