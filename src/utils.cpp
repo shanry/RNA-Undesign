@@ -376,7 +376,6 @@ std::vector<std::vector<std::pair<int, int>>> pairSubSet(std::vector<std::pair<i
     int set_size = pairSet.size();
     std::vector<std::vector<std::pair<int, int>>> subset_all;
     // Set_size of power set of a set with set_size 
-    // n is (2^n-1) 
     unsigned int pow_set_size = pow(2, set_size); 
     int counter, j; 
   
@@ -392,6 +391,7 @@ std::vector<std::vector<std::pair<int, int>>> pairSubSet(std::vector<std::pair<i
         if(powset.size() > 0 && powset.size() < set_size)
             subset_all.push_back(powset);
     } 
+    assert (subset_all.size() == pow_set_size - 2); // exclude empty set and full set
     std::sort(subset_all.begin(), subset_all.end(), [](std::vector<std::pair<int, int>> a, std::vector<std::pair<int, int>> b){
         return a.size() < b.size();
     });
