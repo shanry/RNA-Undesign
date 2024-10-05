@@ -81,7 +81,10 @@ echo "poststring " $poststring
 # # -t 0 means layout mode 0 (default 1)
 echo -ne ">$id\n$seq\n$struct" | $VIENNA/bin/RNAplot -t $mode --pre "$prestring " --post "$poststring" # the final space is important to keep "" #"$span GREEN Fomark"
 
+sed -i 's/fsize setlinewidth/9 setlinewidth/' ${id}_ss.ps # change line width
+
 ps2pdf -dEPSCrop ${id}_ss.ps # bounding box
+
 # pdfcrop ${id}_ss.pdf # crop margin automatically
 pdfcropmargins -v -u -s ${id}_ss.pdf -o ${id}_ss-crop.pdf # pip install pdfCropMargins
 mv ${id}_ss-crop.pdf ${id}.pdf # final output
