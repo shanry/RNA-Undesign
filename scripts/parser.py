@@ -107,7 +107,7 @@ def get_mplotstr2(m):
     poststr = ""
     for i, j in bpairs[1:]:
         poststr += f"{i+1-i0+1} {j+1-i0-1} 10 WHITE omark "
-    plotstr = ",".join([m['id']+"_m", ynew, greenplot + whiteplot + pairplot, poststr])
+    plotstr = ",".join([m['id']+"_motif", ynew, greenplot + whiteplot + pairplot, poststr])
     return plotstr
 
 # extend the outmost pair with two unpaired bases
@@ -179,9 +179,31 @@ def get_mplotstr(m):
     if flag:
         poststr += f"1 1 10 WHITE omark "
         poststr += f"{len(ynew)} {len(ynew)} 10 WHITE omark "
-    plotstr = ",".join([m['id']+"_m", ynew, greenplot + whiteplot + pairplot, poststr])
+    plotstr = ",".join([m['id']+"_motif", ynew, greenplot + whiteplot + pairplot, poststr])
     return plotstr
 
+# plot motifs in original structure
+def get_yplotstr(m):
+    i0, j0 = m['bpairs'][0]
+    if i0 >= 0:
+        greenplot = f"{i0+1} {j0+1} GREEN Fomark "
+    else:
+        assert len(m['y_star']) == len(m['y_sub']), f"{m['id']}: {json.dumps(m)} \n {len(m['y_star'])} != {len(m['y_sub'])}"
+        greenplot = f"{1} {len(m['y_star'])} GREEN Fomark "
+        i0 = 0
+        j0 = len(m['y_star'])-1
+    whiteplot = ""
+    for i, j in m['bpairs'][1:]:
+        whiteplot += f"{i+1} {j+1} WHITE Fomark "
+    pairplot = ""
+    if m['bpairs'][0][0] >= 0:
+        pairplot += f"{i0+1} {j0+1} 0.667 0.5 colorpair "
+    for i, j in m['bpairs'][1:]:
+        pairplot += f"{i+1} {j+1} 0.667 0.5 colorpair "
+    for i, j in m['ipairs']:
+        pairplot += f"{i+1} {j+1} 0.1667 1.0 colorpair "
+    plotstr = ",".join([m['id']+"_ymotif", m['y_star'], greenplot + whiteplot + pairplot])
+    return plotstr
 
 def get_motifs(file):
     motifs_list = []
@@ -190,21 +212,26 @@ def get_motifs(file):
     return motifs_list
 
 
+def main_plot(motifs, mode='m'):
+    plot_lines = []
+    motif2plotstr = get_mplotstr if mode == 'm' else get_yplotstr
+    print('motif2plotstr:', motif2plotstr)
+    for i, motif in enumerate(motifs):
+        # print(motif)
+        plot_lines.append('"'+motif2plotstr(motif)+'"'+"\n")
+    path_output = os.path.basename(args.path).replace('log', f'{mode}plotstr')
+    with open(path_output, 'w') as f:
+        f.writelines(plot_lines)
+
 if __name__ == '__main__':
 
     parser = argparse.ArgumentParser()
     parser.add_argument("--path", '-p', type=str, default='9families_free/telomerase_ref.txt.pn.log.20240923174211.txt')
-    parser.add_argument("--extend", '-e', action='store_true')
+    parser.add_argument("--mode", '-m', type=str, default='m') # m: motif, y: original structure
 
     args = parser.parse_args()
     print('args:')
     print(args)
 
-    motf2plotstr = get_mplotstr # get_mplotstr2 if not args.extend else get_mplotstr
     json_motifs = get_motifs(args.path)
-    plot_lines = []
-    for im, motif in enumerate(json_motifs):
-        plot_lines.append('"'+motf2plotstr(motif)+'"'+"\n")
-    path_output = os.path.basename(args.path).replace('log', 'plotstr')
-    with open(path_output, 'w') as f:
-        f.writelines(plot_lines)
+    main_plot(json_motifs, args.mode)
