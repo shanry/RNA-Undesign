@@ -21,13 +21,14 @@ prestring=$(echo "$line" | cut -d',' -f3) # annotation
 # poststring=$(echo "$line" | cut -d',' -f4) # annotation
 
 # Check if the file already exists
-order=0
-while [ -e "${id}${order}_mode${mode}.pdf" ]; do
-    echo "exist: ${id}${order}_mode${mode}.pdf"
-    ((order++))
-done
-id="${id}${order}_mode${mode}"
+# order=0
+# while [ -e "${id}${order}_mode${mode}.pdf" ]; do
+#     echo "exist: ${id}${order}_mode${mode}.pdf"
+#     ((order++))
+# done
+# id="${id}${order}_mode${mode}"
 # fi
+id="${id}_mode${mode}"
 echo "id:" $id
 
 struct=$(echo "$line" | cut -d',' -f2) # structure
