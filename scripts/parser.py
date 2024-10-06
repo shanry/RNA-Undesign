@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 import os
-import argparse 
+import argparse
+from collections import Counter
 
 import json
 import glob
@@ -21,6 +22,23 @@ the output file is named as 5s_ref.txt.pn.plotstr.20240221092905.txt
 
 '''
 
+
+def extract_pairs_list(ss):
+    pairs = []
+    stack = []
+    for i, c in enumerate(ss):
+        if c != '(' and c != ')':
+            pass
+        elif c=="(":
+            stack.append(i)
+        elif c==")":
+            j = stack.pop()
+            pairs.append((j, i))
+        else:
+            raise ValueError(f"wrong structure at position {i}: {c}")
+    return pairs
+
+
 def shrink(i, j, bpairs, SIZE = 2):
     inew, jnew = i, j
     for pair in bpairs:
@@ -37,6 +55,7 @@ def shrink(i, j, bpairs, SIZE = 2):
 
 def replace_substring(string, start, end, replacement):
     return string[:start] + replacement + string[end:]
+
 
 # intial version without extending the outmost pair
 def get_mplotstr2(m):
@@ -110,6 +129,7 @@ def get_mplotstr2(m):
     plotstr = ",".join([m['id']+"_motif", ynew, greenplot + whiteplot + pairplot, poststr])
     return plotstr
 
+
 # extend the outmost pair with two unpaired bases
 def get_mplotstr(m):
     # shrink y
@@ -179,7 +199,7 @@ def get_mplotstr(m):
     if flag:
         poststr += f"1 1 10 WHITE omark "
         poststr += f"{len(ynew)} {len(ynew)} 10 WHITE omark "
-    plotstr = ",".join([m['id']+"_motif", ynew, greenplot + whiteplot + pairplot, poststr])
+    plotstr = ",".join([m['motif_id'], ynew, greenplot + whiteplot + pairplot, poststr])
     return plotstr
 
 # plot motifs in original structure
@@ -202,8 +222,9 @@ def get_yplotstr(m):
         pairplot += f"{i+1} {j+1} 0.667 0.5 colorpair "
     for i, j in m['ipairs']:
         pairplot += f"{i+1} {j+1} 0.1667 1.0 colorpair "
-    plotstr = ",".join([m['id']+"_ymotif", m['y_star'], greenplot + whiteplot + pairplot])
+    plotstr = ",".join([m['ymotif_id'], m['y_star'], greenplot + whiteplot + pairplot])
     return plotstr
+
 
 def get_motifs(file):
     motifs_list = []
@@ -212,16 +233,130 @@ def get_motifs(file):
     return motifs_list
 
 
+def get_rival_motif_plotstr(m, ynew):
+    # shrink y
+    # ynew = m['y_sub']
+    m['bpairs'] = sorted(m['bpairs'])
+    m['ipairs'] = sorted(m['ipairs'])
+    if m['bpairs'][0][0] >= 0:
+        ysub = m['y_star'][m['bpairs'][0][0]: m['bpairs'][0][1]+1]
+        # ynew = m['y_star'][m['bpairs'][0][0]: m['bpairs'][0][1]+1]
+        start = m['bpairs'][0][0]
+    else:
+        ysub = m['y_star']
+        # ynew = m['y_star']
+        # m['bpairs'][0] = [0, len(ysub)-1]
+        start = 0
+    # print(m['bpairs'])
+    # print(m['ipairs'])
+    # print(ynew)
+    SIZE = 3
+    delta = 0
+    # start = m['bpairs'][0][0]
+    for pair in m['bpairs'][1:]:
+        # print(pair, pair[1] - pair[0] - 1 - 2)
+        # print(len(ynew))
+        ynew = replace_substring(ynew, pair[0]+1-start-delta, pair[1]-start-delta, "...")
+        # print(len(ynew))
+        delta += pair[1] - pair[0] - 1 - SIZE
+        # print(f"delta: {delta}")
+        # print(f"ydiff: {len(m['y_sub']) - len(ynew)}")
+        assert len(ysub) - len(ynew) == delta, f"{len(ysub), len(ynew)}"
+        # print()
+    # shrink pairs
+    bpairs = []
+    ipairs = []
+    for i, j in m['bpairs']:
+        if i >= 0:
+            bpairs.append(shrink(i, j, m['bpairs'][1:], SIZE))
+        else:
+            bpairs.append((i, j))
+    for i, j in m['ipairs']:
+        ipairs.append(shrink(i, j, m['bpairs'][1:], SIZE))
+    i0, j0 = bpairs[0]
+    i_base = i0
+    flag = False
+    if i0 >= 0:
+        ynew = "." + ynew + "." # extend the outmost pair with two unpaired bases
+        i_base -= 1
+        greenplot = f"{i0+1-i_base} {j0+1-i_base} GREEN Fomark "
+        flag = True
+    else:
+        assert len(m['y_star']) == len(m['y_sub'])
+        greenplot = f"{1} {len(ynew)} GREEN Fomark "
+        i_base = 0
+    whiteplot = ""
+    for i, j in bpairs[1:]:
+        whiteplot += f"{i+1-i_base} {j+1-i_base} WHITE Fomark "
+    pairplot = ""
+    if bpairs[0][0] >= 0:
+        pairplot += f"{i0+1-i_base} {j0+1-i_base} 0.667 0.5 colorpair "
+    for i, j in bpairs[1:]:
+        pairplot += f"{i+1-i_base} {j+1-i_base} 0.667 0.5 colorpair "
+
+    ymask = list(ynew)
+    for i, j in bpairs[1:]:
+        for k in range(i, j+1):
+            ymask[k-i_base] = "*"
+
+    ymask = "".join(ymask)
+
+    pairs_rival = extract_pairs_list(ymask)
+
+    ipairs_rival = []
+
+    for i, j in pairs_rival:
+        if (i, j) != (i0-i_base, j0-i_base):
+            ipairs_rival.append((i, j))
+
+    # print(ymask)
+    # print(ipairs_rival)
+    # print(i0, j0)
+    # print(i_base)
+    # print()
+
+    for i, j in ipairs_rival:
+        pairplot += f"{i+1} {j+1} 0.1667 1.0 colorpair "
+    poststr = ""
+    for i, j in bpairs[1:]:
+        poststr += f"{i+1-i_base+1} {j+1-i_base-1} 10 WHITE omark "
+    if flag:
+        poststr += f"1 1 10 WHITE omark "
+        poststr += f"{len(ynew)} {len(ynew)} 10 WHITE omark "
+    plotstr = ",".join([m['rival_id'], ynew, greenplot + whiteplot + pairplot, poststr])
+    return plotstr
+
+
+def main_plot_rival(motifs):
+    counter = Counter()
+    plot_lines = []
+    for im, motif in enumerate(motifs):
+        counter[motif['id']] += 1
+        motif['motif_id'] = '_'.join([str(motif['id']), "motif"+str(counter[motif['id']])])
+        for ir, rival in enumerate(motif['y_rivals']):
+            motif['rival_id'] = '_'.join([motif['motif_id'], "rival"+str(ir)])
+            plot_lines.append('"'+get_rival_motif_plotstr(motif, rival)+'"'+"\n")
+    path_output = os.path.basename(args.path).replace('log', 'rplotstr')
+    with open(path_output, 'w') as f:
+        f.writelines(plot_lines)
+
+
 def main_plot(motifs, mode='m'):
+    counter = Counter()
     plot_lines = []
     motif2plotstr = get_mplotstr if mode == 'm' else get_yplotstr
     print('motif2plotstr:', motif2plotstr)
     for i, motif in enumerate(motifs):
-        # print(motif)
+        counter[motif['id']] += 1
+        if mode == 'm':
+            motif['motif_id'] = '_'.join([str(motif['id']), "motif"+str(counter[motif['id']])])
+        elif mode == 'y':
+            motif['ymotif_id'] = '_'.join([str(motif['id']), "ymotif"+str(counter[motif['id']])])
         plot_lines.append('"'+motif2plotstr(motif)+'"'+"\n")
     path_output = os.path.basename(args.path).replace('log', f'{mode}plotstr')
     with open(path_output, 'w') as f:
         f.writelines(plot_lines)
+
 
 if __name__ == '__main__':
 
@@ -234,4 +369,7 @@ if __name__ == '__main__':
     print(args)
 
     json_motifs = get_motifs(args.path)
-    main_plot(json_motifs, args.mode)
+    if args.mode == 'r':
+        main_plot_rival(json_motifs)
+    else:
+        main_plot(json_motifs, args.mode)
