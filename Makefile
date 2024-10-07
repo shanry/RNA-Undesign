@@ -41,7 +41,7 @@ bin/comps.o: src/comps.cpp src/comps.h src/utils.h src/eval.h
 bin/eval.o: src/eval.cpp src/eval.h src/utils.h
 	$(CC) -c src/eval.cpp $(CFLAGS) -Dlv -DSPECIAL_HP -Dis_cube_pruning -Dis_candidate_list  -o bin/eval.o
 
-bin/eval_nosh.o: src/eval.cpp src/eval.h "src/utils.h"
+bin/eval_nosh.o: src/eval.cpp src/eval.h src/utils.h
 	$(CC) -c src/eval.cpp $(CFLAGS) -Dlv -Dis_cube_pruning -Dis_candidate_list  -o bin/eval_nosh.o
 
 .PHONY: clean
