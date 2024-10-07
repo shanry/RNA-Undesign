@@ -68,8 +68,8 @@ std::vector<std::pair<int, int>> pairs_inside;
 
 int SEED_RAND = 2024;
 
-std::string PATH_DESIGNABLE_LIB = "lib_designable.txt";
-std::string PATH_UNDESIGNABLE_LIB = "lib_undesignable.txt";
+// std::string PATH_DESIGNABLE_LIB = "lib_designable.txt";
+// std::string PATH_UNDESIGNABLE_LIB = "lib_undesignable.txt";
 
 // load lib from file
 std::set<std::string> loadLib(std::string path){
@@ -1541,8 +1541,20 @@ void csv_process(std::string csv, std::string alg){
     }
     std::unordered_map<std::string, GroupY> constr2groupy;
     // std::unordered_map<std::string, std::string> uniq_ud;
-    std::set<std::string> uniq_ud = loadLib(PATH_UNDESIGNABLE_LIB); // undesignable motifs
-    std::set<std::string> uniq_ds = loadLib(PATH_DESIGNABLE_LIB);   // designable   motifs
+    const char*  var_undesignable_lib = std::getenv("PATH_UNDESIGNABLE_LIB");
+    const char*  var_designable_lib = std::getenv("PATH_DESIGNABLE_LIB");
+    if(var_undesignable_lib == NULL){
+        std::cerr << "Error: PATH_UNDESIGNABLE_LIB is not set" << std::endl;
+        return;
+    }
+    if(var_designable_lib == NULL){
+        std::cerr << "Error: PATH_DESIGNABLE_LIB is not set" << std::endl;
+        return;
+    }
+    std::string path_undesignable_lib(var_undesignable_lib);
+    std::string path_designable_lib(var_designable_lib);
+    std::set<std::string> uniq_ud = loadLib(path_undesignable_lib); // undesignable motifs
+    std::set<std::string> uniq_ds = loadLib(path_designable_lib);   // designable   motifs
     for(int i = 1; i < df.size(); i++){
         auto row = df[i];
         {
