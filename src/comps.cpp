@@ -1246,6 +1246,6 @@ json jsrecords(LoopComplex lc, std::string y_star, std::string y_sub, std::vecto
     js["ipairs"] = lc.ps_inside;
     js["bpairs"] = lc.ps_outside;
     js["motif"] = json::parse(lc.jsmotif(id));
-    js["plotstr"] = compose_args4plot(id, y_star, lc.ps_outside, lc.ps_inside);
+    js["plotstr"] = ""; // compose_args4plot(id, y_star, lc.ps_outside, lc.ps_inside);
     return js;
 }
