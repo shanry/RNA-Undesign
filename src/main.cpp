@@ -68,6 +68,30 @@ std::vector<std::pair<int, int>> pairs_inside;
 
 int SEED_RAND = 2024;
 
+std::string PATH_DESIGNABLE_LIB = "lib_designable.txt";
+std::string PATH_UNDESIGNABLE_LIB = "lib_undesignable.txt";
+
+// load lib from file
+std::set<std::string> loadLib(std::string path){
+    std::set<std::string> lib;
+    std::ifstream file(path);
+    std::string line;
+    while (std::getline(file, line)){
+        json js_record = json::parse(line);
+        assert(!js_record["is_duplicated"]);
+        Node* tree = new Node(js_record["motif"]);
+        std::string treestr = tree->toString();
+        lib.insert(treestr);
+        for(Node* rotree : tree->rotated(0)){
+            std::string rotreestr = rotree->toString();
+            lib.insert(rotreestr);
+            delete rotree;
+        }
+        delete tree;
+    }
+    return lib;
+}
+
 ulong count_enum(std::vector<std::tuple<int, int>>& pairs_diff);
 
 // std::string removeNodeFromTree(TreeNode* node, std::string ref);
@@ -1472,20 +1496,34 @@ void csv_process(std::string csv, std::string alg){
     auto df = read_csv(csv.c_str());
     printf("df shape: %d, %d\n", df.size(), df[0].size());
     std::vector<std::string> records;
+    std::vector<std::string> records_designable;
+    int count_designable = 0;
     // Specify the file name
     std::string fileName = csv + "." + alg + ".log."+getCurrentTimestamp()+".txt";
     #ifdef SPECIAL_HP
     #else
         fileName = csv + "." + alg + ".log.nosh."+getCurrentTimestamp()+".txt";
     #endif
-    // Open the file for writing
-    std::ofstream outputFile(fileName);
 
+    // Output file stream
+    std::ofstream outputFile(fileName);
     // Check if the file is open
     if (!outputFile.is_open()) {
         std::cerr << "Error opening the file: " << fileName << std::endl;
         return;
     }
+    // Library files for designable and undesignable motifs
+    std::ofstream designableLibFile("lib_designable.txt", std::ios::app);
+    std::ofstream undesignableLibFile("lib_undesignable.txt", std::ios::app);
+    if (!designableLibFile.is_open()) {
+        std::cerr << "Error opening the file: " << "lib_designable.txt" << std::endl;
+        return;
+    }
+    if (!undesignableLibFile.is_open()) {
+        std::cerr << "Error opening the file: " << "lib_undesignable.txt" << std::endl;
+        return;
+    }
+
     std::string fileTime = csv + "." + alg + ".time."+getCurrentTimestamp()+".csv";
     #ifdef SPECIAL_HP
     #else
@@ -1503,7 +1541,8 @@ void csv_process(std::string csv, std::string alg){
     }
     std::unordered_map<std::string, GroupY> constr2groupy;
     // std::unordered_map<std::string, std::string> uniq_ud;
-    std::set<std::string> uniq_ud; 
+    std::set<std::string> uniq_ud = loadLib(PATH_UNDESIGNABLE_LIB); // undesignable motifs
+    std::set<std::string> uniq_ds = loadLib(PATH_DESIGNABLE_LIB);   // designable   motifs
     for(int i = 1; i < df.size(); i++){
         auto row = df[i];
         {
@@ -1700,6 +1739,7 @@ void csv_process(std::string csv, std::string alg){
                 }
             }
             // std::string goal_test = "p [] (M [0, 5, 0] (p [] (), B [1, 0] (S [0, 0] (p [] ()))))";
+            // power neighbor set search
             if (alg == "pn"){
                 auto start_time = std::chrono::high_resolution_clock::now();
                 TreeNode* root = parseStringToTree(y_star);
@@ -1757,7 +1797,10 @@ void csv_process(std::string csv, std::string alg){
                     //     continue;
                     // }
                     std::cout<<"treestr: "<<treestr<<std::endl;
-                    if(uniq_ud.find(treestr) != uniq_ud.end()){
+                    if(uniq_ds.find(treestr) != uniq_ds.end()){
+                        std::cout<<"already designable!"<<std::endl;
+                        result = "designable";
+                    }else if(uniq_ud.find(treestr) != uniq_ud.end()){
                         result = "undesignable";
                         std::cout<<"recur lc.constr: "<<lc.constr<<std::endl;
                         // std::cout<<"recur    groupy: "<<constr2groupy[lc.constr].constr<<std::endl;
@@ -1806,18 +1849,45 @@ void csv_process(std::string csv, std::string alg){
                         if (result == "exception")
                             continue;
                         if (result == "UMFE"){
+                            result = "designable";
                             ds_ipairs.insert(pairs2string(lc.ps_inside));
+                        }
+                    }
+                    if (result == "designable"){
+                        std::cout<<"designable!"<<std::endl;
+                        count_designable++;
+                        y_sub = y_star; // set y_sub as y_star
+                        y_rivals.clear(); // clear y_rivals
+                        bool found_ds = false;
+                        if(uniq_ds.find(treestr) != uniq_ds.end()){
+                            found_ds = true;
+                            std::cout<<"already found designable!"<<std::endl;
+                        }else{
+                            uniq_ds.insert(treestr);
+                            for(Node* rotree: tree->rotated(0)){
+                                std::string rotreestr = rotree->toString();
+                                uniq_ds.insert(rotreestr);
+                                delete rotree;
+                            }
+                            auto end_time_lc = std::chrono::high_resolution_clock::now();
+                            const std::chrono::duration<double, std::milli> time_ms = end_time_lc - start_time_lc;
+                            float time_seconds = std::chrono::duration_cast<std::chrono::duration<float>>(time_ms).count();
+                            printf("time cost: %.4f seconds\n", time_seconds);
+                            auto js = jsrecords(lc, y_star, y_sub, y_rivals, puzzle_id);
+                            js["time"] = time_seconds;
+                            js["is_duplicated"] = found_ds;
+                            std::string jstring = js.dump();
+                            designableLibFile << jstring << std::endl;
+                            records_designable.push_back(jstring);
                         }
                     }
                     if (result == "undesignable"){
                         std::cout<<"undesignable!"<<std::endl;
+                        bool found_ud = false; // check if the motif is already found undesignable
                         // if(constr2groupy.find(lc.constr) != constr2groupy.end() && constr2groupy[lc.constr].star == target)
                         if(uniq_ud.find(treestr) != uniq_ud.end()){
-                            // y_sub = constr2groupy[lc.constr].star;
-                            // y_rivals = constr2groupy[lc.constr].rivals;
+                            found_ud = true;
                         }else{
-                            // GroupY gy{y_sub, y_rivals, lc.constr};
-                            // constr2groupy[lc.constr] = gy;
                             uniq_ud.insert(treestr);
                             for(Node* rotree: tree->rotated(0)){
                                 std::string rotreestr = rotree->toString();
@@ -1831,6 +1901,7 @@ void csv_process(std::string csv, std::string alg){
                         printf("time cost: %.4f seconds\n", time_seconds);
                         auto js = jsrecords(lc, y_star, y_sub, y_rivals, puzzle_id);
                         js["time"] = time_seconds;
+                        js["is_duplicated"] = found_ud;
                         ud_ipairs.insert(pairs2string(lc.ps_inside));
                         std::vector<std::vector<std::pair<int, int>>> uk_pairs;
                         for(auto ipairs: ipairs_subsets){
@@ -1847,6 +1918,9 @@ void csv_process(std::string csv, std::string alg){
                         std::string jstring = js.dump();
                         outputFile << jstring << std::endl;
                         records.push_back(jstring);
+                        if (!found_ud){
+                            undesignableLibFile << jstring << std::endl;
+                        }
                     }
                     for(auto pair: ds_ipairs)
                         std::cout<<pair<<"  ";
@@ -2147,8 +2221,11 @@ void csv_process(std::string csv, std::string alg){
     }
     for (auto r: records)
         std::cout<<r<<std::endl;
+    std::cout<< "count designable: " << count_designable << std::endl;
+    std::cout << "designable records: " << records_designable.size() << std::endl;
     // Close the file
     outputFile.close();
+    designableLibFile.close();
     std::cout << "Strings written to file: " << fileName << std::endl;
 }
 
