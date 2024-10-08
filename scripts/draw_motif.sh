@@ -83,6 +83,11 @@ echo "poststring " $poststring
 echo -ne ">$id\n$seq\n$struct" | $VIENNA/bin/RNAplot -t $mode --pre "$prestring " --post "$poststring" # the final space is important to keep "" #"$span GREEN Fomark"
 
 sed -i 's/fsize setlinewidth/9 setlinewidth/' ${id}_ss.ps # change line width
+sed -i '/\/colorpair/,/grestore/{s/hsb/1.0\n  sethsbcolor\n  3 pop/}' ${id}_ss.ps # change color
+sed -i 's/0.667 0.5 colorpair/0.583 1.0 colorpair/g' ${id}_ss.ps # change color
+sed -i 's/0.1667 1.0 colorpair/0.1083 1.0 colorpair/g' ${id}_ss.ps # change color
+
+
 
 ps2pdf -dEPSCrop ${id}_ss.ps # bounding box
 
