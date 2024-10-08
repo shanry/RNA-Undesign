@@ -67,10 +67,12 @@ class Node:
 		for child in self.children:
 			child.pp(dep+1)
 
+
 	def __str__(self):
 		return "%s %s (%s)" % (self.type, self.unpaired_bases,
 							   ", ".join(map(str, self.children)))
 	__repr__ = __str__
+
 
 	def make_tree(self, child_id):
 		tree = Node()
@@ -88,6 +90,7 @@ class Node:
 			tree.unpaired_bases = self.unpaired_bases[child_id+1:] + self.unpaired_bases[:child_id+1]
 		return tree
 
+
 	def rotated(self, dep=0): # returns a lazylist of rotated trees from each leaf p node
 		if dep ==0 and self.type == "E":
 			return
@@ -97,39 +100,6 @@ class Node:
 		for child in self.children:
 			for tree in child.rotated(dep+1):
 				yield tree
-
-	def tolatex(self, dep=0): # call with dep=1 for motif
-		arity = len(self.children) + 1
-		if dep == 0:
-			s = "[.{\\tiny \it root} "
-			s += "\\edge node[%s]{\\tiny %d};" % (above_str, self.unpaired_bases[0])
-			s += "[.E "
-		else:
-			if arity == 1:
-				s = " H " # hairpin
-			elif arity == 2:
-				if sum(self.unpaired_bases) == 0:
-					looptype = "S" # stack
-				elif min(self.unpaired_bases) == 0:
-					looptype = "B" # bulge
-				else:
-					looptype = "I" # internal
-				s = "[.%s " % looptype
-			else:
-				s = "[.M "
-		for i, child in enumerate(self.children):
-			s += "\\edge node[%s]{\\tiny %d};" % (above_str if i == 0 else below_str,
-							     				  self.unpaired_bases[i+1])
-			s += "[.{\\tiny \\it p} "
-			s += "\\edge node[%s]{\\tiny %d};" % (above_str, child.unpaired_bases[0])
-
-			s += child.tolatex(dep+1)
-			s += "] " # p
-		if arity >1: # NB?
-			s += "] "
-		if dep == 0:
-			s += "] "
-		return s		
 
 
 def loop_stats(tree, cache=None): # returns {B:1, M:3, ..}
@@ -199,9 +169,9 @@ def dedup_lines(path):
 			uniqs[signature].append((tree, [js]))
 			lines_uniqs.append(line)
 	total = 0
-	# for signature in uniqs:
-	# 	for tree, jss in uniqs[signature]:
-	# 		total += len(jss)
+	for signature in uniqs:
+		for tree, jss in uniqs[signature]:
+			total += len(jss)
 	# 		for js in jss:
 	# 			print(json.dumps(js['motif']))
 	print("motif total:", total, "motif uniq:", sum(map(len, uniqs.values())), "struct. uniq:", len(id_uniqs))
