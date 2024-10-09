@@ -321,20 +321,21 @@ std::vector<Node*> Node::rotated(int dep){
     std::vector<Node*> rotated_trees;
     if(dep == 0 && this->type == "53"){ // 5' and 3' end
         return rotated_trees;
+    }else if (dep == 0 && this->type == "p"){
+        for(auto& child : this->children){
+            std::vector<Node*> child_rotated = child->rotated(dep+1);
+            rotated_trees.insert(rotated_trees.end(), child_rotated.begin(), child_rotated.end());
+        }
     }
     if(dep > 0 && this->type == "p"){
         Node* rote = this->makeTree(this->child_id);
         rotated_trees.push_back(rote);
     }
-    for(auto& child : this->children){
-        std::vector<Node*> child_rotated = child->rotated(dep+1);
-        rotated_trees.insert(rotated_trees.end(), child_rotated.begin(), child_rotated.end());
-    }
     return rotated_trees;
 }
 
 // Function to print the tree structure 
-std::string Node::toString() const{
+std::string Node::toBFS() const{
     std::string result = type + " [";
     for (size_t i = 0; i < unpaired_bases.size(); ++i) {
         if (i > 0) {
@@ -347,7 +348,7 @@ std::string Node::toString() const{
         if (i > 0) {
             result += ", ";
         }
-        result += children[i]->toString();
+        result += children[i]->toBFS();
     }
     result += ")";
     return result;
@@ -364,7 +365,7 @@ std::string Node::toDotBracket() const{
         if(this->child_id == -1)
             result = this->children[0]->toDotBracket();
         else
-            result = "(***)";
+            result = "(*)";
     }else if (this->type == "H"){ // hairpin
         result = "(" + std::string(this->unpaired_bases[0], '.') + ")";
     }else{ // multi-loop, external, internal, bulge, stack

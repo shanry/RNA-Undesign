@@ -94,7 +94,7 @@ class Node {
     Node* makeTree(int child_id);
 
     // Function to convert Node to string representation
-    std::string toString() const;
+    std::string toBFS() const;
     std::string toDotBracket() const;
 
     // Function to get rotated trees
