@@ -120,7 +120,7 @@ ps2pdf -dEPSCrop ${id}_ss.ps # bounding box
 # pdfcrop ${id}_ss.pdf # crop margin automatically
 pdfcropmargins -v -u -s ${id}_ss.pdf -o ${id}_ss-crop.pdf # pip install pdfCropMargins
 mv ${id}_ss-crop.pdf ${id}.pdf # final output
-rm ${id}_ss.pdf # remove temp files
+rm ${id}_ss.p* # remove temp files
 
 echo "output ${id}.pdf"
 exit

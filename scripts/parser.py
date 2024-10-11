@@ -353,7 +353,7 @@ def main_plot(motifs, mode='m'):
         elif mode == 'y':
             motif['ymotif_id'] = '_'.join([str(motif['id']), "ymotif"+str(counter[motif['id']])])
         plot_lines.append('"'+motif2plotstr(motif)+'"'+"\n")
-    path_output = os.path.basename(args.path).replace('log', f'{mode}plotstr')
+    path_output = args.path + f'.{mode}plotstr'
     with open(path_output, 'w') as f:
         f.writelines(plot_lines)
 

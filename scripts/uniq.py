@@ -232,7 +232,7 @@ def dedup_lines(path):
 	# 			print(json.dumps(js['motif']))
 	print("motif total:", total, "motif uniq:", sum(map(len, uniqs.values())), "struct. uniq:", len(id_uniqs))
 	print(sorted(list(id_uniqs)))
-	filename = path.replace('.txt', '.uniq.txt')
+	filename = path + '.uniq'
 	with open(filename, 'w') as f:
 		for line in lines_uniqs:
 			f.write(line)
