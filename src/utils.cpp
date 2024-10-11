@@ -100,17 +100,42 @@ std::vector<int> ref2pairs(std::string& ref){
     return pairs;
 }
 
-std::vector<std::tuple<int, int>> idx2pair(std::set<int>& positions, std::string& ref){
+std::set<std::tuple<int, int>> idx2pair_helper(std::set<int>& positions, std::string& ref) {
     std::vector<int> pairs_all = ref2pairs(ref);
-    std::vector<std::tuple<int, int>> pairs_diff;
-    for(auto& idx: positions){
-        if(pairs_all[idx]==idx)
-            pairs_diff.push_back(std::make_tuple(idx, idx));
-        else if (pairs_all[idx]>idx)
-            pairs_diff.push_back(std::make_tuple(idx, pairs_all[idx]));
+    std::set<std::tuple<int, int>> pairs_diff;
+    for (auto& idx : positions) {
+        if (pairs_all[idx] == idx) {
+            pairs_diff.insert(std::make_tuple(idx, idx));
+        } else if (pairs_all[idx] > idx) {
+            pairs_diff.insert(std::make_tuple(idx, pairs_all[idx]));
+        } else if (pairs_all[idx] < idx) {
+            pairs_diff.insert(std::make_tuple(pairs_all[idx], idx));
+        } else {
+            std::cerr << "Error: Invalid index " << idx << std::endl;
+            assert (false);
+        }
     }
     return pairs_diff;
 }
+
+std::vector<std::tuple<int, int>> idx2pair(std::set<int>& positions, std::string& ref){
+    // std::vector<int> pairs_all = ref2pairs(ref);
+    std::set<std::tuple<int, int>>  pairs_diff_set = idx2pair_helper(positions, ref);
+    std::vector<std::tuple<int, int>> pairs_diff;
+    for(auto& pair: pairs_diff_set){
+        pairs_diff.push_back(pair);
+    }
+    return pairs_diff;
+    // for(auto& idx: positions){
+    //     if(pairs_all[idx]==idx)
+    //         pairs_diff.push_back(std::make_tuple(idx, idx));
+    //     else if (pairs_all[idx]>idx)
+    //         pairs_diff.push_back(std::make_tuple(idx, pairs_all[idx]));
+    // }
+    // return pairs_diff;
+}
+
+
 
 std::set<std::pair<int, int>> ref2pairset(std::string& ref){
     std::set<std::pair<int, int>> pairset;
