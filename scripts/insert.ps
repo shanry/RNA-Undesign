@@ -1,0 +1,85 @@
+% Arrowhead function that accepts x0 y0 x1 y1 s t
+/arrowhead {
+  % stack: x0 y0 x1 y1 s t
+  /t exch def    % Position along the line (0=start, 1=end)
+  /s exch def    % Scale factor for arrowhead size
+  /y1 exch def
+  /x1 exch def
+  /y0 exch def
+  /x0 exch def
+  % Compute differences
+  /dx x1 x0 sub def
+  /dy y1 y0 sub def
+  /angle dy dx atan def
+  % Compute point at parameter t along the line
+  /xt x0 dx t mul add def
+  /yt y0 dy t mul add def
+  gsave
+  % Move to (xt, yt)
+  xt yt translate
+  % Rotate coordinate system
+  angle rotate
+  % Scale coordinate system
+  s dup scale
+  % Draw arrowhead
+  newpath
+  0 0 moveto
+  -4 2 rlineto
+  2 -2 rlineto
+  -2 -2 rlineto
+  closepath
+  fill
+  grestore
+} def
+
+% Function to draw arrows between coordinates
+/drawarrows {
+  % Get the first coordinate and set x0 y0
+  coor 0 get aload pop
+  /x0 exch def
+  /y0 exch def
+  % Set line width and color
+  0 0 0 setrgbcolor   % Black color for lines
+  % Loop through the coordinates starting from index 1
+  1 1 coor length 1 sub {
+    /i exch def   % Define loop index
+    % Get next coordinate (x1, y1)
+    coor i get aload pop
+    /y1 exch def
+    /x1 exch def
+    % Begin a new path for the line
+    0.7 setlinewidth
+    newpath
+    x0 y0 moveto
+    x1 y1 lineto
+    % Stroke the line
+    stroke
+    0.1 setlinewidth
+    % Draw arrowhead at specified position
+    x0 y0 x1 y1 1 0.7 arrowhead  % '1' is the scale factor, '0.7' places arrowhead at 70% along the line
+    % Update x0 y0 for the next iteration
+    /x0 x1 def
+    /y0 y1 def
+  } for
+} def
+
+% Function to draw points at each coordinate
+/drawpoints {
+  % Set color for points
+  0.5 0.5 0.5 setrgbcolor   % Red color
+  % Function to draw a small circle at each point
+  /draw_point {
+    /coord exch def
+    coord aload pop
+    newpath
+    coord 0 get coord 1 get 2 0 360 arc  % Circle of radius 2 at X, Y
+    fill
+  } def
+  % Get the length of the 'coor' array
+  /coor_len coor length def
+  % Loop through the coordinates
+  0 1 coor_len 1 sub {
+    /i exch def
+    coor i get draw_point
+  } for
+} def

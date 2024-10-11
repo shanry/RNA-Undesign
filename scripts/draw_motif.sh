@@ -87,6 +87,32 @@ sed -i '/\/colorpair/,/grestore/{s/hsb/1.0\n  sethsbcolor\n  3 pop/}' ${id}_ss.p
 sed -i 's/0.667 0.5 colorpair/0.583 1.0 colorpair/g' ${id}_ss.ps # change color
 sed -i 's/0.1667 1.0 colorpair/0.1083 1.0 colorpair/g' ${id}_ss.ps # change color
 
+cp ${id}_ss.ps ${id}.ps
+
+sed '/^init$/ {
+    r insert.ps
+}
+s/^drawoutline$/drawarrows\ndrawpoints/
+s/^drawbases$//
+s/^drawpairs$//
+
+' ${id}.ps > ${id}_ss.ps
+
+rm ${id}.ps
+
+substring="1 1 10 WHITE"
+
+target_str="0 1 coor_len 1 sub"
+new_str="1 1 coor_len 2 sub"
+
+# Check if the file contains substring_a
+if [[ "$poststring" == *"$substring"* ]]; then
+    # If substring_a is found, replace target_str with new_str in the file
+    sed -i "s/$target_str/$new_str/g" "${id}_ss.ps"
+    echo "Replaced '$target_str' with '$new_str' in the file."
+else
+    echo "Substring '$substring' not found in the file."
+fi
 
 
 ps2pdf -dEPSCrop ${id}_ss.ps # bounding box
@@ -94,7 +120,7 @@ ps2pdf -dEPSCrop ${id}_ss.ps # bounding box
 # pdfcrop ${id}_ss.pdf # crop margin automatically
 pdfcropmargins -v -u -s ${id}_ss.pdf -o ${id}_ss-crop.pdf # pip install pdfCropMargins
 mv ${id}_ss-crop.pdf ${id}.pdf # final output
-rm ${id}_ss.p* # remove temp files
+rm ${id}_ss.pdf # remove temp files
 
 echo "output ${id}.pdf"
 exit
