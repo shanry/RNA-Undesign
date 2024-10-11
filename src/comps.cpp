@@ -242,7 +242,6 @@ Node::Node(json jsontree, Node* parent, int child_id){
         if (jsontree.contains("root")) {  // Root node
             if (jsontree["root"]["child_id"] == -1){
                 type = "53"; // 5' and 3' end
-                this->child_id = -1;
             }else{
                 type = "p";
             }
@@ -278,7 +277,7 @@ Node::Node(json jsontree, Node* parent, int child_id){
 // Function to create a roated tree from a child ID
 Node* Node::makeTree(int child_id){
     json json_empty = {};
-    Node* tree = new Node(json_empty, nullptr, -1);
+    Node* tree = new Node(json_empty, nullptr, child_id);
     tree->type = this->type;
     tree->parent = this;
     tree->unpaired_bases = this->unpaired_bases;
@@ -299,7 +298,7 @@ Node* Node::makeTree(int child_id){
         tree->children = children_behind;  // First part from child_id+1 to the end
         tree->children.push_back(parent_as_child);  // Insert the parent_as_child in between
         tree->children.insert(tree->children.end(), children_ahead.begin(), children_ahead.end());  // Append the second slice
-        // tree.unpaired_bases = this->unpaired_bases[child_id+1:] + this->unpaired_bases[:child_id+1];
+	    // tree.unpaired_bases = this->unpaired_bases[child_id+1:] + this->unpaired_bases[:child_id+1];
         // Slicing: self.unpaired_bases[child_id+1:] and self.unpaired_bases[:child_id+1]
         std::vector<int> part1;
         if(this->unpaired_bases.size() > child_id+1){
@@ -317,6 +316,7 @@ Node* Node::makeTree(int child_id){
 }
 
 // Function to get all rotated trees
+// Caveat: This function will disrupt the child_ids in the tree becasue of shared pointers
 std::vector<Node*> Node::rotated(int dep){
     std::vector<Node*> rotated_trees;
     if(dep == 0 && this->type == "53"){ // 5' and 3' end
@@ -326,12 +326,33 @@ std::vector<Node*> Node::rotated(int dep){
             std::vector<Node*> child_rotated = child->rotated(dep+1);
             rotated_trees.insert(rotated_trees.end(), child_rotated.begin(), child_rotated.end());
         }
-    }
-    if(dep > 0 && this->type == "p"){
-        Node* rote = this->makeTree(this->child_id);
+    }else if(dep > 0 && this->type == "p"){
+        Node* rote = this->makeTree(-1);
         rotated_trees.push_back(rote);
+    }else{
+        for(auto& child : this->children){
+            std::vector<Node*> child_rotated = child->rotated(dep+1);
+            rotated_trees.insert(rotated_trees.end(), child_rotated.begin(), child_rotated.end());
+        }
     }
     return rotated_trees;
+}
+
+// function to get all rotated trees
+// std::vector<Node*> Node::rotated(int dep){
+//     std::vector<Node*> rotated_trees = this->rotatedHelper(dep);
+//     // for(auto& tree : rotated_trees){
+//     //     tree->resetChildIds();
+//     // }
+//     return rotated_trees;
+// }
+
+// Function to reset the child_ids of the tree
+void Node::resetChildIds(){
+    for(int i = 0; i < this->children.size(); i++){
+        this->children[i]->child_id = i;
+        this->children[i]->resetChildIds();
+    }
 }
 
 // Function to print the tree structure 

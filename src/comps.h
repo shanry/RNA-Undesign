@@ -98,7 +98,9 @@ class Node {
     std::string toDotBracket() const;
 
     // Function to get rotated trees
+    // std::vector<Node*> rotatedHelper(int dep = 0);
     std::vector<Node*> rotated(int dep = 0);
+    void resetChildIds();
 };
 
 
