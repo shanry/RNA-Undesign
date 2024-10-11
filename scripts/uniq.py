@@ -28,6 +28,7 @@ from parser import get_mplotstr2
 above_str = "midway, above=-5pt"
 below_str = "midway, below_strow=-5pt"
 
+
 class Node:
 	__slots__ = "type", "children", "unpaired_bases", "parent", "child_id", "ids"
 
@@ -36,12 +37,16 @@ class Node:
 		self.unpaired_bases = []
 		self.parent = parent
 		self.child_id = child_id
-		if jsontree is None:
+		if jsontree is None or jsontree == {}:
 			self.type = 'p'
 		elif jsontree != {}:
 			if 'root' in jsontree: # very root
 				self.ids = [jsontree['id']]
-				self.type = "p" # top p node
+				if jsontree["root"]["child_id"] == -1:
+					self.type = "53"
+					self.child_id = -1
+				else:
+					self.type = "p"
 				self.children = [Node(jsontree['root'], parent=self, child_id=0)]
 			else: # non-root
 				self.type = jsontree['type']
@@ -60,7 +65,8 @@ class Node:
 						self.children.append(Node(None, parent=self, child_id=0))
 					elif self.type == "E":
 						assert False, "E loop; TODO"
-
+		# if self.child_id == -1:
+		# 	assert len(self.children) == 1, str(jsontree)
 
 	def pp(self, dep=0):
 		print(" |" * dep, self.type, len(self.children), self.unpaired_bases, self.child_id)
@@ -69,17 +75,21 @@ class Node:
 
 
 	def __str__(self):
-		return "%s %s (%s)" % (self.type, self.unpaired_bases,
-							   ", ".join(map(str, self.children)))
+		return self.to_dotbracket()
+		# return "%s %s (%s)" % (self.type, self.unpaired_bases,
+		# 					   ", ".join(map(str, self.children)))
 	__repr__ = __str__
 
+	def to_bfs(self):
+		return "%s %s (%s)" % (self.type, self.unpaired_bases,
+							   ", ".join(child.to_bfs() for child in self.children))
 
 	def make_tree(self, child_id):
-		tree = Node()
+		tree = Node(child_id=child_id)
 		tree.type = self.type
 		tree.parent = self
 		tree.unpaired_bases = self.unpaired_bases[:]
-
+		tree.child_id = child_id
 		if self.parent is not None:
 			# rotate children/parent
 			parent_as_child = self.parent.make_tree(self.child_id)			
@@ -90,16 +100,49 @@ class Node:
 			tree.unpaired_bases = self.unpaired_bases[child_id+1:] + self.unpaired_bases[:child_id+1]
 		return tree
 
-
 	def rotated(self, dep=0): # returns a lazylist of rotated trees from each leaf p node
-		if dep ==0 and self.type == "E":
+		if dep == 0 and self.type == "53":
 			return
-		if dep > 0 and self.type == "p":
+		elif dep == 0 and self.type == "p":
+			for child in self.children:
+				for tree in child.rotated(dep+1):
+					yield tree
+		elif dep > 0 and self.type == "p":
 			# make a new tree from this node
-			yield self.make_tree(self.child_id)
-		for child in self.children:
-			for tree in child.rotated(dep+1):
-				yield tree
+			yield self.make_tree(-1)
+		else:
+			for child in self.children:
+				for tree in child.rotated(dep+1):
+					yield tree
+
+	# convert to dotbracket notation
+	def to_dotbracket(self): 
+		result = ""
+		if self.type == "53":
+			result += "5"
+			result += self.children[0].to_dotbracket()
+			result += "3"
+		elif self.type == "p":
+			if self.child_id == -1:
+				assert len(self.children) > 0
+				result = self.children[0].to_dotbracket()
+			else:
+				result = "(*)"
+		elif self.type == "H":
+			result = "(" + "." * self.unpaired_bases[0] + ")"
+		else:
+			result = ""
+			if self.type != "E":
+				result += "("
+			result += "." * self.unpaired_bases[0]
+			for i, child in enumerate(self.children):
+				result += child.to_dotbracket()
+				assert i + 1 < len(self.unpaired_bases)
+				result += "." * self.unpaired_bases[i+1]
+			if self.type != "E":
+				result += ")"
+		return result
+
 
 
 def loop_stats(tree, cache=None): # returns {B:1, M:3, ..}
@@ -114,8 +157,10 @@ def loop_stats(tree, cache=None): # returns {B:1, M:3, ..}
 		cache["unp"] += sum(tree['loops'])
 	return cache
 
+
 def check_eq(a, b):
 	return True
+
 
 def dedup(path):
 	uniqs = defaultdict(list) # loop-signature -> [motifs]
@@ -158,16 +203,27 @@ def dedup_lines(path):
 		ids, motif = js['motif']['id'], js['motif']['root']
 		signature = str(sorted(loop_stats(motif).items())) # "{B:1, M:3, ..}"
 		tree = Node(js['motif'])
+		all_trees_rotated = []
+		all_trees_rotated.append(tree)
 		all_rotations = set([str(tree)])
+		# print(str(tree))
+		# print(tree.to_bfs())
 		for newtree in tree.rotated(0):
+			all_trees_rotated.append(newtree)
 			all_rotations.add(str(newtree))
+		# for rt in all_trees_rotated:
+		# 	print(rt.to_bfs())
+		# for rt in all_trees_rotated:
+		# 	print(str(rt))
 		for othertree, otherjss in uniqs[signature]:
 			if str(othertree) in all_rotations:
 				otherjss.append(js)
 				break
 		else: # new uniq
 			uniqs[signature].append((tree, [js]))
+			# print(Node.to_string(tree))
 			lines_uniqs.append(line)
+			# print(tree, ids, len(lines_uniqs), signature)
 	total = 0
 	for signature in uniqs:
 		for tree, jss in uniqs[signature]:
@@ -208,4 +264,5 @@ if __name__ == "__main__":
 	path = sys.argv[1]
 	print('path:', path)
 	uniqs = dedup_lines(path)
+	# uniqs = dedup(path)
 	count_occurs(uniqs)
