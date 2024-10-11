@@ -80,10 +80,10 @@ std::set<std::string> loadLib(std::string path){
         json js_record = json::parse(line);
         assert(!js_record["is_duplicated"]);
         Node* tree = new Node(js_record["motif"]);
-        std::string treestr = tree->toString();
+        std::string treestr = tree->toDotBracket();
         lib.insert(treestr);
         for(Node* rotree : tree->rotated(0)){
-            std::string rotreestr = rotree->toString();
+            std::string rotreestr = rotree->toDotBracket();
             lib.insert(rotreestr);
             delete rotree;
         }
@@ -1033,7 +1033,9 @@ std::string alg_5_cs(std::string& ref1, std::set<std::string>& refs_checked, std
         assert (subopts.size() > 0);
         if (isUMFE(subopts, ref1)){
             printf("UMFE found!");
-            std::cout<<x<<std::endl;
+            std::cout<<"UMFE log: "<<ref1<<std::endl;
+            std::cout<<"UMFE log: "<<constr<<std::endl;
+            std::cout<<"UMFE log: "<<x<<std::endl;
             return "UMFE";
         }
         for(std::string ref: subopts){
@@ -1168,6 +1170,9 @@ std::string alg_5_cs_plus(std::string& ref1, std::set<std::string>& refs_checked
         }
         assert (subopts.size() > 0);
         if (isUMFE(subopts, ref1)){
+            std::cout<<"UMFE log: "<<ref1<<std::endl;
+            std::cout<<"UMFE log: "<<constr<<std::endl;
+            std::cout<<"UMFE log: "<<x<<std::endl;
             printf("UMFE found!");
             std::cout<<x<<std::endl;
             return "UMFE";
@@ -1276,6 +1281,9 @@ std::string alg_5_helper_v2(std::string& ref1, std::string& ref2, std::string&co
     if(isUMFE(mfes, ref1)){
         std::cout<<seq<<std::endl;
         std::cout<<"designable!"<<std::endl;
+        std::cout<<"UMFE log: "<<ref1<<std::endl;
+        std::cout<<"UMFE log: "<<constr<<std::endl;
+        std::cout<<"UMFE log: "<<seq<<std::endl;
         return "UMFE";
     }else if(isMFE(mfes, ref1)){
         std::cout<<"mfe designable"<<std::endl;
@@ -1295,8 +1303,16 @@ std::string alg_5_helper_v2(std::string& ref1, std::string& ref2, std::string&co
     std::vector<Constraint> cs_vec;
 
     std::vector<std::vector<int>> cr_loops = find_critical_plus(ref1, ref2, critical_positions, verbose);
+    std::cout<<"critical positions: ";
+    for(int critical_position: critical_positions)
+        std::cout<<critical_position<<"\t";
+    std::cout<<std::endl;
     // long delta_energy = diff_eval(seq, cr_loops, verbose, dangle_model);
     std::vector<std::tuple<int, int>> pairs_diff = idx2pair(critical_positions, ref1);
+    std::cout<<"pairs_diff: ";
+    for (auto pair: pairs_diff)
+        std::cout<<std::get<0>(pair)<<"\t"<<std::get<1>(pair)<<";\t";
+    std::cout<<std::endl;
     ulong n_enum = count_enum(pairs_diff);
     std::cout<<"enumeration count: "<<n_enum<<std::endl;
     // check the ref from removing internal pairs
@@ -1803,7 +1819,7 @@ void csv_process(std::string csv, std::string alg){
                     json js_motif = json::parse(lc.jsmotif(puzzle_id));
                     std::cout<<"js_motif: "<<js_motif<<std::endl;
                     Node* tree = new Node(js_motif);
-                    std::string treestr = tree->toString();
+                    std::string treestr = tree->toDotBracket();
                     // if(!goal_test.empty() && treestr != goal_test){
                     //     delete tree;
                     //     continue;
@@ -1852,21 +1868,25 @@ void csv_process(std::string csv, std::string alg){
                         if(ud)
                             continue;
                         try{
+                            std::cout<<"UMFE log: before alg 5 "<<std::endl;
                             result = alg_5_helper_v2(target, ref_lc, constr_lc, subseq, verbose, dangle);
+                            if (result == "UMFE"){
+                                result = "designable";
+                                std::cout<<"UMFE log: afer alg 5 "<<std::endl;
+                                std::cout<<"UMFE log: "<<tree->toDotBracket()<<std::endl;
+                                std::cout<<"UMFE log: "<<target<<std::endl;
+                                std::cout<<"UMFE log: "<<constr_lc<<std::endl;
+                            }
                         }catch(...){
                             // Code to handle any exception
                             std::cerr << "An exception occurred" << std::endl;
                             result = "exception";
-                        }
-                        if (result == "exception")
                             continue;
-                        if (result == "UMFE"){
-                            result = "designable";
-                            ds_ipairs.insert(pairs2string(lc.ps_inside));
                         }
                     }
                     if (result == "designable"){
                         std::cout<<"designable!"<<std::endl;
+                        ds_ipairs.insert(pairs2string(lc.ps_inside));
                         count_designable++;
                         y_sub = y_star; // set y_sub as y_star
                         y_rivals.clear(); // clear y_rivals
@@ -1877,7 +1897,7 @@ void csv_process(std::string csv, std::string alg){
                         }else{
                             uniq_ds.insert(treestr);
                             for(Node* rotree: tree->rotated(0)){
-                                std::string rotreestr = rotree->toString();
+                                std::string rotreestr = rotree->toDotBracket();
                                 uniq_ds.insert(rotreestr);
                                 delete rotree;
                             }
@@ -1887,6 +1907,7 @@ void csv_process(std::string csv, std::string alg){
                             printf("time cost: %.4f seconds\n", time_seconds);
                             auto js = jsrecords(lc, y_star, y_sub, y_rivals, puzzle_id);
                             js["time"] = time_seconds;
+                            js["seed"] = SEED_RAND;
                             js["is_duplicated"] = found_ds;
                             std::string jstring = js.dump();
                             designableLibFile << jstring << std::endl;
@@ -1902,7 +1923,7 @@ void csv_process(std::string csv, std::string alg){
                         }else{
                             uniq_ud.insert(treestr);
                             for(Node* rotree: tree->rotated(0)){
-                                std::string rotreestr = rotree->toString();
+                                std::string rotreestr = rotree->toDotBracket();
                                 uniq_ud.insert(rotreestr);
                                 delete rotree;
                             }
@@ -1913,6 +1934,7 @@ void csv_process(std::string csv, std::string alg){
                         printf("time cost: %.4f seconds\n", time_seconds);
                         auto js = jsrecords(lc, y_star, y_sub, y_rivals, puzzle_id);
                         js["time"] = time_seconds;
+                        js["seed"] = SEED_RAND;
                         js["is_duplicated"] = found_ud;
                         ud_ipairs.insert(pairs2string(lc.ps_inside));
                         std::vector<std::vector<std::pair<int, int>>> uk_pairs;
