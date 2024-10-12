@@ -327,16 +327,16 @@ def get_rival_motif_plotstr(m, ynew):
     return plotstr
 
 
-def main_plot_rival(motifs):
+def main_plot_rival(motifs, mode='r'):
     counter = Counter()
     plot_lines = []
     for im, motif in enumerate(motifs):
         counter[motif['id']] += 1
         motif['motif_id'] = '_'.join([str(motif['id']), "motif"+str(counter[motif['id']])])
         for ir, rival in enumerate(motif['y_rivals']):
-            motif['rival_id'] = '_'.join([motif['motif_id'], "rival"+str(ir)])
+            motif['rival_id'] = '_'.join([motif['motif_id'], "rival"+str(ir+1)])
             plot_lines.append('"'+get_rival_motif_plotstr(motif, rival)+'"'+"\n")
-    path_output = os.path.basename(args.path).replace('log', 'rplotstr')
+    path_output = args.path + f'.{mode}plotstr'
     with open(path_output, 'w') as f:
         f.writelines(plot_lines)
 
