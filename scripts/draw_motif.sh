@@ -1,6 +1,6 @@
 #!/bin/bash
 # dependency: `pip install pdfCropMargins`
-# usage: `cat plotstrs.txt | xargs -L 1 ./plot_motif.sh` generates pdf fils for each plotstr in plotstrs.txt
+# usage: `cat plotstrs.txt | xargs -L 1 ./draw_motif.sh` generates pdf fils for each plotstr in plotstrs.txt
 
 # Check if the environment variable is not set
 if [ -z "${VIENNA}" ]; then
@@ -82,7 +82,7 @@ echo "poststring " $poststring
 # # -t 0 means layout mode 0 (default 1)
 echo -ne ">$id\n$seq\n$struct" | $VIENNA/bin/RNAplot -t $mode --pre "$prestring " --post "$poststring" # the final space is important to keep "" #"$span GREEN Fomark"
 
-sed -i 's/fsize setlinewidth/9 setlinewidth/' ${id}_ss.ps # change line width
+sed -i 's/fsize setlinewidth/8 setlinewidth/' ${id}_ss.ps # change line width
 sed -i '/\/colorpair/,/grestore/{s/hsb/1.0\n  sethsbcolor\n  3 pop/}' ${id}_ss.ps # change color
 sed -i 's/0.667 0.5 colorpair/0.583 1.0 colorpair/g' ${id}_ss.ps # change color
 sed -i 's/0.1667 1.0 colorpair/0.1083 1.0 colorpair/g' ${id}_ss.ps # change color
@@ -94,7 +94,9 @@ sed '/^init$/ {
 }
 s/^drawoutline$/drawarrows\ndrawpoints/
 s/^drawbases$//
-s/^drawpairs$//
+
+## disable drawpairs
+# s/^drawpairs$//
 
 ' ${id}.ps > ${id}_ss.ps
 
@@ -114,15 +116,16 @@ else
     echo "Substring '$substring' not found in the file."
 fi
 
-
 ps2pdf -dEPSCrop ${id}_ss.ps # bounding box
-
-# pdfcrop ${id}_ss.pdf # crop margin automatically
+# crop margin automatically; alternative way: pdfcrop ${id}_ss.pdf
 pdfcropmargins -v -u -s ${id}_ss.pdf -o ${id}_ss-crop.pdf # pip install pdfCropMargins
 mv ${id}_ss-crop.pdf ${id}.pdf # final output
 rm ${id}_ss.p* # remove temp files
 
-echo "output ${id}.pdf"
+mkdir -p outputs
+mv ${id}.pdf outputs/ # move to outputs folder
+
+echo "final output: outputs/${id}.pdf"
 exit
 
 # code for automatic rotation
