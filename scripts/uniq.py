@@ -194,6 +194,7 @@ def dedup(path):
 
 def dedup_lines(path):
 	uniqs = defaultdict(list) # loop-signature -> [motifs]
+	min_uniqs = defaultdict(list) # loop-signature -> [motifs]
 	id_uniqs = set()
 	lines_uniqs = []
 	for i, line in enumerate(open(path)):
@@ -224,13 +225,15 @@ def dedup_lines(path):
 			# print(Node.to_string(tree))
 			lines_uniqs.append(line)
 			# print(tree, ids, len(lines_uniqs), signature)
+			if js['ismin']:
+				min_uniqs[signature].append((tree, [js]))
 	total = 0
 	for signature in uniqs:
 		for tree, jss in uniqs[signature]:
 			total += len(jss)
 	# 		for js in jss:
 	# 			print(json.dumps(js['motif']))
-	print("motif total:", total, "motif uniq:", sum(map(len, uniqs.values())), "struct. uniq:", len(id_uniqs))
+	print( "struct. uniq:", len(id_uniqs), "\tmotif total:", total, "\tmotif uniq (min):", f"{sum(map(len, uniqs.values()))} ({sum(map(len, min_uniqs.values()))})")
 	print(sorted(list(id_uniqs)))
 	filename = path + '.uniq'
 	with open(filename, 'w') as f:
