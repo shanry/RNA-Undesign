@@ -1967,6 +1967,159 @@ void csv_process(std::string csv, std::string alg){
                 printf("time cost for whole structure: %.4f seconds\n", time_seconds_lc);
                 timeFile << puzzle_id << "," << time_seconds_lc <<std::endl;
             }
+            if (alg == "scan"){
+                auto start_time = std::chrono::high_resolution_clock::now();
+                TreeNode* root = parseStringToTree(y_star);
+                std::set<string> ds_ipairs; // designable internal pairs
+                std::set<string> ud_ipairs; // undesinable internal pairs
+
+                // motif of 2 loops (1 edge/internal pair)
+                std::vector<LoopComplex> lc_list;
+                tree2Edges(root, y_star, lc_list);
+                printf("lc_list size: %d\n", lc_list.size());
+                // sort motifs by the number of unknown positions
+                std::sort(lc_list.begin(), lc_list.end(), [](const LoopComplex &a, const LoopComplex &b) {
+                    return a.count_uk < b.count_uk;});
+
+                // motif of 3 loops (2 edges/internal pairs)
+                std::vector<LoopComplex> lc_list_2nbs;
+                tree2TwoNeighbor(root, y_star, lc_list_2nbs);
+                printf("lc_list_2nbs size: %d\n", lc_list_2nbs.size());
+                // sort motifs by the number of unknown positions
+                std::sort(lc_list_2nbs.begin(), lc_list_2nbs.end(), [](const LoopComplex &a, const LoopComplex &b) {
+                    return a.count_uk < b.count_uk;});
+                lc_list.insert(lc_list.end(), lc_list_2nbs.begin(), lc_list_2nbs.end());
+
+                // motif of 4 loops (3 edges/internal pairs)
+                std::vector<LoopComplex> lc_list_3nbs;
+                tree2ThreeNeighbor(root, y_star, lc_list_3nbs);
+                printf("lc_list_3nbs size: %d\n", lc_list_3nbs.size());
+                // sort motifs by the number of unknown positions
+                std::sort(lc_list_3nbs.begin(), lc_list_3nbs.end(), [](const LoopComplex &a, const LoopComplex &b) {
+                    return a.count_uk < b.count_uk;});
+                lc_list.insert(lc_list.end(), lc_list_3nbs.begin(), lc_list_3nbs.end());
+
+                for (auto lc: lc_list){
+                    auto start_time_lc = std::chrono::high_resolution_clock::now();
+                    lc.printLoopLens();
+                    if (lc.hasLongLoop()){
+                        printf("the loop exceeds length limit!");
+                        continue;
+                    }
+                    std::string target = y_star.substr(lc.start, lc.end-lc.start+1);
+                    std::string subseq = seq.substr(lc.start, lc.end-lc.start+1);
+                    printf(" count: %d\n", lc.count_uk);
+                    printf("target: %s\n", target.c_str());
+                    printf("   ref: %s\n", lc.ref.c_str());
+                    printf("constr: %s\n", lc.constr.c_str());
+                    auto ipairs_subsets = pairSubSet(lc.ps_inside);
+                    std::string result;
+                    // check if the (rotated) motif is already found undesignable
+                    json js_motif = json::parse(lc.jsmotif(puzzle_id));
+                    std::cout<<"js_motif: "<<js_motif<<std::endl;
+                    Node* tree = new Node(js_motif);
+                    std::string treestr = tree->toDotBracket();
+                    // if(!goal_test.empty() && treestr != goal_test){
+                    //     delete tree;
+                    //     continue;
+                    // }
+                    std::cout<<"treestr: "<<treestr<<std::endl;
+                    if(uniq_ds.find(treestr) != uniq_ds.end()){
+                        std::cout<<"already designable!"<<std::endl;
+                        result = "designable";
+                    }else if(uniq_ud.find(treestr) != uniq_ud.end()){
+                        result = "undesignable";
+                        std::cout<<"recur lc.constr: "<<lc.constr<<std::endl;
+                        // std::cout<<"recur    groupy: "<<constr2groupy[lc.constr].constr<<std::endl;
+                        std::cout<<"recur lc.constr: "<<target<<std::endl;
+                        std::cout<<"recur   treestr: "<<treestr<<std::endl;
+                        // std::cout<<"recur     ystar: "<<constr2groupy[lc.constr].star<<std::endl;
+                    }else {
+                        result = "unknown";
+                    }
+                    if (result == "designable"){
+                        std::cout<<"designable!"<<std::endl;
+                        ds_ipairs.insert(pairs2string(lc.ps_inside));
+                        count_designable++;
+                        y_sub = y_star; // set y_sub as y_star
+                        y_rivals.clear(); // clear y_rivals
+                        bool found_ds = false;
+                        if(uniq_ds.find(treestr) != uniq_ds.end()){
+                            found_ds = true;
+                            std::cout<<"already found designable!"<<std::endl;
+                        }else{
+                            uniq_ds.insert(treestr);
+                            for(Node* rotree: tree->rotated(0)){
+                                std::string rotreestr = rotree->toDotBracket();
+                                uniq_ds.insert(rotreestr);
+                                delete rotree;
+                            }
+                            auto end_time_lc = std::chrono::high_resolution_clock::now();
+                            const std::chrono::duration<double, std::milli> time_ms = end_time_lc - start_time_lc;
+                            float time_seconds = std::chrono::duration_cast<std::chrono::duration<float>>(time_ms).count();
+                            printf("time cost: %.4f seconds\n", time_seconds);
+                            auto js = jsrecords(lc, y_star, y_sub, y_rivals, puzzle_id);
+                            js["time"] = time_seconds;
+                            js["seed"] = SEED_RAND;
+                            js["is_duplicated"] = found_ds;
+                            std::string jstring = js.dump();
+                            designableLibFile << jstring << std::endl;
+                            records_designable.push_back(jstring);
+                        }
+                    }
+                    if (result == "undesignable"){
+                        std::cout<<"undesignable!"<<std::endl;
+                        bool found_ud = false; // check if the motif is already found undesignable
+                        // if(constr2groupy.find(lc.constr) != constr2groupy.end() && constr2groupy[lc.constr].star == target)
+                        if(uniq_ud.find(treestr) != uniq_ud.end()){
+                            found_ud = true;
+                        }else{
+                            uniq_ud.insert(treestr);
+                            for(Node* rotree: tree->rotated(0)){
+                                std::string rotreestr = rotree->toDotBracket();
+                                uniq_ud.insert(rotreestr);
+                                delete rotree;
+                            }
+                        }
+                        auto end_time_lc = std::chrono::high_resolution_clock::now();
+                        const std::chrono::duration<double, std::milli> time_ms = end_time_lc - start_time_lc;
+                        float time_seconds = std::chrono::duration_cast<std::chrono::duration<float>>(time_ms).count();
+                        printf("time cost: %.4f seconds\n", time_seconds);
+                        auto js = jsrecords(lc, y_star, y_sub, y_rivals, puzzle_id);
+                        js["time"] = time_seconds;
+                        js["seed"] = SEED_RAND;
+                        js["is_duplicated"] = found_ud;
+                        ud_ipairs.insert(pairs2string(lc.ps_inside));
+                        std::vector<std::vector<std::pair<int, int>>> uk_pairs;
+                        for(auto ipairs: ipairs_subsets){
+                            if(ds_ipairs.find(pairs2string(ipairs))==ds_ipairs.end()){
+                                uk_pairs.push_back(ipairs);
+                            }
+                        }
+                        if(uk_pairs.size()){
+                            js["ismin"] = false;
+                            js["uk_ipairs"] = uk_pairs;
+                        }else{
+                            js["ismin"] = true;
+                        }
+                        std::string jstring = js.dump();
+                        outputFile << jstring << std::endl;
+                        records.push_back(jstring);
+                        if (!found_ud){
+                            undesignableLibFile << jstring << std::endl;
+                        }
+                    }
+                    for(auto pair: ds_ipairs)
+                        std::cout<<pair<<"  ";
+                    delete tree;
+                    printf("\n");
+                }
+                auto end_time = std::chrono::high_resolution_clock::now();
+                const std::chrono::duration<double, std::milli> time_ms_y = end_time - start_time;
+                float time_seconds_lc = std::chrono::duration_cast<std::chrono::duration<float>>(time_ms_y).count();
+                printf("time cost for whole structure: %.4f seconds\n", time_seconds_lc);
+                timeFile << puzzle_id << "," << time_seconds_lc <<std::endl;
+            }
             if (alg == "loop"){
                 seq = tg_init(y_star);
                 std::vector<LoopComplex> lc_list;
