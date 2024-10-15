@@ -158,8 +158,13 @@ def loop_stats(tree, cache=None): # returns {B:1, M:3, ..}
 	return cache
 
 
-def check_eq(a, b):
-	return True
+def get_length(js):
+	bpair = js["bpairs"]
+	ystar = js["y_star"]
+	length = bpair[0][1] - bpair[0][0] + 1 if bpair[0][0] != -1 else len(ystar)
+	for pair in bpair[1:]:
+		length -= pair[1] - pair[0] - 1
+	return length
 
 
 def dedup(path):
@@ -197,6 +202,7 @@ def dedup_lines(path):
 	min_uniqs = defaultdict(list) # loop-signature -> [motifs]
 	id_uniqs = set()
 	lines_uniqs = []
+	lengths = []
 	for i, line in enumerate(open(path)):
 		js = json.loads(line)
 		id_uniqs.add(js['id'])
@@ -227,13 +233,15 @@ def dedup_lines(path):
 			# print(tree, ids, len(lines_uniqs), signature)
 			if js['ismin']:
 				min_uniqs[signature].append((tree, [js]))
+			lengths.append(get_length(js))
 	total = 0
 	for signature in uniqs:
 		for tree, jss in uniqs[signature]:
 			total += len(jss)
 	# 		for js in jss:
 	# 			print(json.dumps(js['motif']))
-	print( "struct. uniq:", len(id_uniqs), "\tmotif total:", total, "\tmotif uniq (min):", f"{sum(map(len, uniqs.values()))} ({sum(map(len, min_uniqs.values()))})")
+	print("struct. uniq:", len(id_uniqs), "\tmotif total:", total, "\tmotif uniq (min):", f"{sum(map(len, uniqs.values()))} ({sum(map(len, min_uniqs.values()))})")
+	print("lengths:", sorted(lengths))
 	print(sorted(list(id_uniqs)))
 	filename = path + '.uniq'
 	with open(filename, 'w') as f:
