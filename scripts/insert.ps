@@ -63,23 +63,112 @@
   } for
 } def
 
-% Function to draw points at each coordinate
+% % Function to draw points at each coordinate
+% /drawpoints {
+%   % Set color for points
+%   0.5 0.5 0.5 setrgbcolor   % Red color
+%   % Function to draw a small circle at each point
+%   /draw_point {
+%     /coord exch def
+%     coord aload pop
+%     newpath
+%     coord 0 get coord 1 get 2.2 0 360 arc  % Circle of radius 2 at X, Y
+%     fill
+%   } def
+%   % Get the length of the 'coor' array
+%   /coor_len coor length def
+%   % Loop through the coordinates
+%   0 1 coor_len 1 sub {
+%     /i exch def
+%     coor i get draw_point
+%   } for
+% } def
+
+% Define the indices of points to skip
+/my_list [0] def
+% Function to check if a value is in an array
+/isinlist { % stack: val arr -- bool
+    /arr exch def
+    /val exch def
+    false
+    arr {
+        val eq { true exit } if
+    } forall
+} def
+
+% Function to draw points at each coordinate, skipping specified points
 /drawpoints {
-  % Set color for points
-  0.5 0.5 0.5 setrgbcolor   % Red color
-  % Function to draw a small circle at each point
-  /draw_point {
-    /coord exch def
-    coord aload pop
-    newpath
-    coord 0 get coord 1 get 2.2 0 360 arc  % Circle of radius 2 at X, Y
-    fill
-  } def
-  % Get the length of the 'coor' array
-  /coor_len coor length def
-  % Loop through the coordinates
-  0 1 coor_len 1 sub {
-    /i exch def
-    coor i get draw_point
-  } for
+    % Set font for labels
+    /Helvetica findfont
+    12 scalefont
+    setfont
+    % Function to draw a small circle at each point and label if necessary
+    /draw_point {
+        /i exch def     % Index of the point
+        % Check if current index is in my_list
+        i my_list isinlist not {
+            % Get the coordinate
+            coor i get aload pop
+            /y exch def
+            /x exch def
+            % Set fill color for points
+            0.5 0.5 0.5 setrgbcolor    % Gray color for points
+            % Draw the point
+            newpath
+            x y 2.2 0 360 arc   % Circle of radius 3 at X, Y
+            fill
+            % Set text color to black
+            0 0 0 setrgbcolor
+            % Define label offset magnitude
+            /offset 10 def
+            % Label the first point (5')
+            i 0 eq {
+                % Calculate the direction vector from the first to the second point
+                coor 1 get aload pop
+                /y1 exch def
+                /x1 exch def
+                /dx x1 x sub def
+                /dy y1 y sub def
+                % Normalize the vector
+                /len dx dx mul dy dy mul add sqrt def
+                len 0 ne {
+                    /dx dx len div def
+                    /dy dy len div def
+                } {
+                    /dx 0 def
+                    /dy 0 def
+                } ifelse
+                % Position the label opposite to the direction vector
+                0 0 0 setrgbcolor    % Black color for text
+                x dx offset mul sub y dy offset mul sub moveto
+                (5') show
+            } if
+            % Label the last point (3')
+            i coor length 1 sub eq {
+                % Calculate the direction vector from the second-last to the last point
+                coor i 1 sub get aload pop
+                /y0 exch def
+                /x0 exch def
+                /dx x x0 sub def
+                /dy y y0 sub def
+                % Normalize the vector
+                /len dx dx mul dy dy mul add sqrt def
+                len 0 ne {
+                    /dx dx len div def
+                    /dy dy len div def
+                } {
+                    /dx 0 def
+                    /dy 0 def
+                } ifelse
+                % Position the label in the direction of the vector
+                0 0 0 setrgbcolor    % Black color for text
+                x dx offset mul add y dy offset mul add moveto
+                (3') show
+            } if
+        } if
+    } def
+    % Loop through the coordinates to draw points and labels
+    0 1 coor length 1 sub {
+        dup draw_point
+    } for
 } def

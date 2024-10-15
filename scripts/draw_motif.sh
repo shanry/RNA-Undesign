@@ -44,41 +44,22 @@ poststring=$(echo "$line" | cut -d',' -f4) # annotation
 echo "prestring " $prestring
 echo "poststring " $poststring
 
+# Initialize an empty array to store the transformed second indices
+transformed_indices=()
+
+# Use awk to extract the first and second indices and subtract 1 from the second one
+while read -r first second; do
+    transformed_first=$((first - 1))    # Subtract 1 from the first index
+    transformed_second=$((second - 1))  # Subtract 1 from the second index
+    transformed_indices+=("$transformed_first" "$transformed_second")
+done < <(echo "$poststring" | awk '{for(i=1; i<=NF; i+=5) print $i, $(i+1)}')
+
+# Format the output in PostScript style
+skip_string="/my_list [${transformed_indices[*]}] def"
+echo "skip list:" $skip_string
+
 # exit
 
-# paircount=$(echo "$line" | cut -d',' -f4) # eterna ID
-# echo "paircount:" $paircount
-# # prestring="$first $second GREEN Fomark"
-
-# # for ((c=0; c<paircount; c++)) do
-# # 	i=$(echo "$line" | cut -d',' -f$((4+2*c)))
-# # 	j=$(echo "$line" | cut -d',' -f$((4+2*c+1)))
-# # 	prestring="$prestring $(($i+1)) $(($j+1)) 0 0.6 colorpair"
-# # 	echo "i:" $i  "j:" $j
-# # 	echo $prestring
-# # done
-# # exit 0
-# if [ $paircount -eq 1 ]; then
-# 	echo "one pair"
-# 	i=$(echo "$line" | cut -d',' -f5)
-# 	j=$(echo "$line" | cut -d',' -f6)
-# 	echo "i:" $i  "j:" $j
-# 	prestring="$(($i+1)) $(($j+1)) 0 5 8 Fomark"
-# elif [ $paircount -eq 2 ]; then
-# 	echo "two pairs"
-# 	i=$(echo "$line" | cut -d',' -f5)
-# 	j=$(echo "$line" | cut -d',' -f6)
-# 	k=$(echo "$line" | cut -d',' -f7)
-# 	l=$(echo "$line" | cut -d',' -f8)
-# 	echo "i:" $i  "j:" $j  "k:" $k  "l:" $l
-# 	prestring="$(($i+1)) $(($j+1)) $(($k+1)) $(($l+1)) 0 5 8 BFmark"
-# else
-# 	echo "more than two pairs"
-# 	exit 1
-# fi
-# # prestring="$first $second GREEN Fomark $prestring"
-# # echo $prestring
-# # exit 0
 # # -t 0 means layout mode 0 (default 1)
 echo -ne ">$id\n$seq\n$struct" | $VIENNA/bin/RNAplot -t $mode --pre "$prestring " --post "$poststring" # the final space is important to keep "" #"$span GREEN Fomark"
 
@@ -86,11 +67,10 @@ sed -i 's/fsize setlinewidth/8 setlinewidth/' ${id}_ss.ps # change line width
 sed -i '/\/colorpair/,/grestore/{s/hsb/1.0\n  sethsbcolor\n  3 pop/}' ${id}_ss.ps # change color
 sed -i 's/0.667 0.5 colorpair/0.583 1.0 colorpair/g' ${id}_ss.ps # change color
 sed -i 's/0.1667 1.0 colorpair/0.1083 1.0 colorpair/g' ${id}_ss.ps # change color
-
 cp ${id}_ss.ps ${id}.ps
 
 sed '/^init$/ {
-    r insert.ps
+    r scripts/insert.ps
 }
 s/^drawoutline$/drawarrows\ndrawpoints/
 s/^drawbases$//
@@ -99,6 +79,8 @@ s/^drawbases$//
 # s/^drawpairs$//
 
 ' ${id}.ps > ${id}_ss.ps
+
+sed -i "s|/my_list \[0\] def|$skip_string|" ${id}_ss.ps # skip list
 
 rm ${id}.ps
 
@@ -111,6 +93,8 @@ new_str="1 1 coor_len 2 sub"
 if [[ "$poststring" == *"$substring"* ]]; then
     # If substring_a is found, replace target_str with new_str in the file
     sed -i "s/$target_str/$new_str/g" "${id}_ss.ps"
+    sed -i "s/i 0 eq/i -2 eq/g" "${id}_ss.ps"
+    sed -i "s/i coor length 1 sub eq/i -2 eq/g" "${id}_ss.ps"
     echo "Replaced '$target_str' with '$new_str' in the file."
 else
     echo "Substring '$substring' not found in the file."
