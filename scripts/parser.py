@@ -350,8 +350,12 @@ def main_plot(motifs, mode='m'):
         counter[motif['id']] += 1
         if mode == 'm':
             motif['motif_id'] = '_'.join([str(motif['id']), "motif"+str(counter[motif['id']])])
+            if 'id_uniq' in motif:
+                motif['motif_id'] = str(motif['id_uniq']) # '_'.join(('uniq', str(motif['id_uniq'])))
         elif mode == 'y':
             motif['ymotif_id'] = '_'.join([str(motif['id']), "ymotif"+str(counter[motif['id']])])
+            if 'id_in_structure' in motif:
+                motif['ymotif_id'] = motif['id_in_structure']
         plot_lines.append('"'+motif2plotstr(motif)+'"'+"\n")
     path_output = args.path + f'.{mode}plotstr'
     with open(path_output, 'w') as f:
