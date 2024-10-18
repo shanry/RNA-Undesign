@@ -270,10 +270,42 @@ def count_occurs(uniqs):
 			print()
 
 
+def gen_dotprnths(path):
+	uniq_trees = []
+	strs = []
+	uniq_strs = set()
+	str2id = {}
+	for i, line in enumerate(open(path)):
+		js = json.loads(line)
+		tree = Node(js['motif'])
+		if str(tree) not in uniq_strs: # if original tree is not in uniq_strs
+			uniq_trees.append(tree)
+			uniq_strs.add(str(tree))
+			strs.append(str(tree))
+			str2id[str(tree)] = i+1
+			for newtree in tree.rotated(0):
+				newstr = str(newtree)
+				assert newstr not in uniq_strs or str2id[newstr] == i+1, str(i+1) + ':\t' + str(str2id[newstr]) + '\n' + line # then otated trees should not be in uniq_strs
+				if newstr not in uniq_strs:
+					uniq_strs.add(newstr)
+					strs.append(newstr)
+					str2id[newstr] = i+1
+	print('total trees:', len(uniq_trees), 'uniq strs:', len(strs))
+	with open(path + '.dotprnths', 'w') as f:
+		for s in strs:
+			f.write(s + '\n')
+	print('output:', path + '.dotprnths')
+
+
 if __name__ == "__main__":
 	uniqs = defaultdict(list) # loop-signature -> [motifs]
 	path = sys.argv[1]
 	print('path:', path)
-	uniqs = dedup_lines(path)
-	# uniqs = dedup(path)
-	count_occurs(uniqs)
+	alg = sys.argv[2] if len(sys.argv) > 2 else 'dedup_lines'
+	print('alg:', alg)
+	if alg == 'dedup_lines':
+		uniqs = dedup_lines(path)
+		# uniqs = dedup(path)
+		count_occurs(uniqs)
+	elif alg == 'dotpr':
+		gen_dotprnths(path)
