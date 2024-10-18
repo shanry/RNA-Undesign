@@ -5,6 +5,15 @@
 pdf_path=$1
 echo "pdf path:" $pdf_path
 
+flag_angle=0
+if [ $# -gt 1 ]; then
+  angle=$2
+  flag_angle=1
+else
+  flag_angle=0
+fi
+echo "angle:" $angle
+
 # Get the basename (file name)
 file_name=$(basename "$pdf_path")
 echo "File name: $file_name"
@@ -13,6 +22,15 @@ echo "File name: $file_name"
 dir_name=$(dirname "$pdf_path")
 echo "Directory path: $dir_name"
 
+# Rotate the pdf according to the user-defined angle
+if [ $flag_angle -eq 1 ]; then
+  pdfjam --angle $angle --outfile ${file_name}-${angle}.pdf $pdf_path > /dev/null
+  echo "------------------------"
+  echo "final output: ${file_name}-${angle}.pdf"
+  exit 0
+fi
+
+exit 0
 
 # code for automatic rotation without pdfjam
 rm -f /tmp/angles
