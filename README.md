@@ -45,7 +45,8 @@ $ make main_nosh_mac  # turn off special hairpins
 ## Loop + Powerset of neighbor loop(s)
 ```
 # echo SEQUENCE | ./bin/main --alg online
-echo ".((......((......))......((......((......))......((......))......))......))....." | ./bin/main --alg online
+$export OMP_NUM_THREADS=8 # parallel computing eabled by OpenMP
+$echo ".((......((......))......((......((......))......((......))......))......))....." | ./bin/main --alg online
 ```
 
 ### Loop + 1 Neighbor
