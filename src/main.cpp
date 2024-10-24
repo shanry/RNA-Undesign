@@ -2712,10 +2712,11 @@ void online_process(std::string y, std::string path_prefix=""){
             }
         }
     }
+    std::cout<<"count undesignable: "<<records.size()<<std::endl;
     for (auto r: records)
         std::cout<<r<<std::endl;
-    std::cout<< "count designable: " << count_designable << std::endl;
-    std::cout << "designable records: " << records_designable.size() << std::endl;
+    // std::cout<< "count designable: " << count_designable << std::endl;
+    // std::cout << "designable records: " << records_designable.size() << std::endl;
     // Close the file
     outputFile.close();
     designableLibFile.close();
