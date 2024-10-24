@@ -3047,34 +3047,37 @@ int main(int argc, char* argv[]) {
         std::string ref;
         std::string cst;
         // Read input line by line until EOF (end of file) is reached
-        while (std::getline(std::cin, seq)) {
-            getline(std::cin, target);
+        while (std::getline(std::cin, target)) {
+            // getline(std::cin, target);
             getline(std::cin, cst);
-            getline(std::cin, ref);
-                printf(" count: %d\n", countOccurrences(cst, '?'));
-                printf("target: %s\n", target.c_str());
-                printf("constr: %s\n", cst.c_str());
-                printf("   ref: %s\n", ref.c_str());
-                TreeNode* root = parseStringToTree(target);
-                int max_internal = max_single(root);
-                // if(max_internal > 30){        
-                //     std::cout<<"the internal loop is too long: "<<max_internal<<std::endl;            
-                //     continue;
+            // getline(std::cin, ref);
+            seq = tg_init(target);
+            ref = cst;
+            std::replace(ref.begin(), ref.end(), '?', '.');
+            printf(" count: %d\n", countOccurrences(cst, '?'));
+            printf("target: %s\n", target.c_str());
+            printf("constr: %s\n", cst.c_str());
+            printf("   ref: %s\n", ref.c_str());
+            TreeNode* root = parseStringToTree(target);
+            int max_internal = max_single(root);
+            // if(max_internal > 30){        
+            //     std::cout<<"the internal loop is too long: "<<max_internal<<std::endl;            
+            //     continue;
+            // }
+            std::cout<<"max internal loop length: "<<max_internal<<std::endl;
+            if (true){
+                std::string result = alg_5_helper_v2(target, ref, cst, seq, verbose, dangle);
+                std::cout<<"result: "<<result<<std::endl;
+                // if (result == "undesignable"){
+                //     // printf("undesignable span: %d\t", lc.node->first);
+                //     for(auto child: lc.node->children){
+                //         printf("%d\t%d\t", child->first, child->second);
+                //     }
+                //     printf("%d\n", lc.node->second);
+                //     break;
                 // }
-                std::cout<<"max internal loop length: "<<max_internal<<std::endl;
-                if (true){
-                    std::string result = alg_5_helper_v2(target, ref, cst, seq, verbose, dangle);
-                    std::cout<<"result: "<<result<<std::endl;
-                    // if (result == "undesignable"){
-                    //     // printf("undesignable span: %d\t", lc.node->first);
-                    //     for(auto child: lc.node->children){
-                    //         printf("%d\t%d\t", child->first, child->second);
-                    //     }
-                    //     printf("%d\n", lc.node->second);
-                    //     break;
-                    // }
-                }
-                printf("\n");
+            }
+            printf("\n");
             // }
         }
     }else if (alg == "n1" || alg == "n2" || alg == "n3"){ /* edges evaluation  */
