@@ -40,7 +40,13 @@ $ make main_nosh_mac  # turn off special hairpins
 <img src="figs/rotation_invariance_86.png" width="640">
 </p>
 
-## Scalable Identification of Minimum Undesignable Motifs
+## Scalable and Interpretable Identification of Minimal Undesignable Motifs
+
+## Loop + Powerset of neighbor loop(s)
+```
+# echo SEQUENCE | ./bin/main --alg online
+echo ".((......((......))......((......((......))......((......))......))......))....." | ./bin/main --alg online
+```
 
 ### Loop + 1 Neighbor
 ```
