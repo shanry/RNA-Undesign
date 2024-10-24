@@ -3068,7 +3068,9 @@ int main(int argc, char* argv[]) {
             std::cout<<"max internal loop length: "<<max_internal<<std::endl;
             if (true){
                 std::string result = alg_5_helper_v2(target, ref, cst, seq, verbose, dangle);
-                std::cout<<"result: "<<result<<std::endl;
+                std::cout<<"output y_star: "<<target<<std::endl;
+                std::cout<<"output constr: "<<cst<<std::endl;
+                std::cout<<"output result: "<<result<<std::endl;
                 // if (result == "undesignable"){
                 //     // printf("undesignable span: %d\t", lc.node->first);
                 //     for(auto child: lc.node->children){
