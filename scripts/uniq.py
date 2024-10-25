@@ -22,6 +22,8 @@ import sys
 import json
 from collections import defaultdict
 
+import numpy as np
+
 from parser import get_mplotstr2
 
 
@@ -67,6 +69,7 @@ class Node:
 						assert False, "E loop; TODO"
 		# if self.child_id == -1:
 		# 	assert len(self.children) == 1, str(jsontree)
+
 
 	def pp(self, dep=0):
 		print(" |" * dep, self.type, len(self.children), self.unpaired_bases, self.child_id)
@@ -144,6 +147,113 @@ class Node:
 		return result
 
 
+class PairNode:
+
+	def __init__(self, pair, children=None, type='unknown', child_id=-1, parent=None):
+		self.pair = pair
+		self.type = type  # no external loop type
+		self.unpaired_bases = []
+		if children is None:
+			children = []  # Initialize to an empty list if not provided
+		self.children = children
+		self.child_id = child_id
+		self.parent = parent
+	
+	@classmethod
+	def string2node(cls, s): # dotbracket to Node, e.g., ((*).(...(*)).), ((*).(.((*))).)
+		root = PairNode((-1, -1), type='p')
+		stack = []
+		stack.append(root)
+		for i, c in enumerate(s):
+			# print(i, c)
+			if c == '(':
+				stack.append(PairNode((i, -1)))
+			elif c == ')':
+				# print('len(stack):', len(stack))
+				pair_node = stack.pop()
+				pair_node.pair = (pair_node.pair[0], i)
+				# print(pair_node.pair, '->', stack[-1].pair)
+				# print(stack[-1].children)
+				stack[-1].children.append(pair_node)
+				pair_node.parent = stack[-1]
+				pair_node.child_id = len(stack[-1].children) - 1
+				assert pair_node.pair[0] >= 0
+				if pair_node.pair[1] - pair_node.pair[0] == 2: # leaf node
+					pair_node.type = 'p'
+				elif len(pair_node.children) == 0: # hairpin
+					pair_node.type = 'H'
+					pair_node.unpaired_bases = [pair_node.pair[1] - pair_node.pair[0] - 1]
+				elif len(pair_node.children) == 1: # internal loop
+					pair_node.type = 'I'
+					pair_node.unpaired_bases = [pair_node.children[0].pair[0] - pair_node.pair[0] - 1, pair_node.pair[1] - pair_node.children[0].pair[1] - 1]
+				else: # multi-loop
+					pair_node.type = 'M'
+					pair_node.unpaired_bases = [pair_node.children[0].pair[0] - pair_node.pair[0] - 1]
+					for j in range(len(pair_node.children) - 1):
+						pair_node.unpaired_bases.append(pair_node.children[j+1].pair[0] - pair_node.children[j].pair[1] - 1)
+					pair_node.unpaired_bases.append(pair_node.pair[1] - pair_node.children[-1].pair[1] - 1)
+				# print(pair_node.pair, len(pair_node.children), pair_node.type, pair_node.unpaired_bases)
+		assert len(stack) == 1
+		return root
+	
+	def to_dotbracket(self):
+		result = ""
+		if self.type == 'p':
+			if self.child_id == -1:
+				assert len(self.children) == 1, str(len(self.children))
+				result = self.children[0].to_dotbracket()
+			else:
+				result = "(*)"
+		elif self.type == 'H':
+			result = "(" + "." * self.unpaired_bases[0] + ")"
+		else:
+			result = ""
+			if self.type != "E":
+				result += "("
+			result += "." * self.unpaired_bases[0]
+			for i, child in enumerate(self.children):
+				result += child.to_dotbracket()
+				assert i + 1 < len(self.unpaired_bases)
+				result += "." * self.unpaired_bases[i+1]
+			if self.type != "E":
+				result += ")"
+		return result
+	
+
+	def __str__(self):
+		return self.to_dotbracket()
+	
+
+	def make_tree(self, child_id):
+		tree = Node(child_id=child_id)
+		tree.type = self.type
+		tree.parent = self
+		tree.unpaired_bases = self.unpaired_bases[:]
+		tree.child_id = child_id
+		if self.parent is not None:
+			# rotate children/parent
+			parent_as_child = self.parent.make_tree(self.child_id)			
+			tree.children = self.children[child_id+1:] \
+			           + [parent_as_child] \
+			           + self.children[:child_id]
+			# rotate unpaired segments
+			tree.unpaired_bases = self.unpaired_bases[child_id+1:] + self.unpaired_bases[:child_id+1]
+		return tree
+
+	def rotated(self, dep=0): # returns a lazylist of rotated trees from each leaf p node
+		if dep == 0 and self.type == "53":
+			return
+		elif dep == 0 and self.type == "p":
+			for child in self.children:
+				for tree in child.rotated(dep+1):
+					yield tree
+		elif dep > 0 and self.type == "p":
+			# make a new tree from this node
+			yield self.make_tree(-1)
+		else:
+			for child in self.children:
+				for tree in child.rotated(dep+1):
+					yield tree
 
 def loop_stats(tree, cache=None): # returns {B:1, M:3, ..}
 	if cache is None:
@@ -242,6 +352,8 @@ def dedup_lines(path):
 	# 			print(json.dumps(js['motif']))
 	print("struct. uniq:", len(id_uniqs), "\tmotif total:", total, "\tmotif uniq (min):", f"{sum(map(len, uniqs.values()))} ({sum(map(len, min_uniqs.values()))})")
 	print("lengths:", sorted(lengths))
+	print("average length:", np.mean(lengths))
+	print("median  length:", np.median(lengths))
 	print(sorted(list(id_uniqs)))
 	filename = path + '.uniq'
 	with open(filename, 'w') as f:
@@ -297,6 +409,57 @@ def gen_dotprnths(path):
 	print('output:', path + '.dotprnths')
 
 
+def conditioned_count(path, func_condition):
+	uniqs = defaultdict(list) # loop-signature -> [motifs]
+	min_uniqs = defaultdict(list) # loop-signature -> [motifs]
+	id_uniqs = set()
+	lines_uniqs = []
+	lengths = []
+	for i, line in enumerate(open(path)):
+		js = json.loads(line)
+		if not func_condition(js):
+			continue
+		id_uniqs.add(js['id'])
+		# js_full = json.loads(line)
+		ids, motif = js['motif']['id'], js['motif']['root']
+		signature = str(sorted(loop_stats(motif).items())) # "{B:1, M:3, ..}"
+		tree = Node(js['motif'])
+		all_trees_rotated = []
+		all_trees_rotated.append(tree)
+		all_rotations = set([str(tree)])
+		# print(str(tree))
+		# print(tree.to_bfs())
+		for newtree in tree.rotated(0):
+			all_trees_rotated.append(newtree)
+			all_rotations.add(str(newtree))
+		# for rt in all_trees_rotated:
+		# 	print(rt.to_bfs())
+		# for rt in all_trees_rotated:
+		# 	print(str(rt))
+		for othertree, otherjss in uniqs[signature]:
+			if str(othertree) in all_rotations:
+				otherjss.append(js)
+				break
+		else: # new uniq
+			uniqs[signature].append((tree, [js]))
+			# print(Node.to_string(tree))
+			lines_uniqs.append(line)
+			# print(tree, ids, len(lines_uniqs), signature)
+			if js['ismin']:
+				min_uniqs[signature].append((tree, [js]))
+			lengths.append(get_length(js))
+	total = 0
+	for signature in uniqs:
+		for tree, jss in uniqs[signature]:
+			total += len(jss)
+	# 		for js in jss:
+	# 			print(json.dumps(js['motif']))
+	print("struct. uniq:", len(id_uniqs), "\tmotif total:", total, "\tmotif uniq (min):", f"{sum(map(len, uniqs.values()))} ({sum(map(len, min_uniqs.values()))})")
+	print("lengths:", sorted(lengths))
+	# print(sorted(list(id_uniqs)))
+	print('-----------------------------------')
+
+
 if __name__ == "__main__":
 	uniqs = defaultdict(list) # loop-signature -> [motifs]
 	path = sys.argv[1]
@@ -309,3 +472,20 @@ if __name__ == "__main__":
 		count_occurs(uniqs)
 	elif alg == 'dotpr':
 		gen_dotprnths(path)
+	elif alg == 'cond':
+		for family in ['16s', '23s', '5s', 'srp', 'grp1', 'tmRNA', 'RNaseP', 'telomerase', 'tRNA']:
+			print('family:', family)
+			conditioned_count(path, lambda js: family in js['id'])
+	elif alg == 'mstr': # cat data/short14_undesignable_dg0.txt | ./scripts/uniq.py xx mstr
+		uniq_trees = []
+		all_strs = set()
+		for line in sys.stdin:
+			s = line.strip()
+			node = PairNode.string2node(s)
+			if str(node) not in all_strs:
+				uniq_trees.append(node)
+				all_strs.add(str(node))
+				for rt in node.rotated(0):
+					if str(rt) not in all_strs:
+						all_strs.add(str(rt))
+		print('total trees:', len(all_strs), 'uniq strs:', len(uniq_trees))
