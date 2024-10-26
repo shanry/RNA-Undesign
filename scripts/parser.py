@@ -331,8 +331,8 @@ def main_plot_rival(motifs, mode='r'):
     counter = Counter()
     plot_lines = []
     for im, motif in enumerate(motifs):
-        counter[motif['id']] += 1
-        motif['motif_id'] = '_'.join([str(motif['id']), "motif"+str(counter[motif['id']])])
+        counter[motif['id_uniq']] += 1
+        motif['motif_id'] = '_'.join([str(motif['id_uniq']), "motif"+str(counter[motif['id_uniq']])])
         for ir, rival in enumerate(motif['y_rivals']):
             motif['rival_id'] = '_'.join([motif['motif_id'], "rival"+str(ir+1)])
             plot_lines.append('"'+get_rival_motif_plotstr(motif, rival)+'"'+"\n")
@@ -362,11 +362,21 @@ def main_plot(motifs, mode='m'):
         f.writelines(plot_lines)
 
 
+def main_time(motifs):
+    time_list = []
+    for motif in motifs:
+        time_list.append(motif['time'])
+    print('time_list:', time_list)
+    print('max time:', max(time_list))
+    print('min time:', min(time_list))
+    print('average time:', sum(time_list)/len(time_list))
+
+
 if __name__ == '__main__':
 
     parser = argparse.ArgumentParser()
     parser.add_argument("--path", '-p', type=str, default='9families_free/telomerase_ref.txt.pn.log.20240923174211.txt')
-    parser.add_argument("--mode", '-m', type=str, default='m') # m: motif, y: original structure
+    parser.add_argument("--mode", '-m', type=str, default='m') # m: motif, y: original structure, r: rival, t: running time
 
     args = parser.parse_args()
     print('args:')
@@ -375,5 +385,7 @@ if __name__ == '__main__':
     json_motifs = get_motifs(args.path)
     if args.mode == 'r':
         main_plot_rival(json_motifs)
+    elif args.mode == 't':
+        main_time(json_motifs)
     else:
         main_plot(json_motifs, args.mode)
