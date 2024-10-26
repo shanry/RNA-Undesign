@@ -13,6 +13,7 @@ objects=bin/*
 all: main main_nosh
 all_mac: main_mac main_nosh_mac
 
+$(shell mkdir -p bin)
 
 main: bin/main.o bin/utils.o bin/comps.o bin/eval.o
 	$(CC)  $(CFLAGS)  bin/main.o bin/utils.o bin/comps.o bin/eval.o  -o bin/main
