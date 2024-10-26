@@ -227,7 +227,8 @@ class PairNode:
 	def make_tree(self, child_id):
 		tree = Node(child_id=child_id)
 		tree.type = self.type
-		tree.parent = self
+		if child_id == -1:
+			tree.parent = self.children[child_id]
 		tree.unpaired_bases = self.unpaired_bases[:]
 		tree.child_id = child_id
 		if self.parent is not None:
@@ -354,6 +355,8 @@ def dedup_lines(path):
 	print("lengths:", sorted(lengths))
 	print("average length:", np.mean(lengths))
 	print("median  length:", np.median(lengths))
+	print("max    length:", np.max(lengths))
+	print("min    length:", np.min(lengths))
 	print(sorted(list(id_uniqs)))
 	filename = path + '.uniq'
 	with open(filename, 'w') as f:
@@ -480,6 +483,8 @@ if __name__ == "__main__":
 		uniq_trees = []
 		all_strs = set()
 		for line in sys.stdin:
+			if line.strip() == '..' or line.strip() == '...' or line.strip() == '....':
+				continue
 			s = line.strip()
 			node = PairNode.string2node(s)
 			if str(node) not in all_strs:
@@ -489,3 +494,5 @@ if __name__ == "__main__":
 					if str(rt) not in all_strs:
 						all_strs.add(str(rt))
 		print('total trees:', len(all_strs), 'uniq strs:', len(uniq_trees))
+		for tree in uniq_trees:
+			print(str(tree))
