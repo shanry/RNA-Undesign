@@ -8,13 +8,20 @@ if [ -z "${VIENNA}" ]; then
     VIENNA=~/biology/ViennaRNA-2.5.1
 fi
 echo "\$VIENNA: $VIENNA"
-
 mode=0
+if [ -z "${PLMD}" ]; then
+    mode=0
+else
+    mode=$PLMD
+fi
 echo "mode:" $mode
 
 # read -r line
 line=$1
 echo $line
+
+# drawfunction=${2:-drawpoints}
+echo "drawfunction:" $drawfunction
 
 id=$(echo "$line" | cut -d',' -f1) #  ID
 prestring=$(echo "$line" | cut -d',' -f3) # annotation
@@ -66,6 +73,7 @@ echo -ne ">$id\n$seq\n$struct" | $VIENNA/bin/RNAplot -t $mode --pre "$prestring 
 sed -i 's/fsize setlinewidth/8 setlinewidth/' ${id}_ss.ps # change line width
 sed -i '/\/colorpair/,/grestore/{s/hsb/1.0\n  sethsbcolor\n  3 pop/}' ${id}_ss.ps # change color
 sed -i 's/0.667 0.5 colorpair/0.583 1.0 colorpair/g' ${id}_ss.ps # change color
+sed -i 's/0.70 0.5 colorpair/0.583 1.0 colorpair/g' ${id}_ss.ps # change color
 sed -i 's/0.1667 1.0 colorpair/0.1083 1.0 colorpair/g' ${id}_ss.ps # change color
 cp ${id}_ss.ps ${id}.ps
 
@@ -73,8 +81,10 @@ sed '/^init$/ {
     r scripts/insert.ps
 }
 s/^drawoutline$/drawarrows\ndrawpoints/
+# s/^drawoutline$/drawpoints\ndrawarrows/
+# s/^drawoutline$/drawarrows/
 s/^drawbases$//
-
+s/BoundingBox: 0 0/BoundingBox: -10 -10/
 ## disable drawpairs
 # s/^drawpairs$//
 
@@ -101,6 +111,7 @@ else
 fi
 
 ps2pdf -dEPSCrop ${id}_ss.ps # bounding box
+# mv ${id}_ss.pdf ${id}.pdf
 # crop margin automatically; alternative way: pdfcrop ${id}_ss.pdf
 pdfcropmargins -v -u -s ${id}_ss.pdf -o ${id}_ss-crop.pdf # pip install pdfCropMargins
 mv ${id}_ss-crop.pdf ${id}.pdf # final output
@@ -111,37 +122,3 @@ mv ${id}.pdf outputs/ # move to outputs folder
 
 echo "final output: outputs/${id}.pdf"
 exit
-
-# code for automatic rotation
-# rm -f /tmp/angles
-# for angle in `seq 0 30 179` # every 30 degrees
-# do
-# 	echo "rotating", $angle
-# 	pdfjam --angle $angle --outfile /tmp/${id}-${angle}.pdf ${id}.pdf
-# 	pdfcrop /tmp/${id}-${angle}.pdf
-# 	(echo -ne "$angle\t"; ./bbox.py /tmp/${id}-${angle}-crop.pdf) >> /tmp/angles
-# done
-
-# bestangle=`cat /tmp/angles | sort -nk3 | head -1 | cut -f 1` # smallest height (y)
-# echo crude best angle, $bestangle
-
-# low=$((bestangle-20))
-# high=$((bestangle+20))
-
-# echo trying refined angles from $low to $high
-
-# for angle in `seq $low 5 $high` # every 5 degrees
-# do
-# 	echo "rotating", $angle
-# 	pdfjam --angle $angle --outfile /tmp/${id}-${angle}.pdf ${id}.pdf
-# 	pdfcrop /tmp/${id}-${angle}.pdf
-# 	(echo -ne "$angle\t"; ./bbox.py /tmp/${id}-${angle}-crop.pdf) >> /tmp/angles
-# done
-
-# bestangle=`cat /tmp/angles | sort -nk3 | head -1 | cut -f 1` # smallest height (y)
-# echo refined best angle, $bestangle
-# rm ${id}.pdf
-# mv /tmp/${id}-${bestangle}-crop.pdf ${id}_loop.pdf
-# echo "final output: ${id}_loop.pdf"
-# echo "------------------------"
-# echo
