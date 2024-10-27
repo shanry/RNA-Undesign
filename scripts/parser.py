@@ -345,7 +345,7 @@ def main_plot(motifs, mode='m'):
     counter = Counter()
     plot_lines = []
     motif2plotstr = get_mplotstr if mode == 'm' else get_yplotstr
-    print('motif2plotstr:', motif2plotstr)
+    # print('motif2plotstr:', motif2plotstr)
     for i, motif in enumerate(motifs):
         counter[motif['id']] += 1
         if mode == 'm':
@@ -360,6 +360,7 @@ def main_plot(motifs, mode='m'):
     path_output = args.path + f'.{mode}plotstr'
     with open(path_output, 'w') as f:
         f.writelines(plot_lines)
+    print(path_output)
 
 
 def main_time(motifs):
@@ -379,8 +380,8 @@ if __name__ == '__main__':
     parser.add_argument("--mode", '-m', type=str, default='m') # m: motif, y: original structure, r: rival, t: running time
 
     args = parser.parse_args()
-    print('args:')
-    print(args)
+    # print('args:')
+    # print(args)
 
     json_motifs = get_motifs(args.path)
     if args.mode == 'r':
