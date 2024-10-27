@@ -36,7 +36,13 @@ def align(path_uniq, path_nonuniq):
             js['family2count'] = {}
             js['occurrences'] = []
             js['length'] = get_length(js)
+            js['cardinality'] = len(js['ipairs']) + 1
+            js['has_external'] = True if js['bpairs'][0] == -1 else False
             motif_tree = Node(js['motif'])
+            motf_strs = [str(motif_tree)]
+            for newtree in motif_tree.rotated(0):
+                motf_strs.append(str(newtree))
+            js['dot-bracket'] = motf_strs # all possible dotbrackets
             dotbracket2motif[str(motif_tree)] = js['id_uniq']
             for newtree in motif_tree.rotated(0):
                 dotbracket2motif[str(newtree)] = i+1
@@ -55,7 +61,7 @@ def align(path_uniq, path_nonuniq):
             assert motif_str in dotbracket2motif
             id_uniq = dotbracket2motif[motif_str]
             js['id_uniq'] = id_uniq
-            js['id_in_structure'] = js['id'] + '_ymotif' + str(counter[js['id']])+'_mode0'
+            js['id_in_structure'] = js['id'] + '_ymotif' + str(counter[js['id']])
             family = js['id'].split('_')[0]
             motifs_uniq[id_uniq-1]['family2count'][family] = motifs_uniq[id_uniq-1]['family2count'].get(family, 0) + 1
             motifs_uniq[id_uniq-1]['occurrences'].append(js['id_in_structure'])
@@ -75,6 +81,8 @@ def align(path_uniq, path_nonuniq):
             d['id_uniq'] = motif['id_uniq']
             d['family2count'] = motif['family2count']
             d['occurrences'] = motif['occurrences']
+            d['length'] = motif['length']
+            d['has_external'] = motif['has_external']
             print(d)
 
 
