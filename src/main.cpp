@@ -21,11 +21,13 @@
 #include "utils.h"
 #include "comps.h"
 #include "eval.h"
+#include <thread>
 using namespace std;
 
 #define MAX_ENUM 10000000000
 #define MAX_CONSTRAINT 100000
 #define MAX_SEQ 500
+#define MAX_RIVAL 100
 
 
 /* Old compatibility names for C types.  */
@@ -684,7 +686,7 @@ std::string alg_2(std::string& ref1, std::set<std::string>& refs_checked, std::v
         }
         return "no more new y_prime";
     }
-    if (cs_vec.size() < 100)
+    if (cs_vec.size() < MAX_RIVAL)
         return alg_2(ref1, refs_checked, cs_vec, verbose, dangle_model);
     else{
         std::cout<<"no conclusion!"<<std::endl;
@@ -805,7 +807,7 @@ std::string alg_2_cs(std::string& ref1, std::set<std::string>& refs_checked, std
         }
         return "no more new y_prime";
     }
-    if (cs_vec.size() < 100)
+    if (cs_vec.size() < MAX_RIVAL)
         return alg_2_cs(ref1, refs_checked, cs_vec, verbose, dangle_model);
     else{
         std::cout<<"no conclusion!"<<std::endl;
@@ -1123,7 +1125,7 @@ std::string alg_5_cs(std::string& ref1, std::set<std::string>& refs_checked, std
         }
         return "no more new y_prime";
     }
-    if (cs_vec.size() < 100)
+    if (cs_vec.size() < MAX_RIVAL)
         return alg_5_cs(ref1, refs_checked, cs_vec, constr, verbose, dangle_model);
     else{
         std::cout<<"no conclusion!"<<std::endl;
@@ -1262,7 +1264,7 @@ std::string alg_5_cs_plus(std::string& ref1, std::set<std::string>& refs_checked
         }
         return "no more new y_prime";
     }
-    if (cs_vec.size() < 100)
+    if (cs_vec.size() < MAX_RIVAL)
         return alg_5_cs(ref1, refs_checked, cs_vec, constr, verbose, dangle_model);
     else{
         std::cout<<"no conclusion!"<<std::endl;
@@ -2721,6 +2723,49 @@ void online_process(std::string y, std::string path_prefix=""){
     outputFile.close();
     designableLibFile.close();
     std::cout << "Strings written to file: " << fileName << std::endl;
+    if (records.size() > 0){
+        std::string cmd_str = "./scripts/parser.py -m y -p " + fileName;
+        std::cout<<"extracting plotstr: "<<cmd_str<<std::endl;
+        const char* cmd_cstr = cmd_str.c_str();
+        std::string path_plotstr = exec_command(cmd_cstr);
+        path_plotstr = path_plotstr.substr(0, path_plotstr.size()-1);
+        cout << path_plotstr << endl;
+        std::ifstream plotFile(path_plotstr);
+        std::string line;
+        // Check if the file exists and is open
+        int retry_count = 5;
+        while (!plotFile.is_open() && retry_count > 0) {
+            std::cerr << "Error opening the file: " << path_plotstr << ". Retrying..." << std::endl;
+            std::this_thread::sleep_for(std::chrono::milliseconds(100));
+            plotFile.open(path_plotstr);
+            retry_count--;
+        }
+        if (!plotFile.is_open()) {
+            std::cerr << "Error opening the file after retries: " << path_plotstr << std::endl;
+            return;
+        }
+        std::vector<std::string> path_plots;
+        while (std::getline(plotFile, line)) {
+            // std::cout << line << std::endl;
+            std::string cmd_draw = "./scripts/draw_motif.sh " + line;
+            std::cout << "drawing motif: " << cmd_draw << std::endl;
+            const char* cmd_draw_cstr = cmd_draw.c_str();
+            std::string output_draw = exec_command(cmd_draw_cstr);
+            std::istringstream iss(output_draw);
+            std::string last_line;
+            std::string line;
+            while (std::getline(iss, line)) {
+                last_line = line;
+            }
+            std::cout << last_line << std::endl;
+            path_plots.push_back(last_line);
+        }
+        plotFile.close();
+        std::cout<<"-----------------"<<std::endl;
+        for(auto path_plot: path_plots){
+            std::cout<<path_plot<<std::endl;
+        }
+    }
 }
 
 void show_configuration(){
