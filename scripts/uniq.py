@@ -90,7 +90,9 @@ class Node:
 	def make_tree(self, child_id):
 		tree = Node(child_id=child_id)
 		tree.type = self.type
-		tree.parent = self
+		# tree.parent = self
+		if child_id != -1:
+			tree.parent = self.children[child_id]
 		tree.unpaired_bases = self.unpaired_bases[:]
 		tree.child_id = child_id
 		if self.parent is not None:
