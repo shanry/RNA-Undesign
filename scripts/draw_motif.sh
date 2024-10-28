@@ -77,8 +77,16 @@ sed -i 's/0.70 0.5 colorpair/0.583 1.0 colorpair/g' ${id}_ss.ps # change color
 sed -i 's/0.1667 1.0 colorpair/0.1083 1.0 colorpair/g' ${id}_ss.ps # change color
 cp ${id}_ss.ps ${id}.ps
 
-sed '/^init$/ {
-    r scripts/insert.ps
+if [ -z "${PATH_FASTMOTIF}" ]; then
+    PATH_BASE=`pwd`
+else
+    echo "PATH_FASTMOTIF:" $PATH_FASTMOTIF
+    PATH_BASE=$PATH_FASTMOTIF
+fi
+echo "PATH_BASE:" $PATH_BASE
+
+sed "/^init$/ {
+    r ${PATH_BASE}/scripts/insert.ps
 }
 s/^drawoutline$/drawarrows\ndrawpoints/
 # s/^drawoutline$/drawpoints\ndrawarrows/
@@ -88,7 +96,7 @@ s/BoundingBox: 0 0/BoundingBox: -10 -10/
 ## disable drawpairs
 # s/^drawpairs$//
 
-' ${id}.ps > ${id}_ss.ps
+" ${id}.ps > ${id}_ss.ps
 
 sed -i "s|/my_list \[0\] def|$skip_string|" ${id}_ss.ps # skip list
 
@@ -110,10 +118,10 @@ else
     echo "Substring '$substring' not found in the file."
 fi
 
-ps2pdf -dEPSCrop ${id}_ss.ps # bounding box
+ps2pdf -dEPSCrop ${id}_ss.ps > /dev/null # bounding box
 # mv ${id}_ss.pdf ${id}.pdf
 # crop margin automatically; alternative way: pdfcrop ${id}_ss.pdf
-pdfcropmargins -v -u -s ${id}_ss.pdf -o ${id}_ss-crop.pdf # pip install pdfCropMargins
+pdfcropmargins -v -u -s ${id}_ss.pdf -o ${id}_ss-crop.pdf > /dev/null # pip install pdfCropMargins
 mv ${id}_ss-crop.pdf ${id}.pdf # final output
 rm ${id}_ss.p* # remove temp files
 

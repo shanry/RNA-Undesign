@@ -2724,7 +2724,15 @@ void online_process(std::string y, std::string path_prefix=""){
     designableLibFile.close();
     std::cout << "Strings written to file: " << fileName << std::endl;
     if (records.size() > 0){
-        std::string cmd_str = "./scripts/parser.py -m y -p " + fileName;
+        const char* PATH_FASTMOTIF_PTR = std::getenv("PATH_FASTMOTIF");
+        if(PATH_FASTMOTIF_PTR == NULL){
+            std::cerr << "Error: PATH_FASTMOTIF is not set" << std::endl;
+            return;
+        }else{
+            std::cout << "PATH_FASTMOTIF: " << PATH_FASTMOTIF_PTR << std::endl;
+        }
+        std::string PATH_FASTMOTIF(PATH_FASTMOTIF_PTR);
+        std::string cmd_str = PATH_FASTMOTIF + "/scripts/parser.py -m y -p " + fileName;
         std::cout<<"extracting plotstr: "<<cmd_str<<std::endl;
         const char* cmd_cstr = cmd_str.c_str();
         std::string path_plotstr = exec_command(cmd_cstr);
@@ -2747,7 +2755,7 @@ void online_process(std::string y, std::string path_prefix=""){
         std::vector<std::string> path_plots;
         while (std::getline(plotFile, line)) {
             // std::cout << line << std::endl;
-            std::string cmd_draw = "./scripts/draw_motif.sh " + line;
+            std::string cmd_draw = PATH_FASTMOTIF + "/scripts/draw_motif.sh " + line;
             std::cout << "drawing motif: " << cmd_draw << std::endl;
             const char* cmd_draw_cstr = cmd_draw.c_str();
             std::string output_draw = exec_command(cmd_draw_cstr);
