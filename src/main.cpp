@@ -2772,6 +2772,17 @@ void online_process(std::string y, std::string path_prefix=""){
         std::cout<<"-----------------"<<std::endl;
         for(auto path_plot: path_plots){
             std::cout<<path_plot<<std::endl;
+            cmd_str = "inkscape --without-gui --file=" + path_plot + " --export-plain-svg=" + path_plot + ".svg";
+            std::cout<<"converting to svg: "<<cmd_str<<std::endl;
+            const char* cmd_cstr2 = cmd_str.c_str();
+            try{
+                std::string output_svg = exec_command(cmd_cstr2);
+                std::cout<< path_plot + ".svg" <<std::endl;
+            }catch(const std::exception& e)
+            {
+                std::cerr << e.what() << '\n';
+                std::cout << "inkscape error!" << std::endl;
+            }
         }
     }
 }
