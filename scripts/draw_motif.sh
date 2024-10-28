@@ -128,5 +128,5 @@ rm ${id}_ss.p* # remove temp files
 mkdir -p outputs
 mv ${id}.pdf outputs/ # move to outputs folder
 
-echo "final output: outputs/${id}.pdf"
+echo "outputs/${id}.pdf"
 exit
