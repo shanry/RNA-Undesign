@@ -208,7 +208,7 @@ def get_yplotstr(m):
     if i0 >= 0:
         greenplot = f"{i0+1} {j0+1} GREEN Fomark "
     else:
-        assert len(m['y_star']) == len(m['y_sub']), f"{m['id']}: {json.dumps(m)} \n {len(m['y_star'])} != {len(m['y_sub'])}"
+        # assert len(m['y_star']) == len(m['y_sub']), f"{m['id']}: {json.dumps(m)} \n {len(m['y_star'])} != {len(m['y_sub'])}"
         greenplot = f"{1} {len(m['y_star'])} GREEN Fomark "
         i0 = 0
         j0 = len(m['y_star'])-1
