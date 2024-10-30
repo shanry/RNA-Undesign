@@ -30,15 +30,16 @@ $ make main_nosh  # turn off special hairpins
 $ make main_mac   
 $ make main_nosh_mac  # turn off special hairpins
 ```
-## Rotation Invariance of Motifs
+## Rival Motifs
 <p align="center">
-<img src="figs/rotation_invariance.png" width="700">
+<img src="figs/rivals.png" width="700">
 </p>
 
 ----
+## Rotation Invariance
 
 <p align="center">
-<img src="figs/rotation_invariance_86.png" width="640">
+<img src="figs/invariance.png" width="640">
 </p>
 
 ## Environment Variables
