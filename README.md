@@ -39,7 +39,7 @@ $ make main_nosh_mac  # turn off special hairpins
 ## Rotation Invariance
 
 <p align="center">
-<img src="figs/invariance.png" width="640">
+<img src="figs/invariance.png" width="700">
 </p>
 
 ## Environment Variables
