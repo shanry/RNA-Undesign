@@ -40,32 +40,15 @@ $ make main_nosh_mac  # turn off special hairpins
 <img src="figs/rotation_invariance_86.png" width="640">
 </p>
 
-## FastMotif 
-### Environment Variables
+## Environment Variables
 ```
 $export OMP_NUM_THREADS=8 # parallel computing eabled by OpenMP
 $export PATH_UNDESIGNABLE_LIB=path/to/lib_undesignable.txt
 $export PATH_DESIGNABLE_LIB/path/to/motifs/libs/lib_designable.txt
 ```
-### Loop + Powerset of neighbor loop(s)
+## FastMotif 
 ```
 $echo ".((......((......))......((......((......))......((......))......))......))....." | ./bin/main --alg fastmotif
-```
-
-#### Loop + 1 Neighbor
-```
-$./bin/main --alg n1
-..((((((((.......(.((((((....)))))).(((((((....))))))).).......))))))))..
-```
-#### Loop + 2 Neighbors
-```
-$./bin/main --alg n2
-.....((((.(...(.((((.(.((((.((.((((.((.(((....))).).)))))).)))))....).)))).)...).))))....................
-```
-#### Loop with 3+ Neighbors
-```
-$./bin/main --alg n3
-((.(((..(((.........)))..)))(...)(...((......)).).))
 ```
 ## RIGEND
 
