@@ -40,30 +40,30 @@ $ make main_nosh_mac  # turn off special hairpins
 <img src="figs/rotation_invariance_86.png" width="640">
 </p>
 
-## Scalable and Interpretable Identification of Minimal Undesignable Motifs
-
-## Loop + Powerset of neighbor loop(s)
-```
-# echo SEQUENCE | ./bin/main --alg online
-$export OMP_NUM_THREADS=8 # parallel computing eabled by OpenMP
-$echo ".((......((......))......((......((......))......((......))......))......))....." | ./bin/main --alg online
-```
-
-### Loop + 1 Neighbor
+## FastMotif 
+### Environment Variables
 ```
 $export OMP_NUM_THREADS=8 # parallel computing eabled by OpenMP
+$export PATH_UNDESIGNABLE_LIB=path/to/lib_undesignable.txt
+$export PATH_DESIGNABLE_LIB/path/to/motifs/libs/lib_designable.txt
+```
+### Loop + Powerset of neighbor loop(s)
+```
+$echo ".((......((......))......((......((......))......((......))......))......))....." | ./bin/main --alg fastmotif
+```
+
+#### Loop + 1 Neighbor
+```
 $./bin/main --alg n1
 ..((((((((.......(.((((((....)))))).(((((((....))))))).).......))))))))..
 ```
-### Loop + 2 Neighbors
+#### Loop + 2 Neighbors
 ```
-$export OMP_NUM_THREADS=8 # parallel computing eabled by OpenMP
 $./bin/main --alg n2
 .....((((.(...(.((((.(.((((.((.((((.((.(((....))).).)))))).)))))....).)))).)...).))))....................
 ```
-### Loop with 3+ Neighbors
+#### Loop with 3+ Neighbors
 ```
-$export OMP_NUM_THREADS=8 # parallel computing eabled by OpenMP
 $./bin/main --alg n3
 ((.(((..(((.........)))..)))(...)(...((......)).).))
 ```

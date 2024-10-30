@@ -21,11 +21,13 @@
 #include "utils.h"
 #include "comps.h"
 #include "eval.h"
+#include <thread>
 using namespace std;
 
 #define MAX_ENUM 10000000000
 #define MAX_CONSTRAINT 100000
 #define MAX_SEQ 500
+#define MAX_RIVAL 100
 
 
 /* Old compatibility names for C types.  */
@@ -55,6 +57,7 @@ std::vector<std::string> TetraHP{"",
 // middle positions can be AC(3), AA(2), CA(2), CC(1), GA(1), GC(2), UA(2), UC(2), UU(1)
 
 bool verbose = false;
+bool PLOT = false;
 int dangle = 2;
 
 int y_sub_start;
@@ -71,6 +74,54 @@ int SEED_RAND = 2024;
 // std::string PATH_DESIGNABLE_LIB = "lib_designable.txt";
 // std::string PATH_UNDESIGNABLE_LIB = "lib_undesignable.txt";
 
+class MotifLib{
+    public:
+        std::map<std::string, int> dotbracket2id;
+        int count_unique = 0;
+        
+        MotifLib(std::string path);
+
+        int getID(std::string dotbracket){
+            return dotbracket2id[dotbracket];
+        }
+
+        int getCount(){
+            return count_unique;
+        }
+
+        // int insert(std::string dotbracket){
+        //     if (dotbracket2id.count(dotbracket)==0){
+        //         dotbracket2id[dotbracket] = count_unique+1;
+        //         count_unique += 1;
+        //         return 1;
+        //     }
+        //     return 0;
+        // }
+
+        int insert(Node* tree){
+            std::string treestr = tree->toDotBracket();
+            if (dotbracket2id.count(treestr)==0){
+                std::set<std::string> rostrings;
+                dotbracket2id[treestr] = count_unique+1;
+                for(Node* rotree : tree->rotated(0)){
+                    std::string rotreestr = rotree->toDotBracket();
+                    if (dotbracket2id.count(rotreestr)==0)
+                        dotbracket2id[rotreestr] = count_unique + 1;
+                    else
+                        assert (rostrings.count(rotreestr)==1);
+                    delete rotree;
+                }
+                count_unique += 1;
+                return 1;
+            }
+            return 0;
+        }
+
+        bool count(std::string dotbracket){
+            return dotbracket2id.count(dotbracket);
+        }
+};
+
 // load lib from file
 std::set<std::string> loadLib(std::string path){
     std::set<std::string> lib;
@@ -78,18 +129,53 @@ std::set<std::string> loadLib(std::string path){
     std::string line;
     while (std::getline(file, line)){
         json js_record = json::parse(line);
+        std::set<std::string> rostrings;
         assert(!js_record["is_duplicated"]);
         Node* tree = new Node(js_record["motif"]);
         std::string treestr = tree->toDotBracket();
+        rostrings.insert(treestr);
+        assert (lib.count(treestr)==0);
         lib.insert(treestr);
         for(Node* rotree : tree->rotated(0)){
             std::string rotreestr = rotree->toDotBracket();
-            lib.insert(rotreestr);
+            if (lib.count(rotreestr)==0)
+                lib.insert(rotreestr);
+            else
+                assert (rostrings.count(rotreestr)==1);
+            rostrings.insert(rotreestr);
             delete rotree;
         }
         delete tree;
     }
     return lib;
+}
+
+MotifLib::MotifLib(std::string path){
+    std::ifstream file(path);
+    std::string line;
+    while (std::getline(file, line)){
+        json js_record = json::parse(line);
+        std::set<std::string> rostrings;
+        assert(!js_record["is_duplicated"]);
+        Node* tree = new Node(js_record["motif"]);
+        std::string treestr = tree->toDotBracket();
+        rostrings.insert(treestr);
+        assert (dotbracket2id.count(treestr)==0);
+        if (js_record["id_uniq"].empty())
+            js_record["id_uniq"] = count_unique + 1;
+        dotbracket2id[treestr] = js_record["id_uniq"].get<int>();
+        for(Node* rotree : tree->rotated(0)){
+            std::string rotreestr = rotree->toDotBracket();
+            if (dotbracket2id.count(rotreestr)==0)
+                dotbracket2id[rotreestr] = js_record["id_uniq"];
+            else
+                assert (rostrings.count(rotreestr)==1);
+            rostrings.insert(rotreestr);
+            delete rotree;
+        }
+        count_unique += 1;
+        delete tree;
+    }
 }
 
 ulong count_enum(std::vector<std::tuple<int, int>>& pairs_diff);
@@ -684,7 +770,7 @@ std::string alg_2(std::string& ref1, std::set<std::string>& refs_checked, std::v
         }
         return "no more new y_prime";
     }
-    if (cs_vec.size() < 100)
+    if (cs_vec.size() < MAX_RIVAL)
         return alg_2(ref1, refs_checked, cs_vec, verbose, dangle_model);
     else{
         std::cout<<"no conclusion!"<<std::endl;
@@ -805,7 +891,7 @@ std::string alg_2_cs(std::string& ref1, std::set<std::string>& refs_checked, std
         }
         return "no more new y_prime";
     }
-    if (cs_vec.size() < 100)
+    if (cs_vec.size() < MAX_RIVAL)
         return alg_2_cs(ref1, refs_checked, cs_vec, verbose, dangle_model);
     else{
         std::cout<<"no conclusion!"<<std::endl;
@@ -1123,7 +1209,7 @@ std::string alg_5_cs(std::string& ref1, std::set<std::string>& refs_checked, std
         }
         return "no more new y_prime";
     }
-    if (cs_vec.size() < 100)
+    if (cs_vec.size() < MAX_RIVAL)
         return alg_5_cs(ref1, refs_checked, cs_vec, constr, verbose, dangle_model);
     else{
         std::cout<<"no conclusion!"<<std::endl;
@@ -1262,7 +1348,7 @@ std::string alg_5_cs_plus(std::string& ref1, std::set<std::string>& refs_checked
         }
         return "no more new y_prime";
     }
-    if (cs_vec.size() < 100)
+    if (cs_vec.size() < MAX_RIVAL)
         return alg_5_cs(ref1, refs_checked, cs_vec, constr, verbose, dangle_model);
     else{
         std::cout<<"no conclusion!"<<std::endl;
@@ -2471,7 +2557,8 @@ void online_process(std::string y, std::string path_prefix=""){
         timeFile << "ID,Time(s)" << std::endl;
     }
     std::unordered_map<std::string, GroupY> constr2groupy;
-    // std::unordered_map<std::string, std::string> uniq_ud;
+    std::cout << "[ProgressInfo] Start loading motif libs ..." << std::endl;
+    auto time_start_load_lib = std::chrono::high_resolution_clock::now();
     const char*  var_undesignable_lib = std::getenv("PATH_UNDESIGNABLE_LIB");
     const char*  var_designable_lib = std::getenv("PATH_DESIGNABLE_LIB");
     if(var_undesignable_lib == NULL){
@@ -2484,8 +2571,15 @@ void online_process(std::string y, std::string path_prefix=""){
     }
     std::string path_undesignable_lib(var_undesignable_lib);
     std::string path_designable_lib(var_designable_lib);
-    std::set<std::string> uniq_ud = loadLib(path_undesignable_lib); // undesignable motifs
-    std::set<std::string> uniq_ds = loadLib(path_designable_lib);   // designable   motifs
+    // std::set<std::string> uniq_ud = loadLib(path_undesignable_lib); // undesignable motifs
+    // std::set<std::string> uniq_ds = loadLib(path_designable_lib);   // designable   motifs
+    MotifLib motiflib_ud(path_undesignable_lib);
+    MotifLib motiflib_ds(path_designable_lib);
+    std::cout<<"undesignable motiflib size: "<<motiflib_ud.count_unique<<std::endl;
+    std::cout<<"designable motiflib size: "<<motiflib_ds.count_unique<<std::endl;
+    auto time_end_load_lib = std::chrono::high_resolution_clock::now();
+    const std::chrono::duration<double, std::milli> time_ms_load_lib = time_end_load_lib - time_start_load_lib;
+    std::cout << "[ProgressInfo] Time cost for loading motif libs: " << time_ms_load_lib.count()/1000.f << " seconds" << std::endl;
     for(int i = 0; i < y_list.size(); i++){
         // auto row = df[i];
         {
@@ -2568,10 +2662,10 @@ void online_process(std::string y, std::string path_prefix=""){
                     //     continue;
                     // }
                     std::cout<<"treestr: "<<treestr<<std::endl;
-                    if(uniq_ds.find(treestr) != uniq_ds.end()){
+                    if(motiflib_ds.count(treestr)){
                         std::cout<<"already designable!"<<std::endl;
                         result = "designable";
-                    }else if(uniq_ud.find(treestr) != uniq_ud.end()){
+                    }else if(motiflib_ud.count(treestr)){
                         result = "undesignable";
                         std::cout<<"recur lc.constr: "<<lc.constr<<std::endl;
                         // std::cout<<"recur    groupy: "<<constr2groupy[lc.constr].constr<<std::endl;
@@ -2634,16 +2728,17 @@ void online_process(std::string y, std::string path_prefix=""){
                         y_sub = y_star; // set y_sub as y_star
                         y_rivals.clear(); // clear y_rivals
                         bool found_ds = false;
-                        if(uniq_ds.find(treestr) != uniq_ds.end()){
+                        if(motiflib_ds.count(treestr)){
                             found_ds = true;
                             std::cout<<"already found designable!"<<std::endl;
                         }else{
-                            uniq_ds.insert(treestr);
-                            for(Node* rotree: tree->rotated(0)){
-                                std::string rotreestr = rotree->toDotBracket();
-                                uniq_ds.insert(rotreestr);
-                                delete rotree;
-                            }
+                            motiflib_ds.insert(tree);
+                            // uniq_ds.insert(treestr);
+                            // for(Node* rotree: tree->rotated(0)){
+                            //     std::string rotreestr = rotree->toDotBracket();
+                            //     uniq_ds.insert(rotreestr);
+                            //     delete rotree;
+                            // }
                             auto end_time_lc = std::chrono::high_resolution_clock::now();
                             const std::chrono::duration<double, std::milli> time_ms = end_time_lc - start_time_lc;
                             float time_seconds = std::chrono::duration_cast<std::chrono::duration<float>>(time_ms).count();
@@ -2661,15 +2756,16 @@ void online_process(std::string y, std::string path_prefix=""){
                         std::cout<<"undesignable!"<<std::endl;
                         bool found_ud = false; // check if the motif is already found undesignable
                         // if(constr2groupy.find(lc.constr) != constr2groupy.end() && constr2groupy[lc.constr].star == target)
-                        if(uniq_ud.find(treestr) != uniq_ud.end()){
+                        if(motiflib_ud.count(treestr)){
                             found_ud = true;
                         }else{
-                            uniq_ud.insert(treestr);
-                            for(Node* rotree: tree->rotated(0)){
-                                std::string rotreestr = rotree->toDotBracket();
-                                uniq_ud.insert(rotreestr);
-                                delete rotree;
-                            }
+                            motiflib_ud.insert(tree);
+                            // uniq_ud.insert(treestr);
+                            // for(Node* rotree: tree->rotated(0)){
+                            //     std::string rotreestr = rotree->toDotBracket();
+                            //     uniq_ud.insert(rotreestr);
+                            //     delete rotree;
+                            // }
                         }
                         auto end_time_lc = std::chrono::high_resolution_clock::now();
                         const std::chrono::duration<double, std::milli> time_ms = end_time_lc - start_time_lc;
@@ -2679,6 +2775,8 @@ void online_process(std::string y, std::string path_prefix=""){
                         js["time"] = time_seconds;
                         js["seed"] = SEED_RAND;
                         js["is_duplicated"] = found_ud;
+                        js["dot-bracket"] = treestr;
+                        js["id_uniq"] = motiflib_ud.getID(treestr);
                         ud_ipairs.insert(pairs2string(lc.ps_inside));
                         std::vector<std::vector<std::pair<int, int>>> uk_pairs;
                         for(auto ipairs: ipairs_subsets){
@@ -2694,8 +2792,11 @@ void online_process(std::string y, std::string path_prefix=""){
                         }
                         std::string jstring = js.dump();
                         outputFile << jstring << std::endl;
+                        std::cout << "[ProgressInfo] " << "found undesignable motif: " + treestr << std::endl;
+                        std::cout << "[ProgressInfo] " << "time cost: " + fl2str(time_seconds) << " seconds" << std::endl;
                         records.push_back(jstring);
                         if (!found_ud){
+                            
                             undesignableLibFile << jstring << std::endl;
                         }
                     }
@@ -2707,7 +2808,7 @@ void online_process(std::string y, std::string path_prefix=""){
                 auto end_time = std::chrono::high_resolution_clock::now();
                 const std::chrono::duration<double, std::milli> time_ms_y = end_time - start_time;
                 float time_seconds_lc = std::chrono::duration_cast<std::chrono::duration<float>>(time_ms_y).count();
-                printf("time cost for whole structure: %.4f seconds\n", time_seconds_lc);
+                printf("[ProgressInfo] time cost for whole structure: %.4f seconds\n", time_seconds_lc);
                 timeFile << puzzle_id << "," << time_seconds_lc <<std::endl;
             }
         }
@@ -2715,12 +2816,71 @@ void online_process(std::string y, std::string path_prefix=""){
     std::cout<<"count undesignable: "<<records.size()<<std::endl;
     for (auto r: records)
         std::cout<<r<<std::endl;
-    // std::cout<< "count designable: " << count_designable << std::endl;
-    // std::cout << "designable records: " << records_designable.size() << std::endl;
-    // Close the file
     outputFile.close();
     designableLibFile.close();
     std::cout << "Strings written to file: " << fileName << std::endl;
+    if (PLOT && records.size() > 0){
+        const char* PATH_FASTMOTIF_PTR = std::getenv("PATH_FASTMOTIF");
+        if(PATH_FASTMOTIF_PTR == NULL){
+            std::cerr << "Error: PATH_FASTMOTIF is not set" << std::endl;
+            return;
+        }else{
+            std::cout << "PATH_FASTMOTIF: " << PATH_FASTMOTIF_PTR << std::endl;
+        }
+        std::string PATH_FASTMOTIF(PATH_FASTMOTIF_PTR);
+        std::string cmd_str = PATH_FASTMOTIF + "/scripts/parser.py -m y -p " + fileName;
+        std::cout<<"extracting plotstr: "<<cmd_str<<std::endl;
+        const char* cmd_cstr = cmd_str.c_str();
+        std::string path_plotstr = exec_command(cmd_cstr);
+        path_plotstr = path_plotstr.substr(0, path_plotstr.size()-1);
+        cout << path_plotstr << endl;
+        std::ifstream plotFile(path_plotstr);
+        std::string line;
+        // Check if the file exists and is open
+        int retry_count = 5;
+        while (!plotFile.is_open() && retry_count > 0) {
+            std::cerr << "Error opening the file: " << path_plotstr << ". Retrying..." << std::endl;
+            std::this_thread::sleep_for(std::chrono::milliseconds(100));
+            plotFile.open(path_plotstr);
+            retry_count--;
+        }
+        if (!plotFile.is_open()) {
+            std::cerr << "Error opening the file after retries: " << path_plotstr << std::endl;
+            return;
+        }
+        std::vector<std::string> path_plots;
+        while (std::getline(plotFile, line)) {
+            // std::cout << line << std::endl;
+            std::string cmd_draw = PATH_FASTMOTIF + "/scripts/draw_motif.sh " + line;
+            std::cout << "[ProgressInfo] drawing motif: " << line << std::endl;
+            const char* cmd_draw_cstr = cmd_draw.c_str();
+            std::string output_draw = exec_command(cmd_draw_cstr);
+            std::istringstream iss(output_draw);
+            std::string last_line;
+            std::string line;
+            while (std::getline(iss, line)) {
+                last_line = line;
+            }
+            std::cout << "[ProgressInfo] " << last_line << std::endl;
+            path_plots.push_back(last_line);
+        }
+        plotFile.close();
+        std::cout<<"-----------------"<<std::endl;
+        for(auto path_plot: path_plots){
+            std::cout<<path_plot<<std::endl;
+            cmd_str = "inkscape --without-gui --file=" + path_plot + " --export-plain-svg=" + path_plot + ".svg";
+            std::cout<<"[ProgressInfo] converting to svg: "<<cmd_str<<std::endl;
+            const char* cmd_cstr2 = cmd_str.c_str();
+            try{
+                std::string output_svg = exec_command(cmd_cstr2);
+                std::cout<< "[ProgressInfo] " << path_plot + ".svg" <<std::endl;
+            }catch(const std::exception& e)
+            {
+                std::cerr << e.what() << '\n';
+                std::cout << "inkscape error!" << std::endl;
+            }
+        }
+    }
 }
 
 void show_configuration(){
@@ -2759,6 +2919,7 @@ int main(int argc, char* argv[]) {
     ("s,seed", "random seed", cxxopts::value<int>()->default_value("2024"))
     ("d,dangle", "Dangle mode", cxxopts::value<int>()->default_value("2"))
     ("vrna,vienna", "Use ViennaRNA to fold, the environment variable VRNABIN has to be set", cxxopts::value<bool>()->default_value("false"))
+    ("p,plot", "Plot motifs", cxxopts::value<bool>()->default_value("false"))
     ("v,verbose", "Verbose output", cxxopts::value<bool>()->default_value("false"));
 
     auto result = options.parse(argc, argv);
@@ -2767,6 +2928,7 @@ int main(int argc, char* argv[]) {
     std::string txt = result["txt"].as<std::string>();
     bool vrna = result["vienna"].as<bool>();
     verbose = result["verbose"].as<bool>();
+    PLOT = result["plot"].as<bool>();
     dangle = result["dangle"].as<int>();
     SEED_RAND = result["seed"].as<int>();
     printf("alg: %s, vienna: %d, verbose: %d, dangle: %d\n", alg.c_str(), vrna, verbose, dangle);
@@ -2998,7 +3160,7 @@ int main(int argc, char* argv[]) {
                 std::cout<<mfe<<std::endl;
             }
     }
-    else if (alg == "online"){ /* loops evaluation  */
+    else if (alg == "fastmotif"){ /* loops evaluation  */
         std::string y;
         // Read input line by line until EOF (end of file) is reached
         while (std::getline(std::cin, y)) {
