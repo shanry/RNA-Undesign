@@ -10,8 +10,9 @@ This project explores the undesignability of RNA secondary structures, under the
 [1] Zhou, T., Tang, W.Y., Mathews, D.H. and Huang, L. 
 "Undesignable RNA Structure Identification via Rival Structure Generation and Structure Decomposition." 
 (RECOMB 2024, [arXiv preprint](https://arxiv.org/abs/2311.08339)) \
-[2] Zhou, T., Tang, W.Y., Mathews, D.H. and Huang, L. 
-"Scalable Identification of Minimum Undesignable RNA Motifs on Loop-Pair Graphs" ([arXiv preprint](https://arxiv.org/abs/2402.17206))
+[2] Zhou, T., Tang, W.Y., Apoorv, M., Mathews, D.H. and Huang, L. 
+"Scalable and Interpretable Identification of Minimal Undesignable
+RNA Structure Motifs with Rotational Invariance" (under review)
 
 ## Dependencies
 - GCC 4.8.5 or above
@@ -54,7 +55,6 @@ $echo ".((......((......))......((......((......))......((......))......))......
 
 ### Undesignability Alg1
 ```
-$export OMP_NUM_THREADS=8 # parallel computing eabled by OpenMP
 $./bin/main --alg 1
 ......(.........((((.....)))).........)......................
 ................((((.....))))................................
@@ -62,7 +62,6 @@ $./bin/main --alg 1
 
 ### Undesignability Alg2
 ```
-$export OMP_NUM_THREADS=8 # parallel computing eabled by OpenMP
 $./bin/main --alg 2
 AAAAUGAGCCCCACGAAAGGAGAGUGCUCACAAA
 ....((((((((.(....)).).).)))))....
@@ -71,7 +70,6 @@ AAAAUGAGCCCCACGAAAGGAGAGUGCUCACAAA
 
 ### Undesignability Alg2 (constrained)
 ```
-$export OMP_NUM_THREADS=8 # parallel computing eabled by OpenMP, user-defined
 $./bin/main --alg 2c
 UUAAGGGAAAAUCUUAGCCGAGAAAUCGGAUCCAAAGCGGCAUAAAAAAGAAAGCGCCGAAAUUCGCAGAAAUGCGAGAAAGGCAAGCAAAGAAUUCGGCAGAAAAAAUGCCGACCGGGCAAUGAAAAUUCGCCCGUGGAGCCAAGCGGG
 ((((((.....)))))(((((....)))).)((...(((((............(((((....((((((....))))))...)))..)).......((((((.......))))))(((((((((....))).))))).)..)))..)))))
@@ -79,7 +77,6 @@ UUAAGGGAAAAUCUUAGCCGAGAAAUCGGAUCCAAAGCGGCAUAAAAAAGAAAGCGCCGAAAUUCGCAGAAAUGCGAGAA
 ```
 ### Undesignability Alg3
 ```
-$export OMP_NUM_THREADS=8 # parallel computing eabled by OpenMP, user-defined
 $./bin/main --alg 3
 ACUAAAUGGUGAGCAGACCCAGUGGAAACACACGCAGCCGAAAGGUACCCAUCCGAGAGGAAGUCAGGCGAAAGCUAACGGAAAGAACGUAGACAGGGAGCGAGGGACAAAGACUGCAAGGGAAAGUACACAAGACAAAGUAAAAAAAGGUGAGGCAGGGGAAACCCCGGGAAACCGGUCGAAAGACGCCAGCAAACCGCAGAAACAGCCACCCAGCGAGACAGACAAAAGCGGAUACGUAGUCGACGGAAACGUAGUCAGGGGAAACCCACGCAAUCGAAAGAUAGGGAGUCGGUGAAAACCAGAGAAAUCUACUCAAAAGAGGACAGGCAGCGGAACCCCUACACCGAAAAAA
 .......((((.((((.(((.(((....))).(((.(((....))).(((.(((....))).(((.(((....))).(((.......))).))).))).))).))).(...).)))).((((...((.(((...((...))........))).(((.(((....)))(((....)))(((....)))))).))...((((.(...).(((.(((.(((.(((.(((....(((....))).))).(((....))).))).(((....))).))).(((....))).))).((((((....)))(((....))).(((....)))))).))).))))...)))).)))).......
