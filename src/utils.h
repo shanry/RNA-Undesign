@@ -43,4 +43,11 @@ std::vector<std::vector<std::string>> read_csv(const char* file);
 std::unordered_map<std::string, std::string> loadlib_eterna(std::string csv);
 std::string pairs2string(std::vector<std::pair<int, int>> pairs);
 std::string genHelix(int len);
+inline int countDotBrackets(const std::string& text) {
+    // Count occurrences of '(', '.', and ')'
+    int count = std::count(text.begin(), text.end(), '(') +
+                std::count(text.begin(), text.end(), '.') +
+                std::count(text.begin(), text.end(), ')');
+    return count;
+}
 #endif

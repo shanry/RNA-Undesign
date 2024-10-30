@@ -2672,7 +2672,7 @@ void online_process(std::string y, std::string path_prefix=""){
                         std::cout<<"recur lc.constr: "<<target<<std::endl;
                         std::cout<<"recur   treestr: "<<treestr<<std::endl;
                         // std::cout<<"recur     ystar: "<<constr2groupy[lc.constr].star<<std::endl;
-                    }else{
+                    }else{ // check designability of the motif
                         std::string ref_lc = lc.ref;
                         std::string constr_lc = lc.constr;
                         for( int ib = 1; ib < lc.ps_outside.size(); ib++){ // skip the most outside boudary pair
@@ -2697,16 +2697,16 @@ void online_process(std::string y, std::string path_prefix=""){
                         printf("constr: %s\n", constr_lc.c_str());
                         bool ud = false; // check if the motif is already found undesignable
                         for(auto ipairs: ipairs_subsets){
-                            if(ud_ipairs.find(pairs2string(ipairs))!=ud_ipairs.end()){
+                            if(ud_ipairs.find(pairs2string(ipairs))!=ud_ipairs.end()){ // check if any sub-motif is already found undesignable
                                 ud = true;
                                 break;
                             }
                         }
-                        if(ud)
+                        if(ud)  // skip the motif if it is already found undesignable by undesignable sub-motif
                             continue;
                         try{
                             std::cout<<"UMFE log: before alg 5 "<<std::endl;
-                            result = alg_5_helper_v2(target, ref_lc, constr_lc, subseq, verbose, dangle);
+                            result = alg_5_helper_v2(target, ref_lc, constr_lc, subseq, verbose, dangle); // attempting to identify rival motif(s)
                             if (result == "UMFE"){
                                 result = "designable";
                                 std::cout<<"UMFE log: afer alg 5 "<<std::endl;
@@ -2733,12 +2733,6 @@ void online_process(std::string y, std::string path_prefix=""){
                             std::cout<<"already found designable!"<<std::endl;
                         }else{
                             motiflib_ds.insert(tree);
-                            // uniq_ds.insert(treestr);
-                            // for(Node* rotree: tree->rotated(0)){
-                            //     std::string rotreestr = rotree->toDotBracket();
-                            //     uniq_ds.insert(rotreestr);
-                            //     delete rotree;
-                            // }
                             auto end_time_lc = std::chrono::high_resolution_clock::now();
                             const std::chrono::duration<double, std::milli> time_ms = end_time_lc - start_time_lc;
                             float time_seconds = std::chrono::duration_cast<std::chrono::duration<float>>(time_ms).count();
@@ -2747,6 +2741,7 @@ void online_process(std::string y, std::string path_prefix=""){
                             js["time"] = time_seconds;
                             js["seed"] = SEED_RAND;
                             js["is_duplicated"] = found_ds;
+                            js["dot-bracket"] = treestr;
                             std::string jstring = js.dump();
                             designableLibFile << jstring << std::endl;
                             records_designable.push_back(jstring);
@@ -2754,29 +2749,34 @@ void online_process(std::string y, std::string path_prefix=""){
                     }
                     if (result == "undesignable"){
                         std::cout<<"undesignable!"<<std::endl;
-                        bool found_ud = false; // check if the motif is already found undesignable
-                        // if(constr2groupy.find(lc.constr) != constr2groupy.end() && constr2groupy[lc.constr].star == target)
-                        if(motiflib_ud.count(treestr)){
-                            found_ud = true;
-                        }else{
-                            motiflib_ud.insert(tree);
-                            // uniq_ud.insert(treestr);
-                            // for(Node* rotree: tree->rotated(0)){
-                            //     std::string rotreestr = rotree->toDotBracket();
-                            //     uniq_ud.insert(rotreestr);
-                            //     delete rotree;
-                            // }
-                        }
                         auto end_time_lc = std::chrono::high_resolution_clock::now();
                         const std::chrono::duration<double, std::milli> time_ms = end_time_lc - start_time_lc;
                         float time_seconds = std::chrono::duration_cast<std::chrono::duration<float>>(time_ms).count();
                         printf("time cost: %.4f seconds\n", time_seconds);
+                        bool found_ud = false; // check if the motif is already found undesignable
+                        if(motiflib_ud.count(treestr)){
+                            found_ud = true;
+                        }else{
+                            motiflib_ud.insert(tree);
+                        }
                         auto js = jsrecords(lc, y_star, y_sub, y_rivals, puzzle_id);
                         js["time"] = time_seconds;
                         js["seed"] = SEED_RAND;
                         js["is_duplicated"] = found_ud;
-                        js["dot-bracket"] = treestr;
                         js["id_uniq"] = motiflib_ud.getID(treestr);
+                        js["length"] = countDotBrackets(treestr);
+                        js["cardinality"] = lc.ps_inside.size() + 1;
+                        bool has_external = false;
+                        if (lc.ps_outside[0].first == -1){
+                            has_external = true;
+                        }
+                        js["has_external"] = has_external;
+                        std::vector<std::string> treestr_all;
+                        treestr_all.push_back(treestr);
+                        for(Node* rotree: tree->rotated(0)){
+                            treestr_all.push_back(rotree->toDotBracket());
+                        }
+                        js["dot-bracket"] = treestr_all;
                         ud_ipairs.insert(pairs2string(lc.ps_inside));
                         std::vector<std::vector<std::pair<int, int>>> uk_pairs;
                         for(auto ipairs: ipairs_subsets){
@@ -2868,17 +2868,18 @@ void online_process(std::string y, std::string path_prefix=""){
         std::cout<<"-----------------"<<std::endl;
         for(auto path_plot: path_plots){
             std::cout<<path_plot<<std::endl;
-            cmd_str = "inkscape --without-gui --file=" + path_plot + " --export-plain-svg=" + path_plot + ".svg";
-            std::cout<<"[ProgressInfo] converting to svg: "<<cmd_str<<std::endl;
-            const char* cmd_cstr2 = cmd_str.c_str();
-            try{
-                std::string output_svg = exec_command(cmd_cstr2);
-                std::cout<< "[ProgressInfo] " << path_plot + ".svg" <<std::endl;
-            }catch(const std::exception& e)
-            {
-                std::cerr << e.what() << '\n';
-                std::cout << "inkscape error!" << std::endl;
-            }
+            // convert pdf to svg
+            // cmd_str = "inkscape --without-gui --file=" + path_plot + " --export-plain-svg=" + path_plot + ".svg";
+            // std::cout<<"[ProgressInfo] converting to svg: "<<cmd_str<<std::endl;
+            // const char* cmd_cstr2 = cmd_str.c_str();
+            // try{
+            //     std::string output_svg = exec_command(cmd_cstr2);
+            //     std::cout<< "[ProgressInfo] " << path_plot + ".svg" <<std::endl;
+            // }catch(const std::exception& e)
+            // {
+            //     std::cerr << e.what() << '\n';
+            //     std::cout << "inkscape error!" << std::endl;
+            // }
         }
     }
 }
