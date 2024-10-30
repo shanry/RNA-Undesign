@@ -3166,7 +3166,10 @@ int main(int argc, char* argv[]) {
         // Read input line by line until EOF (end of file) is reached
         while (std::getline(std::cin, y)) {
                 std::cout<<y<<std::endl;
-                online_process(y, "online");
+                // generate a time stamp used for id
+                std::string puzzle_id = "online_" + getCurrentTimestamp() + getRandomIntString();
+                std::cout<<"[ProgressInfo] generate a structure id: "<<puzzle_id<<std::endl;
+                online_process(y, puzzle_id);
             }
     }
     else if (alg == "mloop"){ /* multi-loops evaluation  */
