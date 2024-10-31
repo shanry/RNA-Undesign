@@ -7,6 +7,9 @@
 #include <map>
 #include <unordered_map>
 #include <utility>
+#include <string>
+#include <random>
+#include <cmath>
 // #include <ctime>
 
 /* Old compatibility names for C types.  */
@@ -49,5 +52,11 @@ inline int countDotBrackets(const std::string& text) {
                 std::count(text.begin(), text.end(), '.') +
                 std::count(text.begin(), text.end(), ')');
     return count;
+}
+inline std::string getRandomIntString(int min = std::pow(10, 8), int max = std::pow(10, 9) - 1) {
+    static std::random_device rd;       // Seed generator (only initialized once)
+    static std::mt19937 gen(rd());      // Mersenne Twister engine
+    std::uniform_int_distribution<> dist(min, max);
+    return std::to_string(dist(gen));   // Convert the integer to a string
 }
 #endif
