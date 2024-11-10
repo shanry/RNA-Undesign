@@ -492,3 +492,44 @@ std::string genHelix(int len){
     }
     return helix;
 }
+
+std::string dotbracket2target(const std::string& line) {
+    std::string y;
+    for (char x : line) {
+        if (x == '*') {
+            y += "...";
+        } else {
+            y += x;
+        }
+    }
+    return y;
+}
+
+std::string dotbracket2constraint(const std::string& line) {
+    size_t len = line.size();
+    std::vector<std::string> constraint(len, "?");
+
+    if (len > 0) {
+        constraint[0] = "(";
+        constraint[len - 1] = ")";
+    }
+
+    for (size_t i = 0; i < len; ++i) {
+        char x = line[i];
+        if (x == '*') {
+            constraint[i] = "...";
+            if (i > 0) {
+                constraint[i - 1] = "(";
+            }
+            if (i + 1 < len) {
+                constraint[i + 1] = ")";
+            }
+        }
+    }
+
+    std::string result;
+    for (const std::string& s : constraint) {
+        result += s;
+    }
+    return result;
+}

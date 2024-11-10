@@ -65,6 +65,7 @@ int y_sub_end;
 std::string y_sub;
 std::string seq_init;
 std::vector<std::string> y_rivals;
+std::string x_umfe;
 
 std::vector<std::pair<int, int>> pairs_outside;
 std::vector<std::pair<int, int>> pairs_inside;
@@ -1261,6 +1262,7 @@ std::string alg_5_cs_plus(std::string& ref1, std::set<std::string>& refs_checked
             std::cout<<"UMFE log: "<<x<<std::endl;
             printf("UMFE found!");
             std::cout<<x<<std::endl;
+            x_umfe = x;
             return "UMFE";
         }
         for(std::string ref: subopts){
@@ -1370,6 +1372,7 @@ std::string alg_5_helper_v2(std::string& ref1, std::string& ref2, std::string&co
         std::cout<<"UMFE log: "<<ref1<<std::endl;
         std::cout<<"UMFE log: "<<constr<<std::endl;
         std::cout<<"UMFE log: "<<seq<<std::endl;
+        x_umfe = seq;
         return "UMFE";
     }else if(isMFE(mfes, ref1)){
         std::cout<<"mfe designable"<<std::endl;
@@ -3209,45 +3212,53 @@ int main(int argc, char* argv[]) {
             }
         }
     }else if (alg == "motif"){ /* motif evaluation  */
+        #undef MAX_ENUM
+        #define MAX_ENUM 20000000000
+        #undef MAX_CONSTRAINT
+        #define MAX_CONSTRAINT 40000000
+        #undef MAX_SEQ
+        #define MAX_SEQ 20000
+        std::string dotbracket;
         std::string seq;
         std::string target;
         std::string ref;
-        std::string cst;
+        std::string constr;
         // Read input line by line until EOF (end of file) is reached
-        while (std::getline(std::cin, target)) {
-            // getline(std::cin, target);
-            getline(std::cin, cst);
-            // getline(std::cin, ref);
+        while (std::getline(std::cin, dotbracket)) {
+            target = dotbracket2target(dotbracket);
+            constr = dotbracket2constraint(dotbracket);
             seq = tg_init(target);
-            ref = cst;
+            ref = constr;
             std::replace(ref.begin(), ref.end(), '?', '.');
-            printf(" count: %d\n", countOccurrences(cst, '?'));
+            printf(" count: %d\n", countOccurrences(constr, '?'));
             printf("target: %s\n", target.c_str());
-            printf("constr: %s\n", cst.c_str());
+            printf("constr: %s\n", constr.c_str());
             printf("   ref: %s\n", ref.c_str());
-            TreeNode* root = parseStringToTree(target);
-            int max_internal = max_single(root);
+            // TreeNode* root = parseStringToTree(target);
+            // int max_internal = max_single(root);
             // if(max_internal > 30){        
             //     std::cout<<"the internal loop is too long: "<<max_internal<<std::endl;            
             //     continue;
             // }
-            std::cout<<"max internal loop length: "<<max_internal<<std::endl;
-            if (true){
-                std::string result = alg_5_helper_v2(target, ref, cst, seq, verbose, dangle);
-                std::cout<<"output y_star: "<<target<<std::endl;
-                std::cout<<"output constr: "<<cst<<std::endl;
-                std::cout<<"output result: "<<result<<std::endl;
-                // if (result == "undesignable"){
-                //     // printf("undesignable span: %d\t", lc.node->first);
-                //     for(auto child: lc.node->children){
-                //         printf("%d\t%d\t", child->first, child->second);
-                //     }
-                //     printf("%d\n", lc.node->second);
-                //     break;
-                // }
+            auto time_start = std::chrono::high_resolution_clock::now();
+            std::string result = alg_5_helper_v2(target, ref, constr, seq, verbose, dangle);
+            if (result == "UMFE"){
+                result = "designable";
             }
-            printf("\n");
-            // }
+            auto time_end = std::chrono::high_resolution_clock::now();
+            const std::chrono::duration<double, std::milli> time_ms = time_end - time_start;
+            float time_seconds = std::chrono::duration_cast<std::chrono::duration<float>>(time_ms).count();
+            std::cout<<"output target: "<<target<<std::endl;
+            std::cout<<"output constr: "<<constr<<std::endl;
+            printf("time cost: %.4f seconds\n", time_seconds);
+            std::cout<<"output result: "<<result<<std::endl;
+            if (result == "undesignable"){
+                std::cout<<"output number of rival structures: "<<y_rivals.size()<<std::endl;
+                for(auto y: y_rivals)
+                    std::cout<<"output  rival: "<<y<<std::endl;
+            }else if(result == "designable"){
+                std::cout<<"output x_umfe: "<<x_umfe<<std::endl;
+            }
         }
     }else if (alg == "n1" || alg == "n2" || alg == "n3"){ /* edges evaluation  */
         std::string ref;

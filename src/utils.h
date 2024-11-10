@@ -59,4 +59,6 @@ inline std::string getRandomIntString(int min = std::pow(10, 8), int max = std::
     std::uniform_int_distribution<> dist(min, max);
     return std::to_string(dist(gen));   // Convert the integer to a string
 }
+std::string dotbracket2target(const std::string& line);
+std::string dotbracket2constraint(const std::string& line);
 #endif

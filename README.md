@@ -58,6 +58,12 @@ $export PATH_DESIGNABLE_LIB/path/to/motifs/libs/lib_designable.txt
 ```
 $echo ".((......((......))......((......((......))......((......))......))......))....." | ./bin/main --alg fastmotif
 ```
+
+## Rival Motifs Search
+```
+echo "(.(*)...(..(*)))" | ./bin/main --alg motif # motif as a dot-bracket string where (*) is a boundary pair
+```
+
 ## RIGEND
 
 ### Undesignability Alg1
