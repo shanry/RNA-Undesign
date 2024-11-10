@@ -14,6 +14,12 @@ This project explores the undesignability of RNA secondary structures, under the
 "Scalable and Interpretable Identification of Minimal Undesignable
 RNA Structure Motifs with Rotational Invariance" (under review)
 
+## Datasets
+[Eterna100](data/eterna100.csv) \
+[ArchiveII](data/archiveii.raw.txt) \
+[Designable motifs of length up to 14](data/short14_undesignable_dg0.txt) \
+[Undesignable motifs of length up to 14](data/short14_undesignable_dg0.txt)
+
 ## Dependencies
 - GCC 4.8.5 or above
 
