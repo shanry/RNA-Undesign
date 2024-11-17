@@ -83,9 +83,12 @@ echo "result_cross:" $result_cross
 
 if [ "$result_cross" -eq 1 ]; then
     echo "cross"
+    # mv ${id}_ss.ps cross.ps
     mode=4
     id="${ID}_automode${mode}"
     echo -ne ">$id\n$seq\n$struct" | $VIENNA/bin/RNAplot -t $mode --pre "$prestring " --post "$poststring" # the final space is important to keep "" #"$span GREEN Fomark"
+    # python ${PATH_BASE}/scripts/replace.py ${id}_ss.ps cross.ps
+    # cp cross.ps ${id}_ss.ps
 fi
 
 sed -i 's/fsize setlinewidth/8 setlinewidth/' ${id}_ss.ps # change line width
@@ -134,7 +137,7 @@ ps2pdf -dEPSCrop ${id}_ss.ps > /dev/null # bounding box
 # crop margin automatically; alternative way: pdfcrop ${id}_ss.pdf
 pdfcropmargins -v -u -s ${id}_ss.pdf -o ${id}_ss-crop.pdf > /dev/null # pip install pdfCropMargins
 mv ${id}_ss-crop.pdf ${id}.pdf # final output
-rm ${id}_ss.pdf # remove temp files
+rm ${id}_ss.p* # remove temp files
 
 mkdir -p outputs
 mv ${id}.pdf outputs/ # move to outputs folder
