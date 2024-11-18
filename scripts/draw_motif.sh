@@ -9,11 +9,11 @@ if [ -z "${VIENNA}" ]; then
 fi
 echo "\$VIENNA: $VIENNA"
 mode=0
-if [ -z "${PLMD}" ]; then
-    mode=0
-else
-    mode=$PLMD
-fi
+# if [ -z "${PLMD}" ]; then
+#     mode=0
+# else
+#     mode=$PLMD
+# fi
 echo "mode:" $mode
 
 # read -r line
@@ -23,7 +23,7 @@ echo $line
 # drawfunction=${2:-drawpoints}
 echo "drawfunction:" $drawfunction
 
-id=$(echo "$line" | cut -d',' -f1) #  ID
+ID=$(echo "$line" | cut -d',' -f1) #  ID
 prestring=$(echo "$line" | cut -d',' -f3) # annotation
 # poststring=$(echo "$line" | cut -d',' -f4) # annotation
 
@@ -35,7 +35,7 @@ prestring=$(echo "$line" | cut -d',' -f3) # annotation
 # done
 # id="${id}${order}_mode${mode}"
 # fi
-id="${id}_mode${mode}"
+id="${ID}_automode${mode}"
 echo "id:" $id
 
 struct=$(echo "$line" | cut -d',' -f2) # structure
@@ -66,9 +66,30 @@ skip_string="/my_list [${transformed_indices[*]}] def"
 echo "skip list:" $skip_string
 
 # exit
+if [ -z "${PATH_FASTMOTIF}" ]; then
+    PATH_BASE=`pwd`
+else
+    echo "PATH_FASTMOTIF:" $PATH_FASTMOTIF
+    PATH_BASE=$PATH_FASTMOTIF
+fi
+echo "PATH_BASE:" $PATH_BASE
 
 # # -t 0 means layout mode 0 (default 1)
 echo -ne ">$id\n$seq\n$struct" | $VIENNA/bin/RNAplot -t $mode --pre "$prestring " --post "$poststring" # the final space is important to keep "" #"$span GREEN Fomark"
+
+# Call the Python script and capture its output
+result_cross=$(python ${PATH_BASE}/scripts/coord.py ${id}_ss.ps)
+echo "result_cross:" $result_cross
+
+if [ "$result_cross" -eq 1 ]; then
+    echo "cross"
+    # mv ${id}_ss.ps cross.ps
+    mode=4
+    id="${ID}_automode${mode}"
+    echo -ne ">$id\n$seq\n$struct" | $VIENNA/bin/RNAplot -t $mode --pre "$prestring " --post "$poststring" # the final space is important to keep "" #"$span GREEN Fomark"
+    # python ${PATH_BASE}/scripts/replace.py ${id}_ss.ps cross.ps
+    # cp cross.ps ${id}_ss.ps
+fi
 
 sed -i 's/fsize setlinewidth/8 setlinewidth/' ${id}_ss.ps # change line width
 sed -i '/\/colorpair/,/grestore/{s/hsb/1.0\n  sethsbcolor\n  3 pop/}' ${id}_ss.ps # change color
@@ -77,13 +98,6 @@ sed -i 's/0.70 0.5 colorpair/0.583 1.0 colorpair/g' ${id}_ss.ps # change color
 sed -i 's/0.1667 1.0 colorpair/0.1083 1.0 colorpair/g' ${id}_ss.ps # change color
 cp ${id}_ss.ps ${id}.ps
 
-if [ -z "${PATH_FASTMOTIF}" ]; then
-    PATH_BASE=`pwd`
-else
-    echo "PATH_FASTMOTIF:" $PATH_FASTMOTIF
-    PATH_BASE=$PATH_FASTMOTIF
-fi
-echo "PATH_BASE:" $PATH_BASE
 
 sed "/^init$/ {
     r ${PATH_BASE}/scripts/insert.ps
