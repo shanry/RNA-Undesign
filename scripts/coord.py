@@ -1,5 +1,13 @@
+#!/usr/bin/env python3
 import re
 import sys
+
+'''
+This script checks if there is any cross in the backbone of an RNA structure.
+The input is a .ps file that contains the coordinates of the backbone.
+Example:
+    python coord.py test.ps or ./coord.py test.ps
+'''
 
 def extract_coordinates(file_path):
     with open(file_path, 'r') as file:
@@ -56,12 +64,5 @@ def check_cross(file_path):
 
 if __name__ == "__main__":
 
-    # Usage
     file_path = sys.argv[1]  # Replace with the actual path to your .ps file
-    # print(file_path, end=' ')
     check_cross(file_path)
-    # coordinates = extract_coordinates(file_path)
-
-    # # Print the coordinates
-    # for coord in coordinates:
-    #     print(coord)
