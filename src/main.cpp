@@ -24,10 +24,10 @@
 #include <thread>
 using namespace std;
 
-#define MAX_ENUM 10000000000
-#define MAX_CONSTRAINT 100000
-#define MAX_SEQ 500
-#define MAX_RIVAL 100
+long int MAX_ENUM = 10000000000;
+long int MAX_CONSTRAINT = 100000;
+long int MAX_SEQ = 500;
+long int MAX_RIVAL = 100;
 
 
 /* Old compatibility names for C types.  */
@@ -3212,12 +3212,9 @@ int main(int argc, char* argv[]) {
             }
         }
     }else if (alg == "motif"){ /* motif evaluation  */
-        #undef MAX_ENUM
-        #define MAX_ENUM 20000000000
-        #undef MAX_CONSTRAINT
-        #define MAX_CONSTRAINT 40000000
-        #undef MAX_SEQ
-        #define MAX_SEQ 20000
+        MAX_ENUM = 20000000000;
+        MAX_CONSTRAINT = 40000000;
+        MAX_SEQ = 20000;
         std::string dotbracket;
         std::string seq;
         std::string target;
