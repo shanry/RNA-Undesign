@@ -23,13 +23,21 @@ import json
 from collections import defaultdict
 
 import numpy as np
+import pandas as pd
 
 from parser import get_mplotstr2
 
-
-above_str = "midway, above=-5pt"
-below_str = "midway, below_strow=-5pt"
-
+oldfamily2newfamily = {'16s': '16S rRNA', 
+                       '23s': '23S rRNA', 
+                       '5s': '5S rRNA', 
+                       'RNaseP': 'RNaseP', 
+                       'grp1': 'Group I Intron ', 
+                       'grp2': 'Group II Intron', 
+                       'srp': 'SRP', 
+                       'tRNA': 'tRNA', 
+                       'telomerase': 'telomerase', 
+                       'tmRNA': 'tmRNA'}
+new2old = {new: old for old, new in oldfamily2newfamily.items()}
 
 class Node:
 	__slots__ = "type", "children", "unpaired_bases", "parent", "child_id", "ids"
@@ -258,6 +266,13 @@ class PairNode:
 				for tree in child.rotated(dep+1):
 					yield tree
 
+
+def get_ref2structure():
+	with open('data/ref2structure.json') as f:
+		ref2structure = json.load(f)
+	return ref2structure
+
+
 def loop_stats(tree, cache=None): # returns {B:1, M:3, ..}
 	if cache is None:
 		cache = defaultdict(int)
@@ -415,9 +430,11 @@ def gen_dotprnths(path):
 
 
 def conditioned_count(path, func_condition):
+	ref2structure = get_ref2structure()
 	uniqs = defaultdict(list) # loop-signature -> [motifs]
 	min_uniqs = defaultdict(list) # loop-signature -> [motifs]
 	id_uniqs = set()
+	structure_uniqs = set()
 	lines_uniqs = []
 	lengths = []
 	for i, line in enumerate(open(path)):
@@ -425,6 +442,7 @@ def conditioned_count(path, func_condition):
 		if not func_condition(js):
 			continue
 		id_uniqs.add(js['id'])
+		structure_uniqs.add(ref2structure[js['id']])
 		# js_full = json.loads(line)
 		ids, motif = js['motif']['id'], js['motif']['root']
 		signature = str(sorted(loop_stats(motif).items())) # "{B:1, M:3, ..}"
@@ -459,10 +477,17 @@ def conditioned_count(path, func_condition):
 			total += len(jss)
 	# 		for js in jss:
 	# 			print(json.dumps(js['motif']))
-	print("struct. uniq:", len(id_uniqs), "\tmotif total:", total, "\tmotif uniq (min):", f"{sum(map(len, uniqs.values()))} ({sum(map(len, min_uniqs.values()))})")
+	count_motif = total
+	count_motif_uniq = sum(map(len, uniqs.values()))
+	count_motif_uniq_min = sum(map(len, min_uniqs.values()))
+	count_structure_id = len(id_uniqs)
+	count_structure = len(structure_uniqs)
+	print("motif total:", total, "\tmotif uniq (min):", f"{sum(map(len, uniqs.values()))} ({sum(map(len, min_uniqs.values()))})")
+	print("id uniq:", len(id_uniqs), "\tstruct. uniq:", len(structure_uniqs))
 	print("lengths:", sorted(lengths))
 	# print(sorted(list(id_uniqs)))
 	print('-----------------------------------')
+	return count_motif, count_motif_uniq, count_motif_uniq_min, count_structure_id, count_structure
 
 
 if __name__ == "__main__":
@@ -478,9 +503,18 @@ if __name__ == "__main__":
 	elif alg == 'dotpr':
 		gen_dotprnths(path)
 	elif alg == 'cond':
-		for family in ['16s', '23s', '5s', 'srp', 'grp1', 'tmRNA', 'RNaseP', 'telomerase', 'tRNA']:
+		family_list = ['tRNA', '5S rRNA', 'SRP', 'RNaseP', 'tmRNA', 'Group I Intron ', 'telomerase', 'Group II Intron', '16S rRNA', '23S rRNA']
+		data = []
+		for newfamily in family_list:
+			family = new2old[newfamily]
 			print('family:', family)
-			conditioned_count(path, lambda js: family in js['id'])
+			count_motif, count_motif_uniq, count_motif_uniq_min, count_structure_id, count_structure = conditioned_count(path, lambda js: family in js['id'])
+			data.append([newfamily, count_motif, count_motif_uniq, count_motif_uniq_min, count_structure_id, count_structure])
+		df = pd.DataFrame(data, columns=['Family', 'MotifTotal', 'MotifUniq', 'MotifUniqMin', 'StructureID', 'Structure'])
+		summary = ['Total', df['MotifTotal'].sum(), df['MotifUniq'].sum(), df['MotifUniqMin'].sum(), df['StructureID'].sum(), df['Structure'].sum()]
+		df.loc[len(df)] = summary
+		print(df)
+		df.to_csv(path + '.cond.csv', index=False)
 	elif alg == 'mstr': # cat data/short14_undesignable_dg0.txt | ./scripts/uniq.py xx mstr
 		uniq_trees = []
 		all_strs = set()
