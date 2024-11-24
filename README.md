@@ -17,13 +17,14 @@ RNA Structure Motifs with Rotational Invariance" (under review)
 ## Datasets
 [Eterna100](data/eterna100.csv) \
 [ArchiveII](data/archiveii.raw.txt) \
-[Designable motifs of length up to 14](data/motifs_maxlen14_no_external/short14_undesignable_dg0.txt) \
-[Undesignable motifs of length up to 14](data/motifs_maxlen14_no_external/short14_undesignable_dg0.txt)
+Motifs of length up to 14 (excluding motifs with external loops for comparison with [CountingDesign](https://gitlab.com/htyao/countingdesign)):
+- [Designable motifs of length up to 14](data/motifs_maxlen14_no_external/short14_undesignable_dg0.txt)
+- [Undesignable motifs of length up to 14](data/motifs_maxlen14_no_external/short14_undesignable_dg0.txt)
 
 ## Results
-Detailed results for Undesignable motifs of length up to 14: \
-- [all motifs](data/motifs_maxlen14_no_external/results.all.csv)
-- [unique motifs by rotational invariance](data/motifs_maxlen14_no_external/results.uniq.csv)
+Detailed results for undesignable motifs of length up to 14: 
+- [All motifs (4561)](data/motifs_maxlen14_no_external/results.all.csv)
+- [Unique motifs (1805) by rotational invariance](data/motifs_maxlen14_no_external/results.uniq.csv)
 
 ## Dependencies
 - GCC 4.8.5 or above
