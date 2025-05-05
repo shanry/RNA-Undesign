@@ -6,6 +6,8 @@ from collections import Counter
 import json
 import glob
 
+from uniq import PairNode
+
 '''
 python parser.py --path log.txt
 
@@ -55,6 +57,22 @@ def shrink(i, j, bpairs, SIZE = 2):
 
 def replace_substring(string, start, end, replacement):
     return string[:start] + replacement + string[end:]
+
+
+def extract_pairs_list(ss):
+    pairs = []
+    stack = []
+    for i, c in enumerate(ss):
+        if c=='.':
+            pass
+        elif c=="(":
+            stack.append(i)
+        elif c==")":
+            j = stack.pop()
+            pairs.append((j, i))
+        else:
+            raise ValueError(f"wrong structure at position {i}: {c}")
+    return pairs
 
 
 # intial version without extending the outmost pair
@@ -233,6 +251,65 @@ def get_motifs(file):
     return motifs_list
 
 
+def find_all_positions(text, substring):
+  """Finds all starting indices of a substring in a text.
+
+  Args:
+    text: The main text string.
+    substring: The substring to search for.
+
+  Returns:
+    A list of indices where the substring starts.
+  """
+
+  start = 0
+  while True:
+    start = text.find(substring, start)
+    if start == -1:
+      break
+    yield start
+    start += len(substring)
+
+
+def get_short_motifs(file='data/motifs_maxlen14_no_external/results.uniq.csv'):
+    import pandas as pd
+    df = pd.read_csv(file)
+    motifs_list = []
+    for i_row, row in df.iterrows():
+        dotbracket = row['Motif']
+        mstr = dotbracket.replace('(*)', '(***)')
+        positions = list(find_all_positions(mstr, '(***)'))
+        bpairs = [(0, len(mstr)-1)]
+        ipairs = []
+        for i in positions:
+            bpairs.append((i, i+4))
+        mstr = mstr.replace('(***)', '(...)')
+        pairs_all = extract_pairs_list(mstr)
+        for i, j in pairs_all:
+            if (i, j) not in bpairs:
+                ipairs.append((i, j))
+        motif_js = dict()
+        node = PairNode.string2node(dotbracket)
+        motif_js['dot-bracket'] = [dotbracket]
+        for rotate_node in node.rotated(0):
+            rotate_str = rotate_node.to_dotbracket()
+            if rotate_str not in motif_js['dot-bracket']:
+                motif_js['dot-bracket'].append(rotate_str)
+        motif_js['y_star'] = mstr
+        motif_js['id'] = "short_enum"+str(i_row)
+        motif_js['bpairs'] = bpairs
+        motif_js['ipairs'] = ipairs
+        motif_js['length'] = len(mstr)
+        motif_js['cardinality'] = len(ipairs) + 1
+        motif_js['has_external'] = False
+        motifs_list.append(motif_js)
+    file = file.replace('.csv', '.json')
+    with open(file, 'w') as f:
+        for motif in motifs_list:
+            f.write(json.dumps(motif)+'\n')
+    return motifs_list
+
+
 def get_rival_motif_plotstr(m, ynew):
     # shrink y
     # ynew = m['y_sub']
@@ -363,6 +440,18 @@ def main_plot(motifs, mode='m'):
     print(path_output)
 
 
+def main_plot_short(motifs):
+    # motifs = get_short_motifs(path)
+    plot_lines = []
+    for i, motif in enumerate(motifs):
+        # counter[motif['id']] += 1
+        motif['motif_id'] = motif['id']
+        plot_lines.append('"'+get_mplotstr(motif)+'"'+"\n")
+    path_output = args.path + '.mplotstr'
+    with open(path_output, 'w') as f:
+        f.writelines(plot_lines)
+
+
 def main_time(motifs):
     time_list = []
     for motif in motifs:
@@ -382,11 +471,15 @@ if __name__ == '__main__':
     args = parser.parse_args()
     # print('args:')
     # print(args)
-
-    json_motifs = get_motifs(args.path)
+    if args.mode == 'short':
+        json_motifs = get_short_motifs(args.path)
+    else:
+        json_motifs = get_motifs(args.path)
     if args.mode == 'r':
         main_plot_rival(json_motifs)
     elif args.mode == 't':
         main_time(json_motifs)
+    elif args.mode == 'short':
+        main_plot_short(json_motifs)
     else:
         main_plot(json_motifs, args.mode)
