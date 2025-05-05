@@ -25,7 +25,7 @@ from collections import defaultdict
 import numpy as np
 import pandas as pd
 
-from parser import get_mplotstr2
+# from parser import get_mplotstr2
 
 oldfamily2newfamily = {'16s': '16S rRNA', 
                        '23s': '23S rRNA', 
@@ -397,7 +397,7 @@ def count_occurs(uniqs):
 			print('occurs dict:', {family: motif2family[tree][family] for family in motif2family[tree]})
 			print('family count:', len(motif2family[tree]))
 			print('occurs count:', len(motif2js[tree]))
-			print('plotstr:', get_mplotstr2(motif2js[tree][0]))
+			# print('plotstr:', get_mplotstr2(motif2js[tree][0]))
 			print(motif2js[tree][0])
 			print()
 
