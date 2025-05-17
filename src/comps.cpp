@@ -602,7 +602,7 @@ void tree2ThreeNeighbor(TreeNode* root, std::string& ref, std::vector<LoopComple
         printf("   ref: %s\n", ref.c_str());
         int count_neighbor = root->children.size() + 1;
         int start_neighbor = 0;
-        if (root->parent == NULL){
+        if (root->parent == NULL){ //external loop
             start_neighbor++; // from the first child
             count_neighbor--;
         }
