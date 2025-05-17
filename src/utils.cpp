@@ -494,6 +494,11 @@ std::string genHelix(int len){
 }
 
 std::string dotbracket2target(const std::string& line) {
+    bool has_external = false;
+    // if starting with 5 and ending with 3
+    if (line[0] == '5' && line[line.length() - 1] == '3') {
+        has_external = true;
+    }
     std::string y;
     for (char x : line) {
         if (x == '*') {
@@ -502,20 +507,37 @@ std::string dotbracket2target(const std::string& line) {
             y += x;
         }
     }
+    // if has external, remove 5 and 3
+    if (has_external) {
+        y = y.substr(1, y.length() - 2);
+    }
     return y;
 }
 
-std::string dotbracket2constraint(const std::string& line) {
+std::string dotbracket2constraint(const std::string &line) {
+    bool has_external = false;
+    // if starting with 5 and ending with 3
+    if (line[0] == '5' && line[line.length() - 1] == '3') {
+        has_external = true;
+    }
+    std::string line_trimed = line;
+    
     size_t len = line.size();
+
+    if (has_external) {
+        len -= 2; // Exclude the first and last characters
+        line_trimed = line.substr(1, len); // Remove the first and last characters
+    }
+    
     std::vector<std::string> constraint(len, "?");
 
-    if (len > 0) {
+    if (len > 0 && !has_external) {
         constraint[0] = "(";
         constraint[len - 1] = ")";
     }
 
     for (size_t i = 0; i < len; ++i) {
-        char x = line[i];
+        char x = line_trimed[i];
         if (x == '*') {
             constraint[i] = "...";
             if (i > 0) {
