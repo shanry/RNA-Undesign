@@ -274,6 +274,7 @@ def find_all_positions(text, substring):
 def get_short_motifs(file='data/motifs_maxlen14_no_external/results.uniq.csv'):
     import pandas as pd
     df = pd.read_csv(file)
+    print(df.head())
     motifs_list = []
     for i_row, row in df.iterrows():
         dotbracket = row['Motif']
@@ -295,6 +296,49 @@ def get_short_motifs(file='data/motifs_maxlen14_no_external/results.uniq.csv'):
             rotate_str = rotate_node.to_dotbracket()
             if rotate_str not in motif_js['dot-bracket']:
                 motif_js['dot-bracket'].append(rotate_str)
+        motif_js['y_star'] = mstr
+        motif_js['id'] = "short_enum"+str(i_row)
+        motif_js['bpairs'] = bpairs
+        motif_js['ipairs'] = ipairs
+        motif_js['length'] = len(mstr)
+        motif_js['cardinality'] = len(ipairs) + 1
+        motif_js['has_external'] = False
+        motifs_list.append(motif_js)
+    file = file.replace('.csv', '.json')
+    with open(file, 'w') as f:
+        for motif in motifs_list:
+            f.write(json.dumps(motif)+'\n')
+    return motifs_list
+
+
+def get_short_motifs_exloop(file='data/undes_external.csv'):
+    import pandas as pd
+    df = pd.read_csv(file)
+    print(df.head())
+    motifs_list = []
+    for i_row, row in df.iterrows():
+        dotbracket = row['Motif']
+        mstr = dotbracket.replace('(*)', '(***)')
+        positions = list(find_all_positions(mstr, '(***)'))
+        bpairs = [(-1, len(mstr))]
+        ipairs = []
+        for i in positions:
+            bpairs.append((i, i+4))
+        mstr = mstr.replace('(***)', '(...)')
+        if mstr[0] == '5' and mstr[-1] == '3':
+            pairs_all = extract_pairs_list(mstr[1:-1])
+        else:
+            pairs_all = extract_pairs_list(mstr)
+        for i, j in pairs_all:
+            if (i, j) not in bpairs:
+                ipairs.append((i, j))
+        motif_js = dict()
+        # node = PairNode.string2node(dotbracket)
+        motif_js['dot-bracket'] = [dotbracket]
+        # for rotate_node in node.rotated(0):
+        #     rotate_str = rotate_node.to_dotbracket()
+        #     if rotate_str not in motif_js['dot-bracket']:
+        #         motif_js['dot-bracket'].append(rotate_str)
         motif_js['y_star'] = mstr
         motif_js['id'] = "short_enum"+str(i_row)
         motif_js['bpairs'] = bpairs
@@ -473,6 +517,9 @@ if __name__ == '__main__':
     # print(args)
     if args.mode == 'short':
         json_motifs = get_short_motifs(args.path)
+    elif args.mode == 'short_exloop':
+        json_motifs = get_short_motifs_exloop(args.path)
+        exit(0)
     else:
         json_motifs = get_motifs(args.path)
     if args.mode == 'r':

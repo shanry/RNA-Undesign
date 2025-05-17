@@ -346,6 +346,8 @@ def dedup_lines(path):
 		for newtree in tree.rotated(0):
 			all_trees_rotated.append(newtree)
 			all_rotations.add(str(newtree))
+		if js['ismin'] is False:
+			print(i+1, str(tree))
 		# for rt in all_trees_rotated:
 		# 	print(rt.to_bfs())
 		# for rt in all_trees_rotated:
@@ -430,7 +432,13 @@ def gen_dotprnths(path):
 
 
 def conditioned_count(path, func_condition):
-	ref2structure = get_ref2structure()
+	# ref2structure = get_ref2structure()  # for archiveII dataset
+	ref2structure = dict()
+	df = pd.read_csv('data/rnastralign_filtered.csv')
+	for i, row in df.iterrows():
+		id = row['id']
+		structure = row['secondary_structure']
+		ref2structure[id] = structure
 	uniqs = defaultdict(list) # loop-signature -> [motifs]
 	min_uniqs = defaultdict(list) # loop-signature -> [motifs]
 	id_uniqs = set()
@@ -499,14 +507,17 @@ if __name__ == "__main__":
 	if alg == 'dedup_lines':
 		uniqs = dedup_lines(path)
 		# uniqs = dedup(path)
-		count_occurs(uniqs)
+		# count_occurs(uniqs)
 	elif alg == 'dotpr':
 		gen_dotprnths(path)
 	elif alg == 'cond':
-		family_list = ['tRNA', '5S rRNA', 'SRP', 'RNaseP', 'tmRNA', 'Group I Intron ', 'telomerase', 'Group II Intron', '16S rRNA', '23S rRNA']
+		# family_list = ['tRNA', '5S rRNA', 'SRP', 'RNaseP', 'tmRNA', 'Group I Intron ', 'telomerase', 'Group II Intron', '16S rRNA', '23S rRNA']  # for archiveII dataset
+		family_list = [ 'tRNA', 'SRP', 'RNaseP', 'tmRNA', 'group_I_intron', 'telomerase', '16S_rRNA']
+		# family_list = []
 		data = []
 		for newfamily in family_list:
-			family = new2old[newfamily]
+			# family = new2old[newfamily]  # for archiveII dataset 
+			family = newfamily
 			print('family:', family)
 			count_motif, count_motif_uniq, count_motif_uniq_min, count_structure_id, count_structure = conditioned_count(path, lambda js: family in js['id'])
 			data.append([newfamily, count_motif, count_motif_uniq, count_motif_uniq_min, count_structure_id, count_structure])
