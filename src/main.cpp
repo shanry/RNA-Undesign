@@ -27,7 +27,7 @@ using namespace std;
 
 long int MAX_ENUM = 1000000000; // default 10000000000
 long int MAX_CONSTRAINT = 100000; // default 1000000
-long int MAX_SEQ = 500;  // default 500
+long int N_SAMPLE = 500;  // default 500
 long int MAX_RIVAL = 100; // default 100
 
 
@@ -722,11 +722,11 @@ std::string alg_2(std::string& ref1, std::set<std::string>& refs_checked, std::v
     std::vector<std::string> X;
     for(auto cs: cs_vec){
         X.insert(X.end(), cs.seqs->begin(), cs.seqs->end());
-        if(X.size() > MAX_SEQ)
+        if(X.size() > N_SAMPLE)
             break;
     }
-    if (X.size() > MAX_SEQ)
-        X.resize(MAX_SEQ);
+    if (X.size() > N_SAMPLE)
+        X.resize(N_SAMPLE);
     std::cout<<"X.size: "<<X.size()<<std::endl;
     for(auto x: X){
         assert (check_compatible(x, ref1));
@@ -842,11 +842,11 @@ std::string alg_2_cs(std::string& ref1, std::set<std::string>& refs_checked, std
     std::vector<std::string> X;
     for(auto cs: cs_vec){
         X.insert(X.end(), cs.seqs->begin(), cs.seqs->end());
-        if(X.size() > MAX_SEQ)
+        if(X.size() > N_SAMPLE)
             break;
     }
-    if (X.size() > MAX_SEQ)
-        X.resize(MAX_SEQ);
+    if (X.size() > N_SAMPLE)
+        X.resize(N_SAMPLE);
     std::cout<<"X.size: "<<X.size()<<std::endl;
     std::string constr(ref1.length(), '?');
     constr[0] = '(';
@@ -1149,11 +1149,11 @@ std::string alg_5_cs(std::string& ref1, std::set<std::string>& refs_checked, std
     for(auto cs: cs_vec){
         std::cout<<"cs.seqs size: "<<cs.seqs->size()<<std::endl;
         X.insert(X.end(), cs.seqs->begin(), cs.seqs->end());
-        if(X.size() > MAX_SEQ)
+        if(X.size() > N_SAMPLE)
             break;
     }
-    if (X.size() > MAX_SEQ)
-        X.resize(MAX_SEQ);
+    if (X.size() > N_SAMPLE)
+        X.resize(N_SAMPLE);
     std::cout<<"X.size: "<<X.size()<<std::endl;
     // std::string constr(ref1.length(), '?');
     // constr[0] = '(';
@@ -1287,11 +1287,11 @@ std::string alg_5_cs_plus(std::string& ref1, std::set<std::string>& refs_checked
     for(auto cs: cs_vec){
         std::cout<<"cs.seqs size: "<<cs.seqs->size()<<std::endl;
         X.insert(X.end(), cs.seqs->begin(), cs.seqs->end());
-        if(X.size() > MAX_SEQ)
+        if(X.size() > N_SAMPLE)
             break;
     }
-    if (X.size() > MAX_SEQ)
-        X.resize(MAX_SEQ);
+    if (X.size() > N_SAMPLE)
+        X.resize(N_SAMPLE);
     std::cout<<"X.size: "<<X.size()<<std::endl;
     // std::string constr(ref1.length(), '?');
     // constr[0] = '(';
@@ -2548,6 +2548,7 @@ void show_configuration(){
     return;
 }
 
+
 int main(int argc, char* argv[]) {
     cxxopts::Options options("MyProgram", "One line description of MyProgram");
     options.add_options()
@@ -2558,7 +2559,12 @@ int main(int argc, char* argv[]) {
     ("d,dangle", "Dangle mode", cxxopts::value<int>()->default_value("2"))
     ("vrna,vienna", "Use ViennaRNA to fold, the environment variable VRNABIN has to be set", cxxopts::value<bool>()->default_value("false"))
     ("p,plot", "Plot motifs", cxxopts::value<bool>()->default_value("false"))
-    ("v,verbose", "Verbose output", cxxopts::value<bool>()->default_value("false"));
+    ("v,verbose", "Verbose output", cxxopts::value<bool>()->default_value("false"))
+    ("max_enum", "max number of enumeration", cxxopts::value<long int>()->default_value("1000000000"))
+    ("max_constraint", "max number of constraints", cxxopts::value<long int>()->default_value("100000"))
+    ("n_sample", "sampling size ", cxxopts::value<long int>()->default_value("500"))
+    ("max_rival", "max number of rival structures or motifs", cxxopts::value<long int>()->default_value("100"));
+
 
     auto result = options.parse(argc, argv);
     std::string alg = result["alg"].as<std::string>();
@@ -2572,6 +2578,11 @@ int main(int argc, char* argv[]) {
     printf("alg: %s, vienna: %d, verbose: %d, dangle: %d\n", alg.c_str(), vrna, verbose, dangle);
     printf("random seed for target initialization: %d\n", SEED_RAND);
     show_configuration();
+
+    MAX_ENUM = result["max_enum"].as<long int>();
+    MAX_CONSTRAINT = result["max_constraint"].as<long int>();
+    N_SAMPLE = result["n_sample"].as<long int>();
+    MAX_RIVAL = result["max_rival"].as<long int>();
 
     std::unordered_map<std::string, std::string> struct2seq = loadlib_eterna("data/eterna_umfe_unsolved.csv");
 
@@ -2865,7 +2876,7 @@ int main(int argc, char* argv[]) {
     }else if (alg == "motif"){ /* motif evaluation  */
         MAX_ENUM = 20000000000;
         MAX_CONSTRAINT = 40000000;
-        MAX_SEQ = 20000;
+        N_SAMPLE = 20000;
         std::string dotbracket;
         std::string seq;
         std::string target;
