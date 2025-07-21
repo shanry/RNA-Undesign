@@ -77,6 +77,12 @@ echo "PATH_BASE:" $PATH_BASE
 # # -t 0 means layout mode 0 (default 1)
 echo -ne ">$id\n$seq\n$struct" | $VIENNA/bin/RNAplot -t $mode --pre "$prestring " --post "$poststring" # the final space is important to keep "" #"$span GREEN Fomark"
 
+# rename .eps to .ps if necessary
+if [ -e ${id}_ss.eps ]; then
+    echo "renaming ${id}_ss.eps to ${id}_ss.ps"
+    mv ${id}_ss.eps ${id}_ss.ps
+fi
+
 # Call the Python script and capture its output
 result_cross=$(python ${PATH_BASE}/scripts/coord.py ${id}_ss.ps)
 echo "result_cross:" $result_cross
