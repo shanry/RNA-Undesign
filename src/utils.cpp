@@ -329,7 +329,8 @@ std::map<std::string, std::set<std::string>> readMotif(const char* file){
     std::map<std::string, std::set<std::string>> id2motif;
     std::ifstream inputFile(file); // Replace "example.txt" with the name of your file
     if (!inputFile.is_open()) {
-        std::cerr << "Failed to open the file." << std::endl;
+        std::string file_str(file);
+        std::cerr << "Failed to open the file: " << file_str << std::endl;
         return id2motif;
     }
 
@@ -430,7 +431,8 @@ std::vector<std::vector<std::string>> read_csv(const char* file){
     std::ifstream inputFile(file); // Replace "example.txt" with the name of your file
 
     if (!inputFile.is_open()) {
-        std::cerr << "Failed to open the file." << std::endl;
+        std::string file_str(file);
+        std::cerr << "Failed to open the file: " << file_str << std::endl;
         return df;
     }
 
