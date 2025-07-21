@@ -24,6 +24,8 @@ from collections import defaultdict
 
 import numpy as np
 import pandas as pd
+import math
+from matplotlib import pyplot as plt
 
 # from parser import get_mplotstr2
 
@@ -295,6 +297,39 @@ def get_length(js):
 	return length
 
 
+def get_lonepairs(js):
+	bpair = js["bpairs"]
+	ipair = js["ipairs"]
+	idx_pairs = set()
+	for pair in bpair:
+		if pair[0] == -1:
+			continue
+		idx_pairs.add(pair[0])
+		idx_pairs.add(pair[1])
+	for pair in ipair:
+		if pair[0] == -1:
+			continue
+		idx_pairs.add(pair[0])
+		idx_pairs.add(pair[1])
+	
+	pairs_stronglylone = []  # strongly lonely pair does not have any neighbored positions that are also in idx_pairs
+	pairs_weaklylone = []  # weakly lonely pair has either left or right position that doesn't have any neighbored positions also in idx_pairs
+	for pair in ipair:
+		if pair[0] == -1:
+			continue
+		count_lone = 0
+		if pair[0] - 1 not in idx_pairs and pair[0] + 1 not in idx_pairs:
+			count_lone += 1
+		if pair[1] - 1 not in idx_pairs and pair[1] + 1 not in idx_pairs:
+			count_lone += 1
+		if count_lone == 2:
+			pairs_stronglylone.append(pair)
+		if count_lone == 1:
+			pairs_weaklylone.append(pair)
+
+	return pairs_stronglylone, pairs_weaklylone
+		
+
 def dedup(path):
 	uniqs = defaultdict(list) # loop-signature -> [motifs]
 	id_uniqs = set()
@@ -331,8 +366,11 @@ def dedup_lines(path):
 	id_uniqs = set()
 	lines_uniqs = []
 	lengths = []
+	count_motif_min = 0
 	for i, line in enumerate(open(path)):
 		js = json.loads(line)
+		if js['ismin']:
+			count_motif_min += 1
 		id_uniqs.add(js['id'])
 		# js_full = json.loads(line)
 		ids, motif = js['motif']['id'], js['motif']['root']
@@ -346,8 +384,8 @@ def dedup_lines(path):
 		for newtree in tree.rotated(0):
 			all_trees_rotated.append(newtree)
 			all_rotations.add(str(newtree))
-		if js['ismin'] is False:
-			print(i+1, str(tree))
+		# if js['ismin'] is False:
+		# 	print(i+1, str(tree))
 		# for rt in all_trees_rotated:
 		# 	print(rt.to_bfs())
 		# for rt in all_trees_rotated:
@@ -359,29 +397,83 @@ def dedup_lines(path):
 		else: # new uniq
 			uniqs[signature].append((tree, [js]))
 			# print(Node.to_string(tree))
-			lines_uniqs.append(line)
+			# lines_uniqs.append(line)
 			# print(tree, ids, len(lines_uniqs), signature)
 			if js['ismin']:
 				min_uniqs[signature].append((tree, [js]))
-			lengths.append(get_length(js))
+				lengths.append(get_length(js))
+				lines_uniqs.append(line)
 	total = 0
 	for signature in uniqs:
 		for tree, jss in uniqs[signature]:
 			total += len(jss)
 	# 		for js in jss:
 	# 			print(json.dumps(js['motif']))
-	print("struct. uniq:", len(id_uniqs), "\tmotif total:", total, "\tmotif uniq (min):", f"{sum(map(len, uniqs.values()))} ({sum(map(len, min_uniqs.values()))})")
 	print("lengths:", sorted(lengths))
+	print("size of lengths:", len(lengths))
+	print("struct. uniq:", len(id_uniqs), "\tmotif total:", total, "\tminimal motif total:", count_motif_min, "\tmotif uniq (min):", f"{sum(map(len, uniqs.values()))} ({sum(map(len, min_uniqs.values()))})")
 	print("average length:", np.mean(lengths))
 	print("median  length:", np.median(lengths))
 	print("max    length:", np.max(lengths))
 	print("min    length:", np.min(lengths))
-	print(sorted(list(id_uniqs)))
+	# print(sorted(list(id_uniqs)))
 	filename = path + '.uniq'
 	with open(filename, 'w') as f:
 		for line in lines_uniqs:
 			f.write(line)
 	return uniqs
+
+
+def get_motif_statistics(path):
+	loop_maps = []
+	loop_nums = []
+	lone_nums = []
+	semilone_nums = []
+	for i, line in enumerate(open(path)):
+		js = json.loads(line)
+		# js_full = json.loads(line)
+		_, motif = js['motif']['id'], js['motif']['root']
+		ipairs = js['ipairs']
+		loop_maps.append(loop_stats(motif))
+		num_loops = 0
+		for loop_type, count in loop_maps[-1].items():
+			if loop_type == 'unp':
+				continue
+			num_loops += count
+		assert num_loops == len(ipairs) + 1, str(num_loops) + ' != ' + str(len(ipairs))  + '1'
+		loop_nums.append(num_loops)
+		pairs_lone, pairs_semilone = get_lonepairs(js)
+		lone_nums.append(len(pairs_lone))
+		semilone_nums.append(len(pairs_semilone))
+	
+	loops_count = defaultdict(int)
+	for i, loop_map in enumerate(loop_maps):
+		print(loop_map, loop_nums[i])
+		num_loops = 0
+		for loop_type, count in loop_map.items():
+			if loop_type == 'unp':
+				continue
+			num_loops += count
+		assert num_loops == loop_nums[i], str(len(loop_map)) + ' != ' + str(loop_nums[i])
+		loops_count[num_loops] += 1
+	print("loops count:", loops_count)
+
+	lone_count = defaultdict(int)
+	for i, lone_num in enumerate(lone_nums):
+		lone_count[lone_num] += 1
+	print("strongly isolated count:", lone_count)
+	lone_percent = sum([lone_count[i] for i in lone_count if i > 0]) / len(lone_nums)
+	print("strongly isolated percent:", f"{lone_percent:.2%}")
+
+	semilone_count = defaultdict(int)
+	for i, semilone_num in enumerate(semilone_nums):
+		semilone_count[semilone_num] += 1
+	print("weakly isolated count:", semilone_count)
+	semilone_percent = sum([semilone_count[i] for i in semilone_count if i > 0]) / len(semilone_nums)
+	print(f"weakly isolated percent: {semilone_percent:.2%}")
+
+	isolated_ratio = lone_percent + semilone_percent
+	print(f"isolated ratio: {isolated_ratio:.2%}")
 
 
 def count_occurs(uniqs):
@@ -445,10 +537,13 @@ def conditioned_count(path, func_condition):
 	structure_uniqs = set()
 	lines_uniqs = []
 	lengths = []
+	count_motif_min = 0
 	for i, line in enumerate(open(path)):
 		js = json.loads(line)
 		if not func_condition(js):
 			continue
+		if js['ismin']:
+			count_motif_min += 1
 		id_uniqs.add(js['id'])
 		structure_uniqs.add(ref2structure[js['id']])
 		# js_full = json.loads(line)
@@ -490,12 +585,12 @@ def conditioned_count(path, func_condition):
 	count_motif_uniq_min = sum(map(len, min_uniqs.values()))
 	count_structure_id = len(id_uniqs)
 	count_structure = len(structure_uniqs)
-	print("motif total:", total, "\tmotif uniq (min):", f"{sum(map(len, uniqs.values()))} ({sum(map(len, min_uniqs.values()))})")
+	print("motif total:", total, "\tminimal motif total:", count_motif_min, "\tmotif uniq (min):", f"{sum(map(len, uniqs.values()))} ({sum(map(len, min_uniqs.values()))})")
 	print("id uniq:", len(id_uniqs), "\tstruct. uniq:", len(structure_uniqs))
 	print("lengths:", sorted(lengths))
 	# print(sorted(list(id_uniqs)))
 	print('-----------------------------------')
-	return count_motif, count_motif_uniq, count_motif_uniq_min, count_structure_id, count_structure
+	return count_motif_min, count_motif_uniq, count_motif_uniq_min, count_structure_id, count_structure
 
 
 if __name__ == "__main__":
@@ -508,6 +603,8 @@ if __name__ == "__main__":
 		uniqs = dedup_lines(path)
 		# uniqs = dedup(path)
 		# count_occurs(uniqs)
+	elif alg == 'stats':
+		get_motif_statistics(path)
 	elif alg == 'dotpr':
 		gen_dotprnths(path)
 	elif alg == 'cond':
@@ -541,5 +638,5 @@ if __name__ == "__main__":
 					if str(rt) not in all_strs:
 						all_strs.add(str(rt))
 		print('total trees:', len(all_strs), 'uniq strs:', len(uniq_trees))
-		for tree in uniq_trees:
-			print(str(tree))
+		# for tree in uniq_trees:
+		# 	print(str(tree))
