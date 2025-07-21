@@ -27,8 +27,8 @@ using namespace std;
 
 long int MAX_ENUM = 1000000000; // default 10000000000
 long int MAX_CONSTRAINT = 100000; // default 1000000
-long int MAX_SEQ = 200;  // default 500
-long int MAX_RIVAL = 50; // default 100
+long int MAX_SEQ = 500;  // default 500
+long int MAX_RIVAL = 100; // default 100
 
 
 /* Old compatibility names for C types.  */
@@ -67,6 +67,9 @@ std::string y_sub;
 std::string seq_init;
 std::vector<std::string> y_rivals;
 std::string x_umfe;
+
+// cache mfe solution for alg2
+std::string mfe_seq_for_alg2;
 
 std::vector<std::pair<int, int>> pairs_outside;
 std::vector<std::pair<int, int>> pairs_inside;
@@ -133,15 +136,15 @@ std::set<std::string> loadLib(std::string path){
     size_t line_number = 0;
     while (std::getline(file, line)){
         line_number += 1;
-        printf("path %s, line %d\n", path.c_str(), line_number);
+        // printf("path %s, line %d\n", path.c_str(), line_number);
         json js_record = json::parse(line);
         std::set<std::string> rostrings;
         // assert(!js_record["is_duplicated"]);
         Node* tree = new Node(js_record["motif"]);
         std::string treestr = tree->toDotBracket();
         rostrings.insert(treestr);
-        if (lib.count(treestr) != 0)
-            std::cout<<"duplicated motif: "<<treestr<<std::endl;
+        // if (lib.count(treestr) != 0)
+        //     std::cout<<"duplicated motif: "<<treestr<<std::endl;
         // assert (lib.count(treestr)==0);
         lib.insert(treestr);
         for(Node* rotree : tree->rotated(0)){
@@ -211,7 +214,7 @@ MotifLib::MotifLib(std::string path){
         Node* tree = new Node(js_record["motif"]);
         std::string treestr = tree->toDotBracket();
         rostrings.insert(treestr);
-        assert (dotbracket2id.count(treestr)==0);
+        // assert (dotbracket2id.count(treestr)==0);
         if (js_record["id_uniq"].empty())
             js_record["id_uniq"] = count_unique + 1;
         dotbracket2id[treestr] = js_record["id_uniq"].get<int>();
@@ -731,7 +734,10 @@ std::string alg_2(std::string& ref1, std::set<std::string>& refs_checked, std::v
         if (isUMFE(subopts, ref1)){
             printf("UMFE found!\n");
             std::cout<<x<<std::endl;
-            return "UMFE";
+            return "UMFE:" + x;
+        }else if(isMFE(subopts, ref1)){
+            printf("MFE found!\n");
+            mfe_seq_for_alg2 = x;
         }
         for(std::string ref: subopts){
             if(ref != ref1 && !refs_checked.count(ref)){
@@ -825,7 +831,7 @@ std::string alg_2(std::string& ref1, std::set<std::string>& refs_checked, std::v
         return alg_2(ref1, refs_checked, cs_vec, verbose, dangle_model);
     else{
         std::cout<<"no conclusion!"<<std::endl;
-        return "no conclusion";
+        return "exceeded MAX_RIVAL: " + std::to_string(MAX_RIVAL);
     }
 }
 
@@ -1729,13 +1735,15 @@ void csv_process(std::string csv, std::string alg){
     }
     if(var_unknown_lib == NULL){
         std::cerr << "Error: PATH_UNKNOWN_LIB is not set" << std::endl;
-        return;
+        // return;
     }
     std::string path_undesignable_lib(var_undesignable_lib);
     std::string path_designable_lib(var_designable_lib);
     std::set<std::string> uniq_ud = loadLib(path_undesignable_lib); // undesignable motifs
     std::set<std::string> uniq_ds = loadLib(path_designable_lib);   // designable   motifs
-    std::set<std::string> uniq_unkown = loadLib(var_unknown_lib); // unknown motifs
+    std::set<std::string> uniq_unkown;
+    if (var_unknown_lib != NULL)
+        uniq_unkown = loadLib(var_unknown_lib); // load unknown motifs if the library is set
     std::cout<<"size of designable motifs: "<<uniq_ds.size()<<std::endl;
     std::cout<<"size of undesignable motifs: "<<uniq_ud.size()<<std::endl;
     std::string path_undesignable_enum = "data/motifs_maxlen14_no_external/results.uniq.json";
@@ -2198,12 +2206,14 @@ void online_process(std::string y, std::string path_prefix=""){
     }
     std::string path_undesignable_lib(var_undesignable_lib);
     std::string path_designable_lib(var_designable_lib);
-    // std::set<std::string> uniq_ud = loadLib(path_undesignable_lib); // undesignable motifs
-    // std::set<std::string> uniq_ds = loadLib(path_designable_lib);   // designable   motifs
-    MotifLib motiflib_ud(path_undesignable_lib);
-    MotifLib motiflib_ds(path_designable_lib);
-    std::cout<<"undesignable motiflib size: "<<motiflib_ud.count_unique<<std::endl;
-    std::cout<<"designable motiflib size: "<<motiflib_ds.count_unique<<std::endl;
+    std::set<std::string> uniq_ud = loadLib(path_undesignable_lib); // undesignable motifs
+    std::set<std::string> uniq_ds = loadLib(path_designable_lib);   // designable   motifs
+    std::cout<<"size of designable motifs: "<<uniq_ds.size()<<std::endl;
+    std::cout<<"size of undesignable motifs: "<<uniq_ud.size()<<std::endl;
+    // MotifLib motiflib_ud(path_undesignable_lib);
+    // MotifLib motiflib_ds(path_designable_lib);
+    // std::cout<<"undesignable motiflib size: "<<motiflib_ud.count_unique<<std::endl;
+    // std::cout<<"designable motiflib size: "<<motiflib_ds.count_unique<<std::endl;
     auto time_end_load_lib = std::chrono::high_resolution_clock::now();
     const std::chrono::duration<double, std::milli> time_ms_load_lib = time_end_load_lib - time_start_load_lib;
     std::cout << "[ProgressInfo] Time cost for loading motif libs: " << time_ms_load_lib.count()/1000.f << " seconds" << std::endl;
@@ -2289,10 +2299,10 @@ void online_process(std::string y, std::string path_prefix=""){
                     //     continue;
                     // }
                     std::cout<<"treestr: "<<treestr<<std::endl;
-                    if(motiflib_ds.count(treestr)){
+                    if(uniq_ds.count(treestr)){
                         std::cout<<"already designable!"<<std::endl;
                         result = "designable";
-                    }else if(motiflib_ud.count(treestr)){
+                    }else if(uniq_ud.count(treestr)){
                         result = "undesignable";
                         std::cout<<"recur lc.constr: "<<lc.constr<<std::endl;
                         // std::cout<<"recur    groupy: "<<constr2groupy[lc.constr].constr<<std::endl;
@@ -2355,11 +2365,11 @@ void online_process(std::string y, std::string path_prefix=""){
                         y_sub = y_star; // set y_sub as y_star
                         y_rivals.clear(); // clear y_rivals
                         bool found_ds = false;
-                        if(motiflib_ds.count(treestr)){
+                        if(uniq_ds.count(treestr)){
                             found_ds = true;
                             std::cout<<"already found designable!"<<std::endl;
                         }else{
-                            motiflib_ds.insert(tree);
+                            uniq_ds.insert(treestr);
                             auto end_time_lc = std::chrono::high_resolution_clock::now();
                             const std::chrono::duration<double, std::milli> time_ms = end_time_lc - start_time_lc;
                             float time_seconds = std::chrono::duration_cast<std::chrono::duration<float>>(time_ms).count();
@@ -2381,16 +2391,16 @@ void online_process(std::string y, std::string path_prefix=""){
                         float time_seconds = std::chrono::duration_cast<std::chrono::duration<float>>(time_ms).count();
                         printf("time cost: %.4f seconds\n", time_seconds);
                         bool found_ud = false; // check if the motif is already found undesignable
-                        if(motiflib_ud.count(treestr)){
+                        if(uniq_ud.count(treestr)){
                             found_ud = true;
                         }else{
-                            motiflib_ud.insert(tree);
+                            uniq_ud.insert(treestr);
                         }
                         auto js = jsrecords(lc, y_star, y_sub, y_rivals, puzzle_id);
                         js["time"] = time_seconds;
                         js["seed"] = SEED_RAND;
                         js["is_duplicated"] = found_ud;
-                        js["id_uniq"] = motiflib_ud.getID(treestr);
+                        // js["id_uniq"] = motiflib_ud.getID(treestr);
                         js["length"] = countDotBrackets(treestr);
                         js["cardinality"] = lc.ps_inside.size() + 1;
                         bool has_external = false;
@@ -2689,10 +2699,27 @@ int main(int argc, char* argv[]) {
             getline(std::cin, ref1);
             getline(std::cin, ref2);
             auto start_time = std::chrono::high_resolution_clock::now();
-            alg_2_helper(ref1, ref2, seq, verbose, dangle);
+            std::string result = alg_2_helper(ref1, ref2, seq, verbose, dangle);
             auto end_time = std::chrono::high_resolution_clock::now();
             const std::chrono::duration<double, std::milli> time_ms = end_time - start_time;
             printf("alg2 time: %.4f seconds\n", time_ms/1000.f);
+            std::cout<< "result: " << result << std::endl;
+            // create json object
+            json js;
+            js["target"] = ref1;
+            js["result"] = "unkown";
+            // if UMFE is a substring of result, get the sequence x (after UMFE:)
+            if (result.find("UMFE") != std::string::npos) {
+                js["result"] = "designable";
+                js["umfe"] = result.substr(result.find("UMFE:")+5);
+            } else if (result.find("undesignable") != std::string::npos) {
+                js["result"] = "undesignable";
+            }
+            if (mfe_seq_for_alg2 != ""){
+                js["mfe"] = mfe_seq_for_alg2;
+            }
+            js["time"] = time_ms.count()/1000.f;
+            std::cout << js.dump() << std::endl;
         }
     }else if (alg == "2c"){ /* constrained alg2 */
         std::string seq;
