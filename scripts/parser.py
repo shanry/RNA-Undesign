@@ -354,6 +354,47 @@ def get_short_motifs_exloop(file='data/undes_external.csv'):
     return motifs_list
 
 
+def get_motifs_from_dotbracket(file):
+    motifs_list = []
+    with open(file) as f:
+        for line in f:
+            dotbracket = line.strip()
+            mstr = dotbracket.replace('(*)', '(***)')
+            has_external = False
+            if mstr[0] == '5' and mstr[-1] == '3':
+                has_external = True
+                mstr = mstr[1:-1]
+            positions = list(find_all_positions(mstr, '(***)'))
+            if has_external:
+                bpairs = [(-1, len(mstr))]
+            else:
+                bpairs = [(0, len(mstr)-1)]
+            ipairs = []
+            for i in positions:
+                bpairs.append((i, i+4))
+            mstr = mstr.replace('(***)', '(...)')
+            pairs_all = extract_pairs_list(mstr)
+            for i, j in pairs_all:
+                if (i, j) not in bpairs:
+                    ipairs.append((i, j))
+            motif_js = dict()
+            motif_js['dot-bracket'] = [dotbracket]
+            motif_js['y_star'] = mstr
+            motif_js['y_sub'] = mstr
+            motif_js['id'] = "short_enum"
+            motif_js['bpairs'] = bpairs
+            motif_js['ipairs'] = ipairs
+            motif_js['length'] = len(mstr)
+            motif_js['cardinality'] = len(ipairs) + 1
+            motif_js['has_external'] = has_external
+            motifs_list.append(motif_js)
+    # file = file.replace('.txt', '.json')
+    # with open(file, 'w') as f:
+    #     for motif in motifs_list:
+    #         f.write(json.dumps(motif)+'\n')
+    return motifs_list
+
+
 def get_rival_motif_plotstr(m, ynew):
     # shrink y
     # ynew = m['y_sub']
@@ -462,10 +503,11 @@ def main_plot_rival(motifs, mode='r'):
         f.writelines(plot_lines)
 
 
-def main_plot(motifs, mode='m'):
+def main_plot(motifs, mode='m', prefix=None):
     counter = Counter()
     plot_lines = []
-    motif2plotstr = get_mplotstr if mode == 'm' else get_yplotstr
+    motif2plotstr = get_mplotstr if mode == 'm' or mode == 'mdb' else get_yplotstr
+    prefix = mode if prefix is None else prefix
     # print('motif2plotstr:', motif2plotstr)
     for i, motif in enumerate(motifs):
         counter[motif['id']] += 1
@@ -477,6 +519,8 @@ def main_plot(motifs, mode='m'):
             motif['ymotif_id'] = '_'.join([str(motif['id']), "ymotif"+str(counter[motif['id']])])
             if 'id_in_structure' in motif:
                 motif['ymotif_id'] = motif['id_in_structure']
+        elif mode == 'mdb':
+            motif['motif_id'] = f'{prefix}_{i+1}'
         plot_lines.append('"'+motif2plotstr(motif)+'"'+"\n")
     path_output = args.path + f'.{mode}plotstr'
     with open(path_output, 'w') as f:
@@ -511,6 +555,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument("--path", '-p', type=str, default='9families_free/telomerase_ref.txt.pn.log.20240923174211.txt')
     parser.add_argument("--mode", '-m', type=str, default='m') # m: motif, y: original structure, r: rival, t: running time
+    parser.add_argument("--prefix", '-f', type=str, default=None) # prefix for the output file
 
     args = parser.parse_args()
     # print('args:')
@@ -520,8 +565,11 @@ if __name__ == '__main__':
     elif args.mode == 'short_exloop':
         json_motifs = get_short_motifs_exloop(args.path)
         exit(0)
+    elif args.mode == 'mdb':
+        json_motifs = get_motifs_from_dotbracket(args.path)
     else:
         json_motifs = get_motifs(args.path)
+
     if args.mode == 'r':
         main_plot_rival(json_motifs)
     elif args.mode == 't':
@@ -529,4 +577,4 @@ if __name__ == '__main__':
     elif args.mode == 'short':
         main_plot_short(json_motifs)
     else:
-        main_plot(json_motifs, args.mode)
+        main_plot(json_motifs, args.mode, args.prefix)
