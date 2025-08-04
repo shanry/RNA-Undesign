@@ -67,7 +67,7 @@ $echo ".((......((......))......((......((......))......((......))......))......
 
 ## Rival Motifs Search
 ```
-echo "(.(*)...(..(*)))" | ./bin/main --alg motif # motif as a dot-bracket string where (*) is a boundary pair
+$echo "(.(*)...(..(*)))" | ./bin/main --alg motif # motif as a dot-bracket string where (*) is a boundary pair
 ```
 
 ## RIGEND
