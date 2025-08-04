@@ -16,6 +16,7 @@
 #include <sstream>
 #include <cassert> 
 #include <cstdio>
+// #include <random>
 
 // #include "eval.cpp"
 #include "cxxopts.hpp"
@@ -25,8 +26,8 @@
 #include <thread>
 using namespace std;
 
-long int MAX_ENUM = 1000000000; // default 10000000000
-long int MAX_CONSTRAINT = 100000; // default 1000000
+long int MAX_ENUM = 10000000000; // default 10000000000
+long int MAX_CONSTRAINT = 100000; // default 100000
 long int N_SAMPLE = 500;  // default 500
 long int MAX_RIVAL = 100; // default 100
 
@@ -727,6 +728,12 @@ std::string alg_2(std::string& ref1, std::set<std::string>& refs_checked, std::v
     }
     if (X.size() > N_SAMPLE)
         X.resize(N_SAMPLE);
+    // if (X.size() > N_SAMPLE) {
+    //     // static std::random_device rd;
+    //     static std::mt19937 g(2025);
+    //     std::shuffle(X.begin(), X.end(), g);
+    //     X.resize(N_SAMPLE);
+    // }
     std::cout<<"X.size: "<<X.size()<<std::endl;
     for(auto x: X){
         assert (check_compatible(x, ref1));
@@ -2560,7 +2567,7 @@ int main(int argc, char* argv[]) {
     ("vrna,vienna", "Use ViennaRNA to fold, the environment variable VRNABIN has to be set", cxxopts::value<bool>()->default_value("false"))
     ("p,plot", "Plot motifs", cxxopts::value<bool>()->default_value("false"))
     ("v,verbose", "Verbose output", cxxopts::value<bool>()->default_value("false"))
-    ("max_enum", "max number of enumeration", cxxopts::value<long int>()->default_value("1000000000"))
+    ("max_enum", "max number of enumeration", cxxopts::value<long int>()->default_value("10000000000"))
     ("max_constraint", "max number of constraints", cxxopts::value<long int>()->default_value("100000"))
     ("n_sample", "sampling size ", cxxopts::value<long int>()->default_value("500"))
     ("max_rival", "max number of rival structures or motifs", cxxopts::value<long int>()->default_value("100"));
