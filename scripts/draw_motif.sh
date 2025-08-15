@@ -90,11 +90,16 @@ echo "result_cross:" $result_cross
 if [ "$result_cross" -eq 1 ]; then
     echo "cross"
     # mv ${id}_ss.ps cross.ps
+    rm ${id}_ss.ps # remove the original file
     mode=4
     id="${ID}_automode${mode}"
     echo -ne ">$id\n$seq\n$struct" | $VIENNA/bin/RNAplot -t $mode --pre "$prestring " --post "$poststring" # the final space is important to keep "" #"$span GREEN Fomark"
     # python ${PATH_BASE}/scripts/replace.py ${id}_ss.ps cross.ps
     # cp cross.ps ${id}_ss.ps
+    if [ -e ${id}_ss.eps ]; then
+        echo "renaming ${id}_ss.eps to ${id}_ss.ps"
+        mv ${id}_ss.eps ${id}_ss.ps
+    fi
 fi
 
 sed -i 's/fsize setlinewidth/8 setlinewidth/' ${id}_ss.ps # change line width
