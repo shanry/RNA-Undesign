@@ -968,9 +968,11 @@ std::string alg_2_helper(std::string& ref1, std::string& ref2, std::string& seq,
     std::cout << "seq: " << seq << std::endl;
     std::cout << "  y: " << ref1 << std::endl;
     std::cout << " y': " << ref2 << std::endl;
+    assert(ref1 != ref2 && "target structure and rival structure are identical!");
     std::set<int> critical_positions;
     std::vector<std::vector<int>> cr_loops = find_critical_plus(ref1, ref2, critical_positions, verbose);
-    long delta_energy = diff_eval(seq, cr_loops, verbose, dangle_model);
+    long delta_energy = -diff_eval(seq, cr_loops, verbose, dangle_model);
+    assert(delta_energy >= 0 && "target structure energy is smaller than the initial rival structure!");
     std::vector<std::tuple<int, int>> pairs_diff = idx2pair(critical_positions, ref1);
     ulong n_enum = count_enum(pairs_diff);
     std::cout<<"enumeration count: "<<n_enum<<std::endl;
