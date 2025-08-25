@@ -192,6 +192,7 @@ class PairNode:
 				assert pair_node.pair[0] >= 0
 				if pair_node.pair[1] - pair_node.pair[0] == 2: # leaf node
 					pair_node.type = 'p'
+					pair_node.unpaired_bases = []
 				elif len(pair_node.children) == 0: # hairpin
 					pair_node.type = 'H'
 					pair_node.unpaired_bases = [pair_node.pair[1] - pair_node.pair[0] - 1]

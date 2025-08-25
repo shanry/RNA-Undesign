@@ -689,7 +689,8 @@ std::vector<std::string> alg_1_v2(std::string& y, std::string& y_prime, std::str
             printf("%8d, %d, %.2f seconds\n", (i+1)/10000, X.size(), std::chrono::duration<double, std::milli>(pause - start)/1000.f);
         }
         if(check_compatible(seq_i, y_prime)){
-            long e_diff = -diff_eval(seq_i, cr_loops, is_verbose, dangle_model); // not divided by 100
+            // not divided by -100, therefore negation; \delta G(ref1, x) - \delta G(ref2, x) = diff_eval / -100
+            long e_diff = -diff_eval(seq_i, cr_loops, is_verbose, dangle_model); 
             if(e_diff < 0){
                 #pragma omp critical
                 idX.push_back({i, seq_i});
