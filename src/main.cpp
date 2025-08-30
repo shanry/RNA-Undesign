@@ -31,6 +31,16 @@ long int MAX_CONSTRAINT = 100000; // default 100000
 long int N_SAMPLE = 500;  // default 500
 long int MAX_RIVAL = 100; // default 100
 
+const char*  var_undesignable_lib = std::getenv("PATH_UNDESIGNABLE_LIB");
+const char*  var_designable_lib = std::getenv("PATH_DESIGNABLE_LIB");
+const char*  var_unknown_lib = std::getenv("PATH_UNKNOWN_LIB");
+
+std::ofstream designableLibFile; // ("lib_designable.txt", std::ios::app);
+std::ofstream undesignableLibFile; // ("lib_undesignable.txt", std::ios::app);
+
+std::set<std::string> uniq_ud; // = loadLib(path_undesignable_lib); // undesignable motifs
+std::set<std::string> uniq_ds; // = loadLib(path_designable_lib);   // designable   motifs
+std::set<std::string> uniq_unknown; // = loadLib(var_unknown_lib); // unknown motifs
 
 /* Old compatibility names for C types.  */
 // typedef unsigned long int ulong;
@@ -160,6 +170,19 @@ std::set<std::string> loadLib(std::string path){
         delete tree;
     }
     return lib;
+}
+
+
+void set_globals(){
+    std::string path_undesignable_lib(var_undesignable_lib);
+    std::string path_designable_lib(var_designable_lib);
+    designableLibFile.open(path_designable_lib, std::ios::app);
+    undesignableLibFile.open(path_undesignable_lib, std::ios::app);
+    uniq_ud = loadLib(path_undesignable_lib); // undesignable motifs
+    uniq_ds = loadLib(path_designable_lib);   // designable   motifs
+    if (var_unknown_lib != NULL)
+        uniq_unknown = loadLib(var_unknown_lib); // load unknown motifs if the library is set
+    return;
 }
 
 
@@ -689,8 +712,7 @@ std::vector<std::string> alg_1_v2(std::string& y, std::string& y_prime, std::str
             printf("%8d, %d, %.2f seconds\n", (i+1)/10000, X.size(), std::chrono::duration<double, std::milli>(pause - start)/1000.f);
         }
         if(check_compatible(seq_i, y_prime)){
-            // not divided by -100, therefore negation; \delta G(ref1, x) - \delta G(ref2, x) = diff_eval / -100
-            long e_diff = -diff_eval(seq_i, cr_loops, is_verbose, dangle_model); 
+            long e_diff = -diff_eval(seq_i, cr_loops, is_verbose, dangle_model); // not divided by 100
             if(e_diff < 0){
                 #pragma omp critical
                 idX.push_back({i, seq_i});
@@ -968,11 +990,9 @@ std::string alg_2_helper(std::string& ref1, std::string& ref2, std::string& seq,
     std::cout << "seq: " << seq << std::endl;
     std::cout << "  y: " << ref1 << std::endl;
     std::cout << " y': " << ref2 << std::endl;
-    assert(ref1 != ref2 && "target structure and rival structure are identical!");
     std::set<int> critical_positions;
     std::vector<std::vector<int>> cr_loops = find_critical_plus(ref1, ref2, critical_positions, verbose);
-    long delta_energy = -diff_eval(seq, cr_loops, verbose, dangle_model);
-    assert(delta_energy >= 0 && "target structure energy is smaller than the initial rival structure!");
+    long delta_energy = diff_eval(seq, cr_loops, verbose, dangle_model);
     std::vector<std::tuple<int, int>> pairs_diff = idx2pair(critical_positions, ref1);
     ulong n_enum = count_enum(pairs_diff);
     std::cout<<"enumeration count: "<<n_enum<<std::endl;
@@ -1701,16 +1721,16 @@ void csv_process(std::string csv, std::string alg){
     }
     
     // Library files for designable and undesignable motifs
-    std::ofstream designableLibFile("lib_designable.txt", std::ios::app);
-    std::ofstream undesignableLibFile("lib_undesignable.txt", std::ios::app);
-    if (!designableLibFile.is_open()) {
-        std::cerr << "Error opening the file: " << "lib_designable.txt" << std::endl;
-        return;
-    }
-    if (!undesignableLibFile.is_open()) {
-        std::cerr << "Error opening the file: " << "lib_undesignable.txt" << std::endl;
-        return;
-    }
+    // std::ofstream designableLibFile("lib_designable.txt", std::ios::app);
+    // std::ofstream undesignableLibFile("lib_undesignable.txt", std::ios::app);
+    // if (!designableLibFile.is_open()) {
+    //     std::cerr << "Error opening the file: " << "lib_designable.txt" << std::endl;
+    //     return;
+    // }
+    // if (!undesignableLibFile.is_open()) {
+    //     std::cerr << "Error opening the file: " << "lib_undesignable.txt" << std::endl;
+    //     return;
+    // }
 
     std::string path_time = csv + "." + alg + ".time."+getCurrentTimestamp()+".csv";
     #ifdef SPECIAL_HP
@@ -1728,10 +1748,7 @@ void csv_process(std::string csv, std::string alg){
         timeFile << "ID,Time(s)" << std::endl;
     }
     std::unordered_map<std::string, GroupY> constr2groupy;
-    // std::unordered_map<std::string, std::string> uniq_ud;
-    const char*  var_undesignable_lib = std::getenv("PATH_UNDESIGNABLE_LIB");
-    const char*  var_designable_lib = std::getenv("PATH_DESIGNABLE_LIB");
-    const char*  var_unknown_lib = std::getenv("PATH_UNKNOWN_LIB");
+    // print global environment variables
     printf("PATH_UNDESIGNABLE_LIB: %s\n", var_undesignable_lib);
     printf("PATH_DESIGNABLE_LIB: %s\n", var_designable_lib);
     printf("PATH_UNKNOWN_LIB: %s\n", var_unknown_lib);
@@ -1745,15 +1762,13 @@ void csv_process(std::string csv, std::string alg){
     }
     if(var_unknown_lib == NULL){
         std::cerr << "Error: PATH_UNKNOWN_LIB is not set" << std::endl;
-        // return;
+        return;
     }
-    std::string path_undesignable_lib(var_undesignable_lib);
-    std::string path_designable_lib(var_designable_lib);
-    std::set<std::string> uniq_ud = loadLib(path_undesignable_lib); // undesignable motifs
-    std::set<std::string> uniq_ds = loadLib(path_designable_lib);   // designable   motifs
-    std::set<std::string> uniq_unkown;
-    if (var_unknown_lib != NULL)
-        uniq_unkown = loadLib(var_unknown_lib); // load unknown motifs if the library is set
+    // std::set<std::string> uniq_ud = loadLib(path_undesignable_lib); // undesignable motifs
+    // std::set<std::string> uniq_ds = loadLib(path_designable_lib);   // designable   motifs
+    // std::set<std::string> uniq_unkown;
+    // if (var_unknown_lib != NULL)
+    //     uniq_unkown = loadLib(var_unknown_lib); // load unknown motifs if the library is set
     std::cout<<"size of designable motifs: "<<uniq_ds.size()<<std::endl;
     std::cout<<"size of undesignable motifs: "<<uniq_ud.size()<<std::endl;
     std::string path_undesignable_enum = "data/motifs_maxlen14_no_external/results.uniq.json";
@@ -1861,7 +1876,7 @@ void csv_process(std::string csv, std::string alg){
                         std::cout<<"recur lc.constr: "<<lc.constr<<std::endl;
                         std::cout<<"recur lc.constr: "<<target<<std::endl;
                         std::cout<<"recur   treestr: "<<treestr<<std::endl;
-                    }else if(uniq_unkown.find(treestr) != uniq_unkown.end()){
+                    }else if(uniq_unknown.find(treestr) != uniq_unknown.end()){
                         result = "unknown";
                     }else{
                         std::string ref_lc = lc.ref;
@@ -1985,16 +2000,16 @@ void csv_process(std::string csv, std::string alg){
                         // }
                     }else{ // unknown case
                         // if new unknown motif, output to file
-                        if(uniq_unkown.find(treestr) == uniq_unkown.end()){
+                        if(uniq_unknown.find(treestr) == uniq_unknown.end()){
                             auto js = jsrecords(lc, y_star, y_sub, y_rivals, puzzle_id);
                             std::string jstring = js.dump();
                             outputFile_unknown << jstring << std::endl;
                         }
                         // add to the unknown library
-                        uniq_unkown.insert(treestr);
+                        uniq_unknown.insert(treestr);
                         for(Node* rotree: tree->rotated(0)){
                             std::string rotreestr = rotree->toDotBracket();
-                            uniq_unkown.insert(rotreestr);
+                            uniq_unknown.insert(rotreestr);
                             delete rotree;
                         }
                     }
@@ -2175,16 +2190,14 @@ void online_process(std::string y, std::string path_prefix=""){
         return;
     }
     // Library files for designable and undesignable motifs
-    std::ofstream designableLibFile("lib_designable.txt", std::ios::app);
-    std::ofstream undesignableLibFile("lib_undesignable.txt", std::ios::app);
-    if (!designableLibFile.is_open()) {
-        std::cerr << "Error opening the file: " << "lib_designable.txt" << std::endl;
-        return;
-    }
-    if (!undesignableLibFile.is_open()) {
-        std::cerr << "Error opening the file: " << "lib_undesignable.txt" << std::endl;
-        return;
-    }
+    // if (!designableLibFile.is_open()) {
+    //     std::cerr << "Error opening the file: " << "lib_designable.txt" << std::endl;
+    //     return;
+    // }
+    // if (!undesignableLibFile.is_open()) {
+    //     std::cerr << "Error opening the file: " << "lib_undesignable.txt" << std::endl;
+    //     return;
+    // }
 
     std::string path_time = path_prefix + "." + alg + ".time."+getCurrentTimestamp()+".csv";
     #ifdef SPECIAL_HP
@@ -2204,8 +2217,8 @@ void online_process(std::string y, std::string path_prefix=""){
     std::unordered_map<std::string, GroupY> constr2groupy;
     std::cout << "[ProgressInfo] Start loading motif libs ..." << std::endl;
     auto time_start_load_lib = std::chrono::high_resolution_clock::now();
-    const char*  var_undesignable_lib = std::getenv("PATH_UNDESIGNABLE_LIB");
-    const char*  var_designable_lib = std::getenv("PATH_DESIGNABLE_LIB");
+    // const char*  var_undesignable_lib = std::getenv("PATH_UNDESIGNABLE_LIB");
+    // const char*  var_designable_lib = std::getenv("PATH_DESIGNABLE_LIB");
     if(var_undesignable_lib == NULL){
         std::cerr << "Error: PATH_UNDESIGNABLE_LIB is not set" << std::endl;
         return;
@@ -2216,8 +2229,6 @@ void online_process(std::string y, std::string path_prefix=""){
     }
     std::string path_undesignable_lib(var_undesignable_lib);
     std::string path_designable_lib(var_designable_lib);
-    std::set<std::string> uniq_ud = loadLib(path_undesignable_lib); // undesignable motifs
-    std::set<std::string> uniq_ds = loadLib(path_designable_lib);   // designable   motifs
     std::cout<<"size of designable motifs: "<<uniq_ds.size()<<std::endl;
     std::cout<<"size of undesignable motifs: "<<uniq_ud.size()<<std::endl;
     // MotifLib motiflib_ud(path_undesignable_lib);
@@ -2602,6 +2613,7 @@ int main(int argc, char* argv[]) {
     }
 
     if (!csv.empty()){
+        set_globals();
         csv_process(csv, alg);
         return 0;
     }
@@ -2837,9 +2849,12 @@ int main(int argc, char* argv[]) {
             }
     }
     else if (alg == "fastmotif"){ /* loops evaluation  */
+        var_unknown_lib = NULL;
+        set_globals();
         std::string y;
         // Read input line by line until EOF (end of file) is reached
         while (std::getline(std::cin, y)) {
+                std::cout<<"please input a structure ->: "<<y<<std::endl;
                 std::cout<<y<<std::endl;
                 // generate a time stamp used for id
                 std::string puzzle_id = "online_" + getCurrentTimestamp() + getRandomIntString();
