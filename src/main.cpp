@@ -145,6 +145,8 @@ std::set<std::string> loadLib(std::string path){
     std::string line;
     printf("Loading lib from file: %s\n", path.c_str());
     size_t line_number = 0;
+    // start time
+    auto start_time = std::chrono::high_resolution_clock::now();
     while (std::getline(file, line)){
         line_number += 1;
         // printf("path %s, line %d\n", path.c_str(), line_number);
@@ -169,6 +171,10 @@ std::set<std::string> loadLib(std::string path){
         }
         delete tree;
     }
+    // end time
+    auto end_time = std::chrono::high_resolution_clock::now();
+    std::chrono::duration<double> elapsed = end_time - start_time;
+    printf("Loaded %d motifs from %s in %.2f seconds.\n", lib.size(), path.c_str(), elapsed.count());
     return lib;
 }
 
@@ -837,6 +843,8 @@ std::string alg_2(std::string& ref1, std::set<std::string>& refs_checked, std::v
                     return "undesignable";
                 }
             }
+            // update y_rivals
+            y_rivals.push_back(y_prime.second.first);
             std::set<int>* idx_new = new std::set<int>(*cs_new.indices);
             std::vector<std::string>* x_new_copy = new std::vector<std::string>(*cs_new.seqs);
             Constraint* cs_new_copy = new Constraint(idx_new, x_new_copy);
@@ -990,6 +998,7 @@ std::string alg_2_helper(std::string& ref1, std::string& ref2, std::string& seq,
     std::cout << "seq: " << seq << std::endl;
     std::cout << "  y: " << ref1 << std::endl;
     std::cout << " y': " << ref2 << std::endl;
+    y_rivals.clear();
     std::set<int> critical_positions;
     std::vector<std::vector<int>> cr_loops = find_critical_plus(ref1, ref2, critical_positions, verbose);
     long delta_energy = diff_eval(seq, cr_loops, verbose, dangle_model);
@@ -1015,8 +1024,10 @@ std::string alg_2_helper(std::string& ref1, std::string& ref2, std::string& seq,
         }
         else{
             Constraint cs_ref2 = Constraint(&critical_positions, &X);
+            print(cs_ref2);
             cs_ref2.setStructure(ref2);
             cs_vec.push_back(cs_ref2);
+            y_rivals.push_back(ref2);
         }
         refs_checked.insert(ref2);
         return alg_2(ref1, refs_checked, cs_vec, verbose, dangle_model);
@@ -2605,8 +2616,6 @@ int main(int argc, char* argv[]) {
     N_SAMPLE = result["n_sample"].as<long int>();
     MAX_RIVAL = result["max_rival"].as<long int>();
 
-    std::unordered_map<std::string, std::string> struct2seq = loadlib_eterna("data/eterna_umfe_unsolved.csv");
-
     if (alg == "0"){
         std::cout<<"no alg was selected!"<<std::endl;
         return 0;
@@ -2741,6 +2750,7 @@ int main(int argc, char* argv[]) {
             json js;
             js["target"] = ref1;
             js["result"] = "unkown";
+            std::cout << "number of rival structures: " << y_rivals.size() << std::endl;
             // if UMFE is a substring of result, get the sequence x (after UMFE:)
             if (result.find("UMFE") != std::string::npos) {
                 js["result"] = "designable";
@@ -2949,6 +2959,7 @@ int main(int argc, char* argv[]) {
             }
         }
     }else if (alg == "n1" || alg == "n2" || alg == "n3"){ /* edges evaluation  */
+        std::unordered_map<std::string, std::string> struct2seq = loadlib_eterna("data/eterna_umfe_unsolved.csv");
         std::string ref;
         // Read input line by line until EOF (end of file) is reached
         while (std::getline(std::cin, ref)){
@@ -3056,48 +3067,6 @@ int main(int argc, char* argv[]) {
             TreeNode* root = parseStringToTree(ref);
             root->printTree();
         }
-    }else if (alg == "subset1" || alg == "subset2" || alg == "subset3"){
-        std::string ref;
-        // Read input line by line until EOF (end of file) is reached
-        while (std::getline(std::cin, ref)){
-            std::string seq;
-            if(struct2seq.find(ref) != struct2seq.end()){
-                seq = struct2seq[ref];
-                std::cout<<"seq found in design lib: "<<seq<<std::endl;
-            }
-            else{
-                seq = tg_init(ref);
-                std::cout<<"seq via targeted initialization: "<<seq<<std::endl;
-            }
-            std::vector<LoopComplex> lc_list;
-            TreeNode* root = parseStringToTree(ref);
-            if(alg == "subset1")
-                tree2Edges(root, ref, lc_list);
-            else if(alg == "subset2")
-                tree2TwoNeighbor(root, ref, lc_list);
-            else
-                tree2ThreeNeighbor(root, ref, lc_list);
-            printf("lc_list size: %d\n", lc_list.size());
-            // Sort the vector using a lambda expression
-            std::sort(lc_list.begin(), lc_list.end(), [](const LoopComplex &a, const LoopComplex &b) {
-                return a.count_uk < b.count_uk;});
-            std::vector<std::vector<std::string>> motif_records;
-            for (auto lc: lc_list){
-                std::cout<<lc.constr<<std::endl;
-                std::cout<<lc.ps_inside.size()<<std::endl;
-                for(auto pair: lc.ps_inside){
-                    std::cout<<pair.first<<","<<pair.second<<";";
-                }
-                std::cout<<std::endl;
-                auto subsets = pairSubSet(lc.ps_inside);
-                for(auto subset: subsets){
-                    for(auto pair: subset){
-                        std::cout<<pair.first<<","<<pair.second<<";";
-                    }
-                    std::cout<<std::endl;
-                }
-            }
-        }
     }else if (alg == "imax"){
         std::string y;
         // Read input line by line until EOF (end of file) is reached
@@ -3113,71 +3082,6 @@ int main(int argc, char* argv[]) {
             TreeNode* root = parseStringToTree(y);
             int max_mul = max_multi(root);
             printf("maximum multi-loop length: %d\n", max_mul);
-        }
-    }else if (alg == "l1" || alg == "l2" || alg == "l3"){ /* edges evaluation  */
-        std::string ref;
-        // Read input line by line until EOF (end of file) is reached
-        while (std::getline(std::cin, ref)){
-            std::string seq;
-            std::string puzzle_id = "id";
-            if(struct2seq.find(ref) != struct2seq.end()){
-                seq = struct2seq[ref];
-                std::cout<<"seq found in design lib: "<<seq<<std::endl;
-            }
-            else{
-                seq = tg_init(ref);
-                std::cout<<"seq via targeted initialization: "<<seq<<std::endl;
-            }
-            std::vector<LoopComplex> lc_list;
-            TreeNode* root = parseStringToTree(ref);
-            if(alg == "l1")
-                tree2Edges(root, ref, lc_list);
-            else if(alg == "l2")
-                tree2TwoNeighbor(root, ref, lc_list);
-            else
-                tree2ThreeNeighbor(root, ref, lc_list);
-            printf("lc_list size: %d\n", lc_list.size());
-            // Sort the vector using a lambda expression
-            std::sort(lc_list.begin(), lc_list.end(), [](const LoopComplex &a, const LoopComplex &b) {
-                return a.count_uk < b.count_uk;});
-            for (auto lc: lc_list){
-                std::string target = ref.substr(lc.start, lc.end-lc.start+1);
-                std::string subseq = seq.substr(lc.start, lc.end-lc.start+1);
-                printf(" count: %d\n", lc.count_uk);
-                printf("target: %s\n", target.c_str());
-                printf("   ref: %s\n", lc.ref.c_str());
-                printf("constr: %s\n", lc.constr.c_str());
-                lc.printLoopLens();
-                if (lc.hasLongLoop()){
-                    printf("the loop exceeds length limit!\n");
-                    continue;
-                }
-                std::string ref_lc = lc.ref;
-                std::string constr_lc = lc.constr;
-                for( int ib = 1; ib < lc.ps_outside.size(); ib++){ // skip the most outside boudary pair
-                    auto bpair = lc.ps_outside[ib];
-                    // std::cout<<"bpair: "<<bpair.first<<"\t"<<bpair.second<<std::endl;
-                    int len_branch =  bpair.second - bpair.first + 1;
-                    std::string y_branch = ref.substr(bpair.first, len_branch);
-                    // std::cout<<"y_branch:"<<std::endl;
-                    std::cout<<y_branch<<std::endl;
-                    TreeNode* root_branch = parseStringToTree(y_branch);
-                    if(max_single(root_branch) > SINGLE_MAX_LEN || max_multi(root_branch) > MULTIPLE_FIRST_MAX_LEN){
-                        std::string helix_branch = genHelix(len_branch);
-                        std::string seq_branch = tg_init(helix_branch);
-                        target.replace(bpair.first - lc.start, len_branch, helix_branch);
-                        ref_lc.replace(bpair.first - lc.start, len_branch, helix_branch);
-                        constr_lc.replace(bpair.first - lc.start, len_branch, helix_branch);
-                        subseq.replace(bpair.first - lc.start, len_branch, seq_branch);
-                    }
-                }
-                std::cout<<subseq<<std::endl;
-                std::cout<<constr_lc<<std::endl;
-                std::vector<std::string>  refs =  cs_fold(subseq, constr_lc, 0, false, verbose, dangle);
-                std::cout<<"subopts size: "<<refs.size()<<std::endl;
-                for(auto ref: refs)
-                    std::cout<<ref<<std::endl;
-            }
         }
     }else if (alg == "helix"){
         std::string lenstr;
