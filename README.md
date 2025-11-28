@@ -12,7 +12,7 @@ This project explores the undesignability of RNA secondary structures, under the
 (RECOMB 2024, [arXiv preprint](https://arxiv.org/abs/2311.08339)) \
 [2] Zhou, T., Tang, W.Y., Apoorv, M., Mathews, D.H. and Huang, L. 
 "Scalable and Interpretable Identification of Minimal Undesignable
-RNA Structure Motifs with Rotational Invariance" (under review)
+RNA Structure Motifs with Rotational Invariance" (RECOMB 2025, [arXiv preprint](https://arxiv.org/abs/2402.17206))
 
 ## Datasets
 [Eterna100](data/eterna100.csv) \
