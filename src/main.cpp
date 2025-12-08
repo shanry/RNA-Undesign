@@ -42,10 +42,6 @@ std::set<std::string> uniq_ud; // = loadLib(path_undesignable_lib); // undesigna
 std::set<std::string> uniq_ds; // = loadLib(path_designable_lib);   // designable   motifs
 std::set<std::string> uniq_unknown; // = loadLib(var_unknown_lib); // unknown motifs
 
-/* Old compatibility names for C types.  */
-// typedef unsigned long int ulong;
-// typedef unsigned short int ushort;
-// typedef unsigned int uint;
 
 // global variables
 std::vector<std::string> TriHP{"", "CAACG", "GUUAC"}; // middle position can't be C or G
@@ -86,9 +82,6 @@ std::vector<std::pair<int, int>> pairs_outside;
 std::vector<std::pair<int, int>> pairs_inside;
 
 int SEED_RAND = 2024;
-
-// std::string PATH_DESIGNABLE_LIB = "lib_designable.txt";
-// std::string PATH_UNDESIGNABLE_LIB = "lib_undesignable.txt";
 
 class MotifLib{
     public:
@@ -263,12 +256,6 @@ MotifLib::MotifLib(std::string path){
 }
 
 ulong count_enum(std::vector<std::tuple<int, int>>& pairs_diff);
-
-// std::string removeNodeFromTree(TreeNode* node, std::string ref);
-// std::string removeMNodeFromTree(TreeNode* node, std::string ref);
-// std::string removeEdgeFromTree(TreeNode* node, std::string ref);
-// std::string removeTwoNeighbors(TreeNode* node, std::string ref, int n1, int n2);
-// std::string removeThreeNeighbors(TreeNode* node, std::string ref, std::vector<int>& powset);
 
 void TreeNode::printTreeEnum(std::string& seq, std::string& y){
     printf("first: %d, second: %d\n", first, second);
@@ -1134,12 +1121,6 @@ std::string alg_3_helper(std::string& ref, std::string& seq, bool verbose, int d
 }
 
 std::string alg_3_span_helper(std::string& ref, std::string& seq, std::vector<std::pair<std::string, std::string>>& subrefs, int i, bool verbose, int dangle){
-    // TreeNode* root = parseStringToTree(ref);
-    // std::vector<std::pair<std::string, std::string>> subrefs;
-    // root->printTree(ref, seq, subrefs);
-    // std::cout<<"size of sub refs: "<<subrefs.size()<<std::endl;
-    // std::sort(subrefs.begin(), subrefs.end(), compareByFirstStringLength);
-    // for(int i = 0; i < subrefs.size(); i++){
         printf("%2d: L=%d\n", i, subrefs[i].first.length());
         std::cout<<subrefs[i].second<<std::endl;
         std::cout<<subrefs[i].first<<std::endl;
@@ -1200,9 +1181,6 @@ std::string alg_5_cs(std::string& ref1, std::set<std::string>& refs_checked, std
     if (X.size() > N_SAMPLE)
         X.resize(N_SAMPLE);
     std::cout<<"X.size: "<<X.size()<<std::endl;
-    // std::string constr(ref1.length(), '?');
-    // constr[0] = '(';
-    // constr[ref1.length()-1] = ')';
     for(auto x: X){
         assert (check_compatible(x, ref1));
         std::vector<std::string> subopts_raw = cs_fold(x, constr, 0, false, verbose, dangle_model);
@@ -1338,9 +1316,6 @@ std::string alg_5_cs_plus(std::string& ref1, std::set<std::string>& refs_checked
     if (X.size() > N_SAMPLE)
         X.resize(N_SAMPLE);
     std::cout<<"X.size: "<<X.size()<<std::endl;
-    // std::string constr(ref1.length(), '?');
-    // constr[0] = '(';
-    // constr[ref1.length()-1] = ')';
     for(auto x: X){
         assert (check_compatible(x, ref1));
         std::vector<std::string> subopts_raw = cs_fold(x, constr, 0, false, verbose, dangle_model);
@@ -1535,69 +1510,6 @@ std::string alg_5_helper_v2(std::string& ref1, std::string& ref2, std::string&co
     for(int i=0; i<10; i++)
         Xseeds.push_back(tg_init(ref1)); // can be deduplicated here
     return alg_5_cs_plus(ref1, refs_checked, cs_vec, Xseeds, constr, verbose, dangle_model);
-    
-
-    // finish the first check
-    // if(ref_mfe == ref2){
-    //     if(cs_flag){
-    //         Constraint cs_ref2 = Constraint(&critical_positions, &X);
-    //         cs_ref2.setStructure(ref2);
-    //         cs_vec.push_back(cs_ref2);
-    //         refs_checked.insert(ref2);
-    //     }
-    //     if(cs_vec.size())
-    //         return alg_5_cs(ref1, refs_checked, cs_vec, constr, verbose, dangle_model);
-    //     else{
-    //         std::cout<<"intial y' has too many constraints!"<<std::endl;
-    //         assert (X.size() > 0);
-    //         return alg_5_cs_plus(ref1, refs_checked, cs_vec, X, constr, verbose, dangle_model);
-    //     }
-    // }
-
-    // check the ref from mfe
-    // std::set<int> critical_positions_mfe;
-    // cr_loops = find_critical_plus(ref1, ref_mfe, critical_positions_mfe, verbose);
-    // // delta_energy = diff_eval(seq, cr_loops, verbose, dangle_model);
-    // pairs_diff = idx2pair(critical_positions_mfe, ref1);
-    // n_enum = count_enum(pairs_diff);
-    // std::cout<<"enumeration count: "<<n_enum<<std::endl;
-    // std::vector<std::string> X_mfe;
-    // if(n_enum > 0 && n_enum < MAX_ENUM){
-    //     std::cout<<"alg 1"<<std::endl;
-    //     // auto X = alg_1(ref1, ref2, cr_loops, pairs_diff, seq, verbose, dangle_model);
-    //     X_mfe = alg_1_v2(ref1, ref_mfe, seq, verbose, dangle_model);
-    //     printf("X_mfe size: %d\n", X_mfe.size());
-    //     // std::vector<Constraint> cs_vec;
-    //     if (X_mfe.size() == 0){
-    //         std::cout<<"undesignable!"<<std::endl;
-    //         y_sub = ref1;
-    //         y_rivals.clear();
-    //         y_rivals.push_back(ref_mfe);
-    //         return "undesignable";
-    //     }else if (X_mfe.size() > MAX_CONSTRAINT){
-    //         std::cout<<"too many constraints: "<<X_mfe.size()<<"\t"<<"out of "<<ref_mfe<<std::endl;
-    //         if(cs_flag){
-    //             Constraint cs_ref2 = Constraint(&critical_positions, &X);
-    //             cs_ref2.setStructure(ref2);
-    //             cs_vec.push_back(cs_ref2);
-    //             refs_checked.insert(ref2);
-    //         }
-    //     }else{
-    //         Constraint cs_ref_mfe = Constraint(&critical_positions_mfe, &X_mfe);
-    //         cs_ref_mfe.setStructure(ref_mfe);
-    //         cs_vec.push_back(cs_ref_mfe);
-    //         refs_checked.insert(ref_mfe);
-    //     }
-    //     if(cs_vec.size())
-    //         return alg_5_cs(ref1, refs_checked, cs_vec, constr, verbose, dangle_model);
-    //     else{
-    //         std::cout<<"both intial ys have too many constraints!"<<std::endl;
-    //         assert (X_mfe.size() > 0);
-    //         return alg_5_cs_plus(ref1, refs_checked, cs_vec, X_mfe, constr, verbose, dangle_model);
-    //     }
-    // }
-    // std::cout<<"intial y_prime too bad!"<<std::endl;
-    // return "intial y_prime too bad";
 }
 
 std::string alg1_helper(std::string& seq, std::string& ref1, std::string& ref2, bool is_verbose, int dangle_model) {
@@ -1734,18 +1646,6 @@ void csv_process(std::string csv, std::string alg){
         std::cerr << "Error opening the file: " << path_unknown << std::endl;
         return;
     }
-    
-    // Library files for designable and undesignable motifs
-    // std::ofstream designableLibFile("lib_designable.txt", std::ios::app);
-    // std::ofstream undesignableLibFile("lib_undesignable.txt", std::ios::app);
-    // if (!designableLibFile.is_open()) {
-    //     std::cerr << "Error opening the file: " << "lib_designable.txt" << std::endl;
-    //     return;
-    // }
-    // if (!undesignableLibFile.is_open()) {
-    //     std::cerr << "Error opening the file: " << "lib_undesignable.txt" << std::endl;
-    //     return;
-    // }
 
     std::string path_time = csv + "." + alg + ".time."+getCurrentTimestamp()+".csv";
     #ifdef SPECIAL_HP
@@ -1828,7 +1728,6 @@ void csv_process(std::string csv, std::string alg){
 
             std::cout<<"Puzzle ID: "<<puzzle_id<<std::endl;
             
-            // std::string goal_test = "p [] (M [0, 5, 0] (p [] (), B [1, 0] (S [0, 0] (p [] ()))))";
             // power neighbor set search
             if (alg == "pn"){
                 auto start_time = std::chrono::high_resolution_clock::now();
