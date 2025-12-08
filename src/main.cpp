@@ -708,6 +708,7 @@ std::vector<std::string> alg_1_v2(std::string& y, std::string& y_prime, std::str
     // }
 
     int flag = 0;
+    // long e_diff_min = 100;
     #pragma omp parallel for
     for(ulong i=0; i < nEnum; i++){
         if(flag)
@@ -718,12 +719,14 @@ std::vector<std::string> alg_1_v2(std::string& y, std::string& y_prime, std::str
             printf("%8d, %d, %.2f seconds\n", (i+1)/10000, X.size(), std::chrono::duration<double, std::milli>(pause - start)/1000.f);
         }
         if(check_compatible(seq_i, y_prime)){
-            long e_diff = -diff_eval(seq_i, cr_loops, is_verbose, dangle_model); // not divided by 100
+            long e_diff = -diff_eval(seq_i, cr_loops, is_verbose, dangle_model); // not divided by 100, \delta G(y_star) - \delta G(y')
             if(e_diff < 0){
                 #pragma omp critical
                 idX.push_back({i, seq_i});
                 // X.push_back(seq_i);
             }
+            // #pragma omp critical
+            // e_diff_min = std::min(e_diff_min, e_diff);
         }else{
             #pragma omp critical
             idX.push_back({i, seq_i});
@@ -742,6 +745,7 @@ std::vector<std::string> alg_1_v2(std::string& y, std::string& y_prime, std::str
     for(auto p: idX)
         X.push_back(p.second);
     printf("alg1.X size: %d\n", X.size());
+    // printf("alg1.e_diff_min: %ld\n", e_diff_min);
     return X;
 }
 
@@ -2684,25 +2688,6 @@ int main(int argc, char* argv[]) {
             printf("alg3 time: %.4f seconds\n", time_ms/1000.f);
         }
         return 0;
-    }else if (alg == "-1"){ /* alg 1 (deprecated)*/
-        std::string seq;
-        std::string ref1;
-        std::string ref2;
-
-        std::string line;
-
-        // Read input line by line until EOF (end of file) is reached
-        while (std::getline(std::cin, seq)) {
-            // Process the line as needed
-            // std::cout<<"got seq"<<std::endl;
-            getline(std::cin, ref1);
-            getline(std::cin, ref2);
-            auto start_time = std::chrono::high_resolution_clock::now();
-            alg1_helper(seq, ref1, ref2, verbose, dangle);
-            auto end_time = std::chrono::high_resolution_clock::now();
-            const std::chrono::duration<double, std::milli> time_ms = end_time - start_time;
-            printf("alg1 time: %.4f seconds\n", time_ms/1000.f);
-        }
     }else if(alg == "1"){ /* alg 1 version 2 */
         std::string seq;
         std::string ref1;
@@ -2811,45 +2796,7 @@ int main(int argc, char* argv[]) {
             long energy = linear_eval(seq, ref, verbose, dangle);
             printf("total energy: %.2f\n", energy/-100.0);
         }
-    }
-    else if (alg == "loop"){ /* loops evaluation  */
-        std::string seq;
-        std::string ref;
-        // Read input line by line until EOF (end of file) is reached
-        while (std::getline(std::cin, seq)) {
-            getline(std::cin, ref);
-            std::vector<LoopComplex> lc_list;
-            TreeNode* root = parseStringToTree(ref);
-            tree2Loops(root, ref, lc_list);
-            printf("lc_list size: %d\n", lc_list.size());
-            // Sort the vector using a lambda expression
-            std::sort(lc_list.begin(), lc_list.end(), [](const LoopComplex &a, const LoopComplex &b) {
-                return a.count_uk < b.count_uk;});
-            for (auto lc: lc_list){
-                std::string target = ref.substr(lc.start, lc.end-lc.start+1);
-                std::string subseq = seq.substr(lc.start, lc.end-lc.start+1);
-                printf(" count: %d\n", lc.count_uk);
-                printf("target: %s\n", target.c_str());
-                printf("   ref: %s\n", lc.ref.c_str());
-                printf("constr: %s\n", lc.constr.c_str());
-
-                if (true){
-                    std::string result = alg_5_helper_v2(target, lc.ref, lc.constr, subseq, verbose, dangle);
-                    if (result == "undesignable"){
-                        printf("undesignable span: %d\t", lc.node->first);
-                        for(auto child: lc.node->children){
-                            printf("%d\t%d\t", child->first, child->second);
-                        }
-                        printf("%d\n", lc.node->second);
-                        break;
-                    }
-                }
-
-                printf("\n");
-            }
-        }
-    }
-    else if (alg == "foldv"){ /* loops evaluation  */
+    }else if (alg == "foldv"){ /* RNA folding via ViennaRNA */
         std::string seq;
         // Read input line by line until EOF (end of file) is reached
         while (std::getline(std::cin, seq)) {
@@ -2857,8 +2804,7 @@ int main(int argc, char* argv[]) {
                 std::cout<<seq<<std::endl;
                 std::cout<<mfe<<std::endl;
             }
-    }
-    else if (alg == "fastmotif"){ /* loops evaluation  */
+    }else if (alg == "fastmotif"){ /* loops evaluation  */
         var_unknown_lib = NULL;
         set_globals();
         std::string y;
@@ -2871,43 +2817,6 @@ int main(int argc, char* argv[]) {
                 std::cout<<"[ProgressInfo] generate a structure id: "<<puzzle_id<<std::endl;
                 online_process(y, puzzle_id);
             }
-    }
-    else if (alg == "mloop"){ /* multi-loops evaluation  */
-        std::string seq;
-        std::string ref;
-        // Read input line by line until EOF (end of file) is reached
-        while (std::getline(std::cin, seq)) {
-            getline(std::cin, ref);
-            std::vector<LoopComplex> lc_list;
-            TreeNode* root = parseStringToTree(ref);
-            tree2MLoops(root, ref, lc_list);
-            printf("lc_list size: %d\n", lc_list.size());
-            // Sort the vector using a lambda expression
-            std::sort(lc_list.begin(), lc_list.end(), [](const LoopComplex &a, const LoopComplex &b) {
-                return a.count_uk < b.count_uk;});
-            for (auto lc: lc_list){
-                std::string target = ref.substr(lc.start, lc.end-lc.start+1);
-                std::string subseq = seq.substr(lc.start, lc.end-lc.start+1);
-                printf(" count: %d\n", lc.count_uk);
-                printf("target: %s\n", target.c_str());
-                printf("   ref: %s\n", lc.ref.c_str());
-                printf("constr: %s\n", lc.constr.c_str());
-
-                if (true){
-                    std::string result = alg_5_helper_v2(target, lc.ref, lc.constr, subseq, verbose, dangle);
-                    if (result == "undesignable"){
-                        printf("undesignable span: %d\t", lc.node->first);
-                        for(auto child: lc.node->children){
-                            printf("%d\t%d\t", child->first, child->second);
-                        }
-                        printf("%d\n", lc.node->second);
-                        break;
-                    }
-                }
-
-                printf("\n");
-            }
-        }
     }else if (alg == "motif"){ /* motif evaluation  */
         MAX_ENUM = 20000000000;
         MAX_CONSTRAINT = 40000000;
@@ -3059,38 +2968,6 @@ int main(int argc, char* argv[]) {
             }else{
                 std::cout<<"no undesignable motifs found."<<std::endl;
             }
-        }
-    }else if (alg == "showtree"){
-        std::string ref;
-        // Read input line by line until EOF (end of file) is reached
-        while (std::getline(std::cin, ref)) {
-            TreeNode* root = parseStringToTree(ref);
-            root->printTree();
-        }
-    }else if (alg == "imax"){
-        std::string y;
-        // Read input line by line until EOF (end of file) is reached
-        while (std::getline(std::cin, y)){
-            TreeNode* root = parseStringToTree(y);
-            int max_internal = max_single(root);
-            printf("maximum internal loop length: %d\n", max_internal);
-        }
-    }else if (alg == "mmax"){
-        std::string y;
-        // Read input line by line until EOF (end of file) is reached
-        while (std::getline(std::cin, y)){
-            TreeNode* root = parseStringToTree(y);
-            int max_mul = max_multi(root);
-            printf("maximum multi-loop length: %d\n", max_mul);
-        }
-    }else if (alg == "helix"){
-        std::string lenstr;
-        while(std::getline(std::cin, lenstr)){
-            int len = std::stoi(lenstr);
-            std::string h = genHelix(len);
-            std::string x = tg_init(h);
-            std::cout<<h<<std::endl;
-            std::cout<<x<<std::endl;
         }
     }
     return 0;
