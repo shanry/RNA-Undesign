@@ -106,7 +106,7 @@ ACUAAAUGGUGAGCAGACCCAGUGGAAACACACGCAGCCGAAAGGUACCCAUCCGAGAGGAAGUCAGGCGAAAGCUAACG
 $./bin/main --alg eval
 CACACGCACUACAAAAUGUCCAAAGGAAAAGGCACCACCAGCAAAGCACCAAAGGUAAGGGGAAAAG
 .....((.((.((...)).((...))...)))).((.((.((...)).((...))...)))).....
-(output)total energy: -3.00
+(output)total energy: -2.30
 ```
 ### Differential positions
 ```
@@ -130,5 +130,5 @@ delta  : 4.50
 ```
 or
 ```
-$./bin/main test_diff  < data/seq_refs.txt # batched input
+$./bin/main --alg ed  < data/seq_refs.txt # batched input
 ```
