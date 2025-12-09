@@ -60,6 +60,7 @@ $export OMP_NUM_THREADS=8 # parallel computing eabled by OpenMP
 $export PATH_UNDESIGNABLE_LIB=path/to/lib_undesignable.txt
 $export PATH_DESIGNABLE_LIB/path/to/motifs/libs/lib_designable.txt
 ```
+Libraries for designable and undesignable motifs are avaialbe at: https://drive.google.com/drive/u/0/folders/1lMBWVEvUAVI0YHV1BvqipHXuGQ11EphO
 ## FastMotif 
 ```
 $echo ".((......((......))......((......((......))......((......))......))......))....." | ./bin/main --alg fastmotif
