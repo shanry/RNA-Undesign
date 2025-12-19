@@ -26,6 +26,9 @@
 #include <thread>
 using namespace std;
 
+double GASCONST = 1.98717;
+double TEMPERATURE = 310.15;
+
 long int MAX_ENUM = 10000000000; // default 10000000000
 long int MAX_CONSTRAINT = 100000; // default 100000
 long int N_SAMPLE = 500;  // default 500
@@ -616,6 +619,60 @@ std::vector<std::string> alg_1(std::string& y, std::string& y_prime, std::vector
         X.push_back(p.second);
     return X;
 }
+
+
+double alg2_ensemble(std::string& y, std::vector<std::string>& y_rival_vector, std::vector<std::vector<std::vector<int>>>& cr_loops_vector, std::vector<std::tuple<int, int>>& pairs_diff, std::string& seq, bool is_verbose, int dangle_model){
+    std::cout<<"inside alg2_ensemble"<<std::endl;
+    assert (y_rival_vector.size() == cr_loops_vector.size());
+    auto start = std::chrono::high_resolution_clock::now();
+    ulong nEnum = count_enum(pairs_diff);
+    std::cout<<"count enum: "<<nEnum<<std::endl;
+    // get the upper bound \frac{1}{1 + \sum_{y' \in Y_{rival}} e^{-(\Delta G(\boldsymbol{x}, \boldsymbol{y'}) - \Delta G(\boldsymbol{x}, \boldsymbol{y^\star})) / R T}}
+    // double prob_bound = 0.;
+    int num_threads = std::thread::hardware_concurrency();
+    double prob_bound_thread[num_threads];
+    for (int t = 0; t < num_threads; t++)
+        prob_bound_thread[t] = 0.;
+    // long e_diff_min = 10000;
+    #pragma omp parallel for
+    for(ulong i=0; i < nEnum; i++){
+        int thread_id = omp_get_thread_num();
+        std::string seq_i = enumerate(pairs_diff, i, seq);
+        if ((i+1)%1000000 == 0){
+            auto pause = std::chrono::high_resolution_clock::now();
+            printf("thread %2d, %8d, %.4f, %.2f seconds\n", thread_id, (i+1)/10000, prob_bound_thread[thread_id], std::chrono::duration<double, std::milli>(pause - start)/1000.f);
+        }
+        double denumerator = 1.;
+        // long e_diff_max_local = 0;
+        for (int j = 0; j < y_rival_vector.size(); j++){
+            std::string y_prime = y_rival_vector[j];
+            auto cr_loops = cr_loops_vector[j];
+            if(check_compatible(seq_i, y_prime)){
+                long e_diff = -diff_eval(seq_i, cr_loops, is_verbose, dangle_model); // not divided by 100, \delta G(x, y_star) - \delta G(x, y_prime)
+                denumerator += std::exp(e_diff * 10 / (GASCONST * TEMPERATURE));
+                // e_diff_max_local = std::max(e_diff_max_local, e_diff);
+            }
+        }
+        // #pragma omp critical
+        // {
+        //     prob_bound = std::max(prob_bound, 1. / denumerator);
+        //     e_diff_min = std::min(e_diff_min, e_diff_max_local);
+        // }
+        prob_bound_thread[thread_id] = std::max(prob_bound_thread[thread_id], 1. / denumerator);
+    }
+    // std::cout<<"e_diff_min: "<<e_diff_min<<std::endl;
+    auto end = std::chrono::high_resolution_clock::now();
+    // std::cout<<"time cost: "<<std::chrono::duration<double, std::milli>(end - start)/1000.f<<" seconds"<<std::endl;
+    printf("time cost: %.4f seconds\n", std::chrono::duration<double, std::milli>(end - start)/1000.f);
+    // double p_bound_local = 1 / (1. + std::exp(e_diff_min * 10 / (GASCONST * TEMPERATURE)));
+    // std::cout<<"probability bound (local): "<<p_bound_local<<std::endl;
+    double prob_bound = 0.;
+    for (int t = 0; t < num_threads; t++)
+        prob_bound = std::max(prob_bound, prob_bound_thread[t]);
+    std::cout<<"probability bound: "<<prob_bound<<std::endl;
+    return prob_bound;
+}
+
 
 std::vector<std::string> alg_1_v2(std::string& y, std::string& y_prime, std::string& seq, bool is_verbose, int dangle_model){
     std::cout<<"inside alg1_v2"<<std::endl;
@@ -1558,58 +1615,6 @@ std::string alg1_helper(std::string& seq, std::string& ref1, std::string& ref2, 
     return "intial y_prime too bad";
 }
 
-void test_cs(std::string& seq, std::string& ref1, std::string& ref2, bool is_verbose, int dangle_model) {
-    std::cout << "seq: " << seq << std::endl;
-    std::cout << "  y: " << ref1 << std::endl;
-    std::cout << " y': " << ref2 << std::endl;
-    std::set<int> critical_positions;
-    std::vector<std::vector<int>> cr_loops = find_critical_plus(ref1, ref2, critical_positions, is_verbose);
-    long delta_energy = diff_eval(seq, cr_loops, is_verbose, dangle_model);
-    if (is_verbose){
-        printf("delta  : %.2f kcal/mol\n", delta_energy/-100.0);
-        printf("critical positions: ");
-        for (int x: critical_positions)
-            printf("%d, ", x);
-        printf("\n");
-    }
-    std::vector<std::tuple<int, int>> pairs_diff = idx2pair(critical_positions, ref1);
-    if (is_verbose)
-        for(auto& pair: pairs_diff)
-            std::cout<<std::get<0>(pair)<<"\t"<<std::get<1>(pair)<<std::endl;
-    ulong n_enum = count_enum(pairs_diff);
-    std::cout<<"enumeration count: "<<n_enum<<std::endl;
-    if(n_enum > 0 && n_enum < MAX_ENUM){
-        std::cout<<"alg 1"<<std::endl;
-        auto X = alg_1(ref1, ref2, cr_loops, pairs_diff, seq, is_verbose, dangle_model);
-        printf("X size: %d\n", X.size());
-        std::set<std::string> refs;
-        std::string constr(ref1.length(), '?');
-        constr[0] = '(';
-        constr[ref1.length()-1] = ')';
-        std::cout<<constr<<std::endl;
-        for(int i; i < min<int>(1000, X.size()); i++){
-            std::string ref_x = cs_fold(X[i], constr, 0, false, false, 2)[0];
-            // std::cout<<X[i]<<std::endl;
-            // std::cout<<ref_x<<std::endl;
-            if(ref_x == ref1){
-                std::cout<<"local solution: "<<X[i]<<std::endl;
-                std::cout<<"constraints:    "<<constr<<std::endl;
-                std::cout<<"ref 1:          "<<ref1<<std::endl;
-                std::cout<<"constr fold:    "<<ref_x<<std::endl;
-            }
-            refs.insert(ref_x);
-        }
-        std::cout<<"refs size: "<<refs.size()<<std::endl;
-        for(auto ref_new: refs){
-            std::set<int> critical_positions_new;
-            cr_loops = find_critical_plus(ref1, ref_new, critical_positions_new, is_verbose);
-            pairs_diff = idx2pair(critical_positions_new, ref1);
-            n_enum = count_enum(pairs_diff);
-            std::cout<<ref_new<<"\t"<<n_enum<<std::endl;
-        }
-    }
-}
-
 void csv_process(std::string csv, std::string alg){
     auto df = read_csv(csv.c_str());
     printf("df shape: %d, %d\n", df.size(), df[0].size());
@@ -2519,6 +2524,9 @@ int main(int argc, char* argv[]) {
     N_SAMPLE = result["n_sample"].as<long int>();
     MAX_RIVAL = result["max_rival"].as<long int>();
 
+    int num_threads = std::thread::hardware_concurrency();
+    std::cout<<"number of threads: "<<num_threads<<std::endl;
+
     if (alg == "0"){
         std::cout<<"no alg was selected!"<<std::endl;
         return 0;
@@ -2546,6 +2554,32 @@ int main(int argc, char* argv[]) {
                 refs =  cs_fold(seq, constr, beamsize, sharpturn, verbose, dangle);
             else
                 refs =  cs_fold_vienna(seq, constr, beamsize, sharpturn, verbose, dangle);
+            std::cout<<"subopts size: "<<refs.size()<<std::endl;
+            for(auto ref: refs)
+                std::cout<<ref<<std::endl;
+        }
+        return 0;
+    }else if (alg == "subopt"){ /* suboptimal folding */
+        std::cout << alg << std::endl;
+        int beamsize = 0;
+        bool sharpturn = false;
+        float energy_delta = 0.;
+        std::string seq;
+        std::string constr;
+        std::string energy_delta_str;
+        while (std::getline(std::cin, seq))
+        {
+            std::getline(std::cin, constr);
+            // input energy delta
+            std::getline(std::cin, energy_delta_str);
+            // replace x with .; replace . with ?
+            std::replace(constr.begin(), constr.end(), 'x', '.');
+            std::replace(constr.begin(), constr.end(), '.', '?');
+            energy_delta = std::stof(energy_delta_str);
+            std::cout<<"constr: "<<constr<<std::endl;
+            std::cout<<"energy_delta: "<<energy_delta<<std::endl;
+            std::vector<std::string> refs;
+            refs =  subopt_fold(seq, constr, energy_delta, beamsize, sharpturn, verbose, dangle);
             std::cout<<"subopts size: "<<refs.size()<<std::endl;
             for(auto ref: refs)
                 std::cout<<ref<<std::endl;
@@ -2685,6 +2719,55 @@ int main(int argc, char* argv[]) {
             for(auto sp: sp_y){
                     std::cout<<sp.first<<"\t"<<sp.second<<std::endl;
             }
+        }
+    }else if(alg == "prbound"){  /* get the differential positions between a target structure and multiple rival structures, and obtain a probability bound */
+        std::string seq;
+        std::string y_target;
+        while(std::getline(std::cin, y_target)){
+            seq = tg_init(y_target);
+            int num_rivals = 1;
+            // a vector of rival structures
+            std::vector<std::string> y_rivals;
+            // get target from input
+            // std::getline(std::cin, y_target);
+            std::cin >> num_rivals;
+            std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
+            y_rivals.resize(num_rivals);
+            for(int i = 0; i < num_rivals; ++i){
+                std::cin >> y_rivals[i];
+            }
+            // deduplicate rival structures
+            std::set<std::string> y_rival_set;
+            for(const auto& rival: y_rivals){
+                y_rival_set.insert(rival);
+            }
+            y_rivals.assign(y_rival_set.begin(), y_rival_set.end());
+            std::cout<<"number of unique rival structures: "<<y_rivals.size()<<std::endl;
+            std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
+            // get diffrential positions between the target and each rival, then obtain the union
+            std::set<int> differential_positions;
+            std::vector<std::vector<std::vector<int>>> cr_loops_vector;
+            for(const auto& rival: y_rivals){
+                std::set<int> temp_positions;
+                auto cr_loops = find_critical_plus(y_target, rival, temp_positions, true);
+                cr_loops_vector.push_back(cr_loops);
+                differential_positions.insert(temp_positions.begin(), temp_positions.end());
+            }
+            std::cout<<"differential positions: "<<std::endl;
+            for(auto pos: differential_positions){
+                std::cout<<pos<<"\t";
+            }
+            std::cout<<std::endl;
+            // calculate number of enumerations for these positions: 4^unpaired * 6^pairs
+            std::vector<std::tuple<int, int>> pairs_diff = idx2pair(differential_positions, y_target);
+            std::cout<<"differential pairs: "<<std::endl;
+            for(auto& pair: pairs_diff)
+                std::cout<<std::get<0>(pair)<<"\t"<<std::get<1>(pair)<<std::endl;
+            ulong n_enum = count_enum(pairs_diff);
+            std::cout<<"enumeration size: "<<n_enum<<std::endl;
+            // call alg2_ensemble
+            double prob_bound = alg2_ensemble(y_target, y_rivals, cr_loops_vector, pairs_diff, seq, verbose, dangle);
+            std::cout<<"probability bound: "<<prob_bound<<std::endl;
         }
     }else if (alg == "eval"){ /* energy evaluation  */
         std::string seq;

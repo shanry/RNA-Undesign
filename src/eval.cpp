@@ -3977,6 +3977,68 @@ std::vector<std::string> cs_fold(std::string seq, std::string& constr, int beams
     return subopts;
 }
 
+
+std::vector<std::string> subopt_fold(std::string seq, std::string& constr, float energy_delta, int beamsize, bool sharpturn, bool verbose, int dangle){
+    bool consflag = true;
+    std::vector<std::string> subopts;
+    std::set<char> consSet {'?', '.', '(', ')'};
+    if (seq.length() != constr.length()){
+        printf("The lengths don't match between sequence and constraints: %s, %s\n", seq.c_str(), constr.c_str());
+        std::cout<<seq<<std::endl;
+        std::cout<<constr<<std::endl;
+        printf("seq len: %d; constr len: %d\n", seq.length(), constr.length());
+        return subopts;
+    }
+    int n = seq.length();
+    std::vector<int> cons(n);
+    std::stack<int> leftBrackets;
+    consflag = true;
+    for (int i=0; i < n; i++){
+        char coni = constr[i];
+        if (consSet.count(coni) == 0){
+            printf("Unrecognized constraint character, should be ? . ( or )\n");
+            consflag = false;
+            break;
+        }
+        switch(coni){
+            case '.':
+                cons[i] = -2;
+                break;
+            case '?':
+                cons[i] = -1;
+                break;
+            case '(':
+                leftBrackets.push(i);
+                break;
+            case ')':
+                int leftIndex = leftBrackets.top();
+                leftBrackets.pop();
+                cons[leftIndex] = i;
+                cons[i] = leftIndex;
+                break;
+        }
+    }
+    if (consflag) {
+        // printf("%s\n", constr.c_str());
+        
+        // lhuang: moved inside loop, fixing an obscure but crucial bug in initialization
+        BeamCKYParser parser(beamsize, !sharpturn, verbose, true, false, true, energy_delta, "", false, dangle);
+        
+        BeamCKYParser::DecoderResult result = parser.parse(seq, &cons, subopts);
+        // BeamCKYParser::DecoderResult result = parser.parse(seq, &cons);
+
+        #ifdef lv
+                double printscore = (result.score / -100.0);
+        #else
+                double printscore = result.score;
+        #endif
+        // printf("%s (%.2f)\n", result.structure.c_str(), printscore);
+        return subopts;
+    }
+    return subopts;
+}
+
+
 std::string fold_vienna(std::string& seq){
     // std::string cmd_str = "echo -ne" + "\"" + seq + "\\n" + constr + "\"" + "|" + "/nfs/stak/users/zhoutian/acl/rna_tool/v251/bin/RNAsubopt -C --enforceConstraint -e 0";
     const char* vrnaenv = std::getenv("VRNABIN");
