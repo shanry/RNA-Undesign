@@ -45,6 +45,13 @@ bin/eval.o: src/eval.cpp src/eval.h src/utils.h
 bin/eval_nosh.o: src/eval.cpp src/eval.h src/utils.h
 	$(CC) -c src/eval.cpp $(CFLAGS) -Dlv -Dis_cube_pruning -Dis_candidate_list  -o bin/eval_nosh.o
 
+bin/subopt.o: src/subopt.cpp src/utils.h src/comps.h src/eval.h
+	$(CC) -c src/subopt.cpp $(CFLAGS) -o bin/subopt.o
+
+subopt: bin/subopt.o bin/utils.o bin/eval.o
+	$(CC)  $(CFLAGS)  bin/subopt.o bin/utils.o bin/eval.o  -o bin/subopt
+
 .PHONY: clean
 clean:
 	-rm $(objects)
+	-rm bin/subopt
