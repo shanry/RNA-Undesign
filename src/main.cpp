@@ -393,34 +393,6 @@ std::set<T> setIntersection(const std::set<T>& set1, const std::set<T>& set2) {
     return intersection;
 }
 
-void intersect(Constraint* cs1, Constraint* cs2){
-    std::set<int> idx_inter = setIntersection(*cs1->indices, *cs2->indices);
-    if(idx_inter.empty())
-        return;
-    std::set<std::string> substr_cs_1;
-    std::set<std::string> substr_cs_2;
-    for(auto str: *cs1->seqs){
-        substr_cs_1.insert(getSubstrings(idx_inter, str));
-    }
-    for(auto str: *cs2->seqs){
-        substr_cs_2.insert(getSubstrings(idx_inter, str));
-    }
-    std::set<std::string> substr_inter = setIntersection(substr_cs_1, substr_cs_2);
-    std::vector<std::string> seqs_new_1;
-    std::vector<std::string> seqs_new_2;
-    for (int i = 0; i < cs1->seqs->size(); i++){
-        if (substr_inter.count(getSubstrings(idx_inter, (*cs1->seqs)[i])))
-            seqs_new_1.push_back( (*cs1->seqs)[i]);
-    }
-    cs1->seqs = &seqs_new_1;
-
-    for (int j = 0; j < cs2->seqs->size(); j++){
-        if (substr_inter.count(getSubstrings(idx_inter, (*cs2->seqs)[j])))
-            seqs_new_2.push_back( (*cs2->seqs)[j]);
-    }
-    cs2->seqs = &seqs_new_2;
-}
-
 void intersect(Constraint& cs1, Constraint& cs2){
     std::set<int> idx_inter = setIntersection(*cs1.indices, *cs2.indices);
     if(idx_inter.empty())
@@ -629,7 +601,10 @@ double alg2_ensemble(std::string& y, std::vector<std::string>& y_rival_vector, s
     std::cout<<"count enum: "<<nEnum<<std::endl;
     // get the upper bound \frac{1}{1 + \sum_{y' \in Y_{rival}} e^{-(\Delta G(\boldsymbol{x}, \boldsymbol{y'}) - \Delta G(\boldsymbol{x}, \boldsymbol{y^\star})) / R T}}
     // double prob_bound = 0.;
-    int num_threads = std::thread::hardware_concurrency();
+    long cpu_count = omp_get_num_procs();
+    printf("CPU Count: %ld\n", cpu_count);
+    int num_threads = cpu_count - 1; // leave one core free
+    omp_set_num_threads(num_threads);
     double prob_bound_thread[num_threads];
     for (int t = 0; t < num_threads; t++)
         prob_bound_thread[t] = 0.;
@@ -643,16 +618,27 @@ double alg2_ensemble(std::string& y, std::vector<std::string>& y_rival_vector, s
             printf("thread %2d, %8d, %.4f, %.2f seconds\n", thread_id, (i+1)/10000, prob_bound_thread[thread_id], std::chrono::duration<double, std::milli>(pause - start)/1000.f);
         }
         double denumerator = 1.;
-        // long e_diff_max_local = 0;
+        // long e_diff_max_local = -10000;
+        std::string y_rival_debug;
         for (int j = 0; j < y_rival_vector.size(); j++){
             std::string y_prime = y_rival_vector[j];
             auto cr_loops = cr_loops_vector[j];
             if(check_compatible(seq_i, y_prime)){
                 long e_diff = -diff_eval(seq_i, cr_loops, is_verbose, dangle_model); // not divided by 100, \delta G(x, y_star) - \delta G(x, y_prime)
                 denumerator += std::exp(e_diff * 10 / (GASCONST * TEMPERATURE));
-                // e_diff_max_local = std::max(e_diff_max_local, e_diff);
+                // if (e_diff > e_diff_max_local){
+                //     e_diff_max_local = e_diff;
+                //     y_rival_debug = y_prime;
+                // }
             }
         }
+        // if (e_diff_max_local < 0){
+        //     std::cout<<"e_diff_max_local < 0"<<std::endl;
+        //     std::cout<<"e_diff_max_local: "<<e_diff_max_local<<std::endl;
+        //     std::cout<<"seq_i: "<<seq_i<<std::endl;
+        //     std::cout<<"y_rival_debug: "<<y_rival_debug<<std::endl;
+        //     assert(false);
+        // }
         // #pragma omp critical
         // {
         //     prob_bound = std::max(prob_bound, 1. / denumerator);
@@ -886,6 +872,7 @@ std::string alg_2(std::string& ref1, std::set<std::string>& refs_checked, std::v
                     }
                     std::cout<<cs_new.structure<<std::endl;
                     y_rivals.push_back(cs_new.structure);
+                    assert (y_rivals.size() == cs_vec.size()+1);
                     std::cout<<"y_prime count: "<<cs_vec.size()+1<<std::endl;
                     std::cout<<"undesignable!"<<std::endl;
                     return "undesignable";
@@ -1599,7 +1586,7 @@ std::string alg1_helper(std::string& seq, std::string& ref1, std::string& ref2, 
     if(n_enum > 0 && n_enum < MAX_ENUM){
         std::cout<<"alg 1"<<std::endl;
         // auto X = alg_1(ref1, ref2, cr_loops, pairs_diff, seq, is_verbose, dangle_model);
-        auto X = alg_1_v2(ref1, ref2, seq, verbose, dangle_model);
+        auto X = alg_1_v2(ref1, ref2, seq, verbose, dangle_model);       
         printf("X size: %d\n", X.size());
         if (X.size()==0){
             printf("undesignable!\n");
@@ -1608,11 +1595,66 @@ std::string alg1_helper(std::string& seq, std::string& ref1, std::string& ref2, 
         else{
             Constraint cs(&critical_positions, &X);
             printf("constraint size: %d\n", cs.seqs->size());
+            // print the indices and example rows of the constraint
+            printf("critical positions: ");
+            for (int idx: *cs.indices)
+                printf("%d, ", idx);
+            printf("\n");
             return "unknown";
         }
     }
     std::cout<<"intial y_prime too bad!"<<std::endl;
     return "intial y_prime too bad";
+}
+
+Constraint alg1_constraint(std::string& ref1, std::string& ref2, bool is_verbose, int dangle_model) {
+    std::cout << "  y: " << ref1 << std::endl;
+    std::cout << " y': " << ref2 << std::endl;
+    std::set<int> critical_positions;
+    std::vector<std::vector<int>> cr_loops = find_critical_plus(ref1, ref2, critical_positions, is_verbose);
+    std::set<int> critical_positions_v2 = loops2positions(cr_loops, ref1.length());
+    if(critical_positions != critical_positions_v2){
+        std::cout<<critical_positions.size()<<std::endl;
+        std::cout<<critical_positions_v2.size()<<std::endl;
+        assert (critical_positions == critical_positions_v2);
+    }
+    // long delta_energy = diff_eval(seq, cr_loops, is_verbose, dangle_model);
+    // if (is_verbose){
+    //     printf("delta  : %.2f kcal/mol\n", delta_energy/-100.0);
+    //     printf("critical positions: ");
+    //     for (int x: critical_positions)
+    //         printf("%d, ", x);
+    //     printf("\n");
+    // }
+    std::vector<std::tuple<int, int>> pairs_diff = idx2pair(critical_positions, ref1);
+    if (is_verbose)
+        for(auto& pair: pairs_diff)
+            std::cout<<std::get<0>(pair)<<"\t"<<std::get<1>(pair)<<std::endl;
+    ulong n_enum = count_enum(pairs_diff);
+    std::cout<<"enumeration count: "<<n_enum<<std::endl;
+    std::vector<std::string> X;
+    assert (n_enum > 0 && n_enum < MAX_ENUM);
+    std::cout<<"alg 1"<<std::endl;
+    // auto X = alg_1(ref1, ref2, cr_loops, pairs_diff, seq, is_verbose, dangle_model);
+    std::string seq = tg_init(ref1);
+    X = alg_1_v2(ref1, ref2, seq, verbose, dangle_model);       
+    printf("X size: %d\n", X.size());
+    assert(X.size() > 0);
+    // Allocate copies on the heap so the returned Constraint owns valid storage.
+    std::set<int>* idx_copy = new std::set<int>(critical_positions);
+    std::vector<std::string>* X_copy = new std::vector<std::string>(X);
+    Constraint cs(idx_copy, X_copy);
+    printf("constraint size: %d\n", cs.seqs->size());
+    // print the indices and example rows of the constraint
+    printf("critical positions: ");
+    for (int idx: *cs.indices)
+        printf("%d, ", idx);
+    printf("\n");
+    printf("example sequences:\n");
+    for(int i = 0; i < std::min(2, (int)cs.seqs->size()); i++)
+        std::cout<<(*cs.seqs)[i]<<std::endl;
+    assert (cs.seqs->size() == X.size());
+    return cs;
 }
 
 void csv_process(std::string csv, std::string alg){
@@ -2461,6 +2503,54 @@ void online_process(std::string y, std::string path_prefix=""){
     }
 }
 
+double prbound(std::string& y_target, std::vector<std::string>& y_rivals, bool verbose=false){
+    std::string seq = tg_init(y_target);
+    int num_rivals = y_rivals.size();
+    // deduplicate rival structures
+    std::set<std::string> y_rival_set;
+    for(const auto& rival: y_rivals){
+        y_rival_set.insert(rival);
+    }
+    y_rivals.assign(y_rival_set.begin(), y_rival_set.end());
+    if(verbose){
+        std::cout<<"number of rival structures: "<<num_rivals<<" -> "<<y_rivals.size()<<std::endl;
+    }
+    // get diffrential positions between the target and each rival, then obtain the union
+    std::set<int> differential_positions;
+    std::vector<std::vector<std::vector<int>>> cr_loops_vector;
+    for(const auto& rival: y_rivals){
+        std::set<int> temp_positions;
+        auto cr_loops = find_critical_plus(y_target, rival, temp_positions, verbose);
+        cr_loops_vector.push_back(cr_loops);
+        differential_positions.insert(temp_positions.begin(), temp_positions.end());
+    }
+    if(verbose){
+        std::cout<<"differential positions: "<<std::endl;
+        for(auto pos: differential_positions){
+            std::cout<<pos<<"\t";
+        }
+        std::cout<<std::endl;
+    }
+    // calculate number of enumerations for these positions: 4^unpaired * 6^pairs
+    std::vector<std::tuple<int, int>> pairs_diff = idx2pair(differential_positions, y_target);
+    if(verbose){
+        std::cout<<"differential pairs: "<<std::endl;
+        for(auto& pair: pairs_diff)
+            std::cout<<std::get<0>(pair)<<"\t"<<std::get<1>(pair)<<std::endl;
+    }
+    ulong n_enum = count_enum(pairs_diff);
+    std::cout<<"enumeration size: "<<n_enum<<std::endl;
+    if(n_enum > MAX_ENUM)
+        std::cout<<"exceeds max enumeration limit: "<<MAX_ENUM<<std::endl;
+    // return -1.0;
+    // call alg2_ensemble
+    double prob_bound = alg2_ensemble(y_target, y_rivals, cr_loops_vector, pairs_diff, seq, verbose, dangle);
+    if(verbose){
+        std::cout<<"probability bound: "<<prob_bound<<std::endl;
+    }
+    return prob_bound;
+}
+
 void show_configuration(){
     #ifdef SPECIAL_HP
         printf("SPECIAL_HP   defined.\n");
@@ -2744,30 +2834,101 @@ int main(int argc, char* argv[]) {
             y_rivals.assign(y_rival_set.begin(), y_rival_set.end());
             std::cout<<"number of unique rival structures: "<<y_rivals.size()<<std::endl;
             std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
-            // get diffrential positions between the target and each rival, then obtain the union
-            std::set<int> differential_positions;
-            std::vector<std::vector<std::vector<int>>> cr_loops_vector;
-            for(const auto& rival: y_rivals){
-                std::set<int> temp_positions;
-                auto cr_loops = find_critical_plus(y_target, rival, temp_positions, true);
-                cr_loops_vector.push_back(cr_loops);
-                differential_positions.insert(temp_positions.begin(), temp_positions.end());
-            }
-            std::cout<<"differential positions: "<<std::endl;
-            for(auto pos: differential_positions){
-                std::cout<<pos<<"\t";
-            }
-            std::cout<<std::endl;
-            // calculate number of enumerations for these positions: 4^unpaired * 6^pairs
-            std::vector<std::tuple<int, int>> pairs_diff = idx2pair(differential_positions, y_target);
-            std::cout<<"differential pairs: "<<std::endl;
-            for(auto& pair: pairs_diff)
-                std::cout<<std::get<0>(pair)<<"\t"<<std::get<1>(pair)<<std::endl;
-            ulong n_enum = count_enum(pairs_diff);
-            std::cout<<"enumeration size: "<<n_enum<<std::endl;
-            // call alg2_ensemble
-            double prob_bound = alg2_ensemble(y_target, y_rivals, cr_loops_vector, pairs_diff, seq, verbose, dangle);
+            // call mprob
+            auto start_time = std::chrono::high_resolution_clock::now();
+            double prob_bound = prbound(y_target, y_rivals, verbose);
+            auto end_time = std::chrono::high_resolution_clock::now();
+            std::chrono::duration<double> elapsed = end_time - start_time;
             std::cout<<"probability bound: "<<prob_bound<<std::endl;
+            std::cout<<"time elapsed: "<<elapsed.count()<<" seconds"<<std::endl;
+        }
+    }else if (alg == "mprob"){
+        // read result["txt"] for multiple lines and process line by line
+        std::string path = result["txt"].as<std::string>();
+        std::cout<<"reading args from file: "<<path<<std::endl;
+        std::ifstream infile(path);
+        if (!infile.is_open()) {
+            std::cerr << "Error opening file: " << path << std::endl;
+            return 1;
+        }
+        // output to file in appending mode
+        std::string outputfile = path + ".mprob";
+        std::ofstream outfile(outputfile, std::ios::app);
+        if (!outfile.is_open()) {
+            std::cerr << "Error opening output file: " << outputfile << std::endl;
+            return 1;
+        }
+        std::string line;
+        while (std::getline(infile, line)) {
+            // process each line, each line is target structure, count of rivals, rival structures. sperated by comma ,
+            std::istringstream iss(line);
+            std::string motif;
+            std::string y_target;
+            int num_rivals = 1;
+            std::vector<std::string> y_rivals;
+            if (!std::getline(iss, motif, ',')) continue;
+            y_target = fill_hairpins(motif);
+            // std::replace(y_target.begin(), y_target.end(), '*', '.');
+            std::string num_rivals_str;
+            if (!std::getline(iss, num_rivals_str, ',')) continue;
+            num_rivals = std::stoi(num_rivals_str);
+            y_rivals.resize(num_rivals);
+            for(int i = 0; i < num_rivals; ++i){
+                if (!std::getline(iss, y_rivals[i], ',')) continue;
+                y_rivals[i] = fill_hairpins(y_rivals[i]);
+            }
+            std::cout<<"motif: "<<motif<<std::endl;
+            std::cout<<"y_target: "<<y_target<<std::endl;
+            std::cout<<"number of rivals: "<<num_rivals<<std::endl;
+            for(int i = 0; i < num_rivals; ++i){
+                std::cout<<"rival "<<i<<": "<<y_rivals[i]<<std::endl;
+            }
+            // record time
+            auto start_time = std::chrono::high_resolution_clock::now();
+            double prob_bound = prbound(y_target, y_rivals, verbose);
+            auto end_time = std::chrono::high_resolution_clock::now();
+            std::chrono::duration<double> elapsed = end_time - start_time;
+            std::cout<<"probability bound: "<<prob_bound<<std::endl;
+            // output line: motif, prob_bound, time; prob_bound format: %.10e
+            outfile<<motif<<","<<std::scientific<<std::setprecision(10)<<prob_bound<<","<<elapsed.count()<<std::endl;
+        }
+    }
+    else if (alg == "inter"){  // constraint intersection
+        // input target structure, count of rivals and rival structures
+        std::string y_target;
+        int num_rivals = 1;
+        std::vector<std::string> y_rivals;
+        while(std::getline(std::cin, y_target)){
+            std::cout<<"y_target: "<<y_target<<std::endl;
+            std::cin >> num_rivals;
+            std::cout<<"number of rivals: "<<num_rivals<<std::endl;
+            // std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
+            y_rivals.resize(num_rivals);
+            for(int i = 0; i < num_rivals; ++i){
+                std::cin >> y_rivals[i];
+                // std::cout<<"rival "<<i<<": "<<y_rivals[i]<<std::endl;
+            }
+            // std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
+            std::vector<Constraint> constraints;
+            for(std::string& rival: y_rivals){
+                Constraint constr = alg1_constraint(y_target, rival, verbose, dangle);
+                std::cout<<"size of constraint: "<<constr.seqs->size()<<std::endl;
+                constraints.push_back(constr);
+            }
+            // intersection verification, starting from the seconda constraint, intersect with all the previous constraints
+        
+            for(int i = 1; i < constraints.size(); ++i){
+                for(int j = 0; j < i; ++j){
+                    // intersect constraints[i] with constraints[j]
+                    std::cout<<"intersecting constraint "<<i<<" with constraint "<<j<<std::endl;
+                    intersect(constraints[i], constraints[j]);
+                }
+                // print the size of all constraints after intersection
+                for(auto cs: constraints){
+                    std::cout<<cs.seqs->size()<<"\t";
+                }
+                std::cout<<std::endl;
+            }
         }
     }else if (alg == "eval"){ /* energy evaluation  */
         std::string seq;
