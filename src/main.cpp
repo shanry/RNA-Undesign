@@ -592,8 +592,12 @@ std::vector<std::string> alg_1(std::string& y, std::string& y_prime, std::vector
     return X;
 }
 
+struct SequenceProb{
+    std::string seq;
+    double prob;
+};
 
-double alg2_ensemble(std::string& y, std::vector<std::string>& y_rival_vector, std::vector<std::vector<std::vector<int>>>& cr_loops_vector, std::vector<std::tuple<int, int>>& pairs_diff, std::string& seq, bool is_verbose, int dangle_model){
+SequenceProb alg2_ensemble(std::string& y, std::vector<std::string>& y_rival_vector, std::vector<std::vector<std::vector<int>>>& cr_loops_vector, std::vector<std::tuple<int, int>>& pairs_diff, std::string& seq, bool is_verbose, int dangle_model){
     std::cout<<"inside alg2_ensemble"<<std::endl;
     assert (y_rival_vector.size() == cr_loops_vector.size());
     auto start = std::chrono::high_resolution_clock::now();
@@ -606,6 +610,7 @@ double alg2_ensemble(std::string& y, std::vector<std::string>& y_rival_vector, s
     int num_threads = cpu_count - 1; // leave one core free
     omp_set_num_threads(num_threads);
     double prob_bound_thread[num_threads];
+    std::string seq_thread[num_threads];
     for (int t = 0; t < num_threads; t++)
         prob_bound_thread[t] = 0.;
     // long e_diff_min = 10000;
@@ -613,6 +618,7 @@ double alg2_ensemble(std::string& y, std::vector<std::string>& y_rival_vector, s
     for(ulong i=0; i < nEnum; i++){
         int thread_id = omp_get_thread_num();
         std::string seq_i = enumerate(pairs_diff, i, seq);
+        seq_thread[thread_id] = seq_i;
         if ((i+1)%1000000 == 0){
             auto pause = std::chrono::high_resolution_clock::now();
             printf("thread %2d, %8d, %.4f, %.2f seconds\n", thread_id, (i+1)/10000, prob_bound_thread[thread_id], std::chrono::duration<double, std::milli>(pause - start)/1000.f);
@@ -644,7 +650,12 @@ double alg2_ensemble(std::string& y, std::vector<std::string>& y_rival_vector, s
         //     prob_bound = std::max(prob_bound, 1. / denumerator);
         //     e_diff_min = std::min(e_diff_min, e_diff_max_local);
         // }
-        prob_bound_thread[thread_id] = std::max(prob_bound_thread[thread_id], 1. / denumerator);
+        double prob_bound_current = 1. / denumerator;
+        if (prob_bound_current >= prob_bound_thread[thread_id]){
+            seq_thread[thread_id] = seq_i;
+            prob_bound_thread[thread_id] = prob_bound_current;
+        }
+        // prob_bound_thread[thread_id] = std::max(prob_bound_thread[thread_id], 1. / denumerator);
     }
     // std::cout<<"e_diff_min: "<<e_diff_min<<std::endl;
     auto end = std::chrono::high_resolution_clock::now();
@@ -653,10 +664,20 @@ double alg2_ensemble(std::string& y, std::vector<std::string>& y_rival_vector, s
     // double p_bound_local = 1 / (1. + std::exp(e_diff_min * 10 / (GASCONST * TEMPERATURE)));
     // std::cout<<"probability bound (local): "<<p_bound_local<<std::endl;
     double prob_bound = 0.;
-    for (int t = 0; t < num_threads; t++)
-        prob_bound = std::max(prob_bound, prob_bound_thread[t]);
+    std::string seq_best;
+    for (int t = 0; t < num_threads; t++){
+        if(prob_bound_thread[t] > prob_bound){
+            prob_bound = prob_bound_thread[t];
+            seq_best = seq_thread[t];
+        }
+    }
+    // prob_bound = std::max(prob_bound, prob_bound_thread[t]);
     std::cout<<"probability bound: "<<prob_bound<<std::endl;
-    return prob_bound;
+    std::cout<<"best sequence: "<<seq_best<<std::endl;
+    SequenceProb result;
+    result.seq = seq_best;
+    result.prob = prob_bound;
+    return result;
 }
 
 
@@ -2503,7 +2524,7 @@ void online_process(std::string y, std::string path_prefix=""){
     }
 }
 
-double prbound(std::string& y_target, std::vector<std::string>& y_rivals, bool verbose=false){
+SequenceProb prbound(std::string& y_target, std::vector<std::string>& y_rivals, bool verbose=false){
     std::string seq = tg_init(y_target);
     int num_rivals = y_rivals.size();
     // deduplicate rival structures
@@ -2511,14 +2532,15 @@ double prbound(std::string& y_target, std::vector<std::string>& y_rivals, bool v
     for(const auto& rival: y_rivals){
         y_rival_set.insert(rival);
     }
-    y_rivals.assign(y_rival_set.begin(), y_rival_set.end());
+    assert (y_rival_set.size() == num_rivals);
+    // y_rivals.assign(y_rival_set.begin(), y_rival_set.end());
     if(verbose){
-        std::cout<<"number of rival structures: "<<num_rivals<<" -> "<<y_rivals.size()<<std::endl;
+        std::cout<<"number of rival structures: "<<num_rivals<<" -> "<<y_rival_set.size()<<std::endl;
     }
     // get diffrential positions between the target and each rival, then obtain the union
     std::set<int> differential_positions;
     std::vector<std::vector<std::vector<int>>> cr_loops_vector;
-    for(const auto& rival: y_rivals){
+    for(const auto& rival: y_rival_set){
         std::set<int> temp_positions;
         auto cr_loops = find_critical_plus(y_target, rival, temp_positions, verbose);
         cr_loops_vector.push_back(cr_loops);
@@ -2543,12 +2565,168 @@ double prbound(std::string& y_target, std::vector<std::string>& y_rivals, bool v
     if(n_enum > MAX_ENUM)
         std::cout<<"exceeds max enumeration limit: "<<MAX_ENUM<<std::endl;
     // return -1.0;
-    // call alg2_ensemble
-    double prob_bound = alg2_ensemble(y_target, y_rivals, cr_loops_vector, pairs_diff, seq, verbose, dangle);
+    SequenceProb result = alg2_ensemble(y_target, y_rivals, cr_loops_vector, pairs_diff, seq, verbose, dangle);
     if(verbose){
-        std::cout<<"probability bound: "<<prob_bound<<std::endl;
+        std::cout<<"probability bound: "<<result.prob<<std::endl;
     }
-    return prob_bound;
+    return result;
+}
+
+// calculate the number of enumerations for the given target and rival structures
+size_t enum_count(std::string& y_target, std::vector<std::string>& y_rivals, bool verbose=false){
+    // deduplicate rival structures
+    std::set<std::string> y_rival_set;
+    for(const auto& rival: y_rivals){
+        y_rival_set.insert(rival);
+    }
+    // y_rivals.assign(y_rival_set.begin(), y_rival_set.end());
+    if(verbose){
+        std::cout<<"number of rival structures: "<<y_rival_set.size()<<std::endl;
+    }
+    // get differential positions between the target and each rival, then obtain the union
+    std::set<int> differential_positions;
+    std::vector<std::vector<std::vector<int>>> cr_loops_vector;
+    for(const auto& rival: y_rival_set){
+        std::set<int> temp_positions;
+        auto cr_loops = find_critical_plus(y_target, rival, temp_positions, verbose);
+        cr_loops_vector.push_back(cr_loops);
+        differential_positions.insert(temp_positions.begin(), temp_positions.end());
+    }
+    if(verbose){
+        std::cout<<"differential positions: "<<std::endl;
+        for(auto pos: differential_positions){
+            std::cout<<pos<<"\t";
+        }
+        std::cout<<std::endl;
+    }
+    // calculate number of enumerations for these positions: 4^unpaired * 6^pairs
+    std::vector<std::tuple<int, int>> pairs_diff = idx2pair(differential_positions, y_target);
+    if(verbose){
+        std::cout<<"differential pairs: "<<std::endl;
+        for(auto& pair: pairs_diff)
+            std::cout<<std::get<0>(pair)<<"\t"<<std::get<1>(pair)<<std::endl;
+    }
+    ulong n_enum = count_enum(pairs_diff);
+    if(verbose){
+        std::cout<<"enumeration size: "<<n_enum<<std::endl;
+    }
+    return n_enum;
+}
+
+
+// get a set of rival structures via suboptimal folding such that the enumeration size does not exceed MAX_ENUM
+std::vector<std::string> generate_rival_structures(const std::string& moitf, const std::string& seq, const int energy_gap, bool verbose=false, int dangle=2){
+    std::vector<std::string> rivals;
+    // call suboptimal folding function to generate rival structures
+    std::string constr = dotbracket2constraint(moitf);
+    std::string target = dotbracket2target(moitf);
+    std::replace(constr.begin(), constr.end(), 'x', '.');
+    std::replace(constr.begin(), constr.end(), '.', '?');
+    std::cout<<"constr: "<<constr<<std::endl;
+    std::cout<<"energy_gap: "<<energy_gap<<std::endl;
+    std::vector<std::string> refs;
+    refs =  subopt_fold(seq, constr, energy_gap, 0, false, verbose, dangle);
+    // subopt using sequences from targeted initialization, in order to increase the diversity of rival structures
+    std::unordered_set<std::string> unique_refs(refs.begin(), refs.end());
+    for(int j = 0; j < 20; j++){
+        std::string init_seq = tg_init(target, -1);
+        auto subopts = subopt_fold(init_seq, constr, energy_gap, 0, false, verbose, dangle);
+        for(const auto& subopt: subopts){
+            unique_refs.insert(subopt);
+        }
+    }
+    refs.assign(unique_refs.begin(), unique_refs.end());
+    std::cout<<"subopts size: "<<refs.size()<<std::endl;
+    // ensure that the enumeration size does not exceed MAX_ENUM
+    // calculate structural distance and sort by distance
+    std::vector<std::pair<std::string, int>> rivals_with_distance;
+    for(const auto& rival: refs){
+        int dist = struct_dist(target, rival);
+        if (dist == 0) continue;
+        rivals_with_distance.push_back({rival, dist});
+    }
+    std::sort(rivals_with_distance.begin(), rivals_with_distance.end(), [](const std::pair<std::string, int>& a, const std::pair<std::string, int>& b){
+        return a.second < b.second;
+    });
+    std::vector<std::string> tentative_rivals;
+    for(int i = 0; i < std::min((long int)rivals_with_distance.size(), MAX_RIVAL); i++){
+        // calculate the enumeration size for first i rivals
+        tentative_rivals.push_back(rivals_with_distance[i].first);
+        size_t n_enum = enum_count(target, tentative_rivals, verbose);
+        if(n_enum > MAX_ENUM){
+            tentative_rivals.pop_back();
+            break;
+        }else{
+            std::cout<<"current enumeration size: "<<n_enum<<std::endl;
+        }
+    }
+    std::cout<<"maximum enumeration size: "<<enum_count(target, tentative_rivals, verbose)<<std::endl;
+    return tentative_rivals;
+}
+
+// greedy algorithm to generate rival structures, every time choose the structure that minimizes the enumeration size without exceeding MAX_ENUM
+std::vector<std::string> generate_rival_structures_greedy(const std::string& motif, const std::string& seq, const int energy_gap, bool verbose=false, int dangle=2){
+
+    std::vector<std::string> rivals;
+    // call suboptimal folding function to generate rival structures
+    std::string constr = dotbracket2constraint(motif);
+    std::string target = dotbracket2target(motif);
+    std::replace(constr.begin(), constr.end(), 'x', '.');
+    std::replace(constr.begin(), constr.end(), '.', '?');
+    std::cout<<"constr: "<<constr<<std::endl;
+    std::cout<<"energy_gap: "<<energy_gap<<std::endl;
+    std::vector<std::string> refs;
+    refs =  subopt_fold(seq, constr, energy_gap, 0, false, verbose, dangle);
+    // subopt using sequences from targeted initialization, in order to increase the diversity of rival structures
+    std::unordered_set<std::string> unique_refs(refs.begin(), refs.end());
+    const int sample_size = 100;
+    for(int j = 0; j < sample_size; j++){
+        std::string init_seq = tg_init(target, -1);
+        auto subopts = subopt_fold(init_seq, constr, energy_gap, 0, false, verbose, dangle);
+        for(const auto& subopt: subopts){
+            unique_refs.insert(subopt);
+        }
+    }
+    refs.assign(unique_refs.begin(), unique_refs.end());
+    // remove target
+    refs.erase(std::remove(refs.begin(), refs.end(), target), refs.end());
+    // remove rivals which along could cause enumeration size to exceed MAX_ENUM
+    refs.erase(std::remove_if(refs.begin(), refs.end(), [&](const std::string& rival){
+        std::vector<std::string> temp = {rival};
+        return enum_count(target, temp, verbose) > MAX_ENUM;
+    }), refs.end());
+    std::cout<<"subopts size: "<<refs.size()<<std::endl;
+
+    std::vector<std::string> tentative_rivals;
+    // start greedy algorithm to select rival structures
+    for(int count_rival = 0; count_rival < std::min((long int)refs.size(), MAX_RIVAL); count_rival++){
+        std::cout<<"round: "<<count_rival<<std::endl;
+        // vector of pair: (rival structure to add, enumeration size)
+        std::vector<std::pair<std::string, size_t>> rival_enum_sizes;
+        for (const auto& rival: refs){
+            // skip if rival is already in tentative_rivals
+            if(std::find(tentative_rivals.begin(), tentative_rivals.end(), rival) != tentative_rivals.end()){
+                continue;
+            }
+            std::vector<std::string> tmp = tentative_rivals;
+            tmp.push_back(rival);
+            // tentative_rivals.push_back(rival);  // add tentative rival and calculate enumeration size
+            size_t n_enum = enum_count(target, tmp, verbose);
+            if(n_enum < MAX_ENUM){
+                std::cout<<"current enumeration size: "<<n_enum<<std::endl;
+                rival_enum_sizes.push_back({rival, n_enum});
+            }
+            // tentative_rivals.pop_back();  // remove the tentative rival after calculation
+        }
+        if(!rival_enum_sizes.empty()){
+            auto best_rival = std::min_element(rival_enum_sizes.begin(), rival_enum_sizes.end(), [](const std::pair<std::string, size_t>& a, const std::pair<std::string, size_t>& b){
+                return a.second < b.second;
+            });
+            if(best_rival->second < MAX_ENUM)
+                tentative_rivals.push_back(best_rival->first);
+        }
+    }
+    return tentative_rivals;
 }
 
 void show_configuration(){
@@ -2653,13 +2831,16 @@ int main(int argc, char* argv[]) {
         std::cout << alg << std::endl;
         int beamsize = 0;
         bool sharpturn = false;
-        float energy_delta = 0.;
+        float energy_delta = 2.;
         std::string seq;
+        std:: string motif;
         std::string constr;
         std::string energy_delta_str;
         while (std::getline(std::cin, seq))
         {
-            std::getline(std::cin, constr);
+            std::getline(std::cin, motif);
+            std::string target = dotbracket2target(motif);
+            constr = dotbracket2constraint(motif);
             // input energy delta
             std::getline(std::cin, energy_delta_str);
             // replace x with .; replace . with ?
@@ -2671,10 +2852,75 @@ int main(int argc, char* argv[]) {
             std::vector<std::string> refs;
             refs =  subopt_fold(seq, constr, energy_delta, beamsize, sharpturn, verbose, dangle);
             std::cout<<"subopts size: "<<refs.size()<<std::endl;
-            for(auto ref: refs)
-                std::cout<<ref<<std::endl;
+            std::cout<<target<<std::endl;
+            // calculate the structural distance between target and each suboptimal structure, then sort by distance
+            std::vector<std::pair<std::string, int>> ref_distances;
+            for(auto ref: refs) {
+                int dist = struct_dist(target, ref);
+                if(dist != 0)
+                    ref_distances.push_back({ref, dist});
+            }
+            std::sort(ref_distances.begin(), ref_distances.end(), [](const std::pair<std::string, int> &a, const std::pair<std::string, int> &b) {
+                return a.second < b.second;
+            });
+            for(int i = 0; i < ref_distances.size(); i++){
+                // enum count if using first i suboptimal structures as rival structures
+                std::vector<std::string> rivals;
+                for(int j = 0; j <= i; j++){
+                    rivals.push_back(ref_distances[j].first);
+                }
+                size_t n_enum = enum_count(target, rivals, verbose);
+                std::cout<<ref_distances[i].first<<"\t"<<n_enum<<std::endl;
+            }
         }
         return 0;
+    }else if (alg == "rival"){
+        std::string line;
+        std::vector<std::string> lines_output; // out put line with informaiton of target and rival structures
+        while (std::getline(std::cin, line)) {
+            // Process the line as needed
+            std::cout<<line<<std::endl;
+            // read motif, seq, prob, .. separated by comma ,
+            std::string motif;
+            std::string seq;
+            std::string prob;
+            std::istringstream iss(line);
+            std::getline(iss, motif, ',');
+            std::getline(iss, seq, ',');
+            std::getline(iss, prob, ',');
+            std::cout<<"motif: "<<motif<<std::endl;
+            std::cout<<"seq: "<<seq<<std::endl;
+            std::cout<<"prob: "<<prob<<std::endl;
+            int energy_gap = 4;
+            std::vector<std::string> rival_structures = generate_rival_structures_greedy(motif, seq, energy_gap, verbose);
+            std::cout<<"rival_structures size: "<<rival_structures.size()<<std::endl;
+            std::cout<<"the  target:  "<<dotbracket2target(motif)<<std::endl;
+            for(auto ref: rival_structures)
+                std::cout<<"tent. rival: "<<ref<<std::endl;
+            std::string target = dotbracket2target(motif);
+            size_t max_enum_size = enum_count(target, rival_structures, verbose);
+            assert (max_enum_size < MAX_ENUM);
+            // output line: motif,count_rivals,rival1,rival2,...,max_enum_size
+            std::ostringstream oss;
+            oss << motif << "," << rival_structures.size();
+            for (const auto& rival : rival_structures) {
+                oss << "," << rival;
+            }
+            oss << "," << max_enum_size;
+            if (max_enum_size > 1)
+                lines_output.push_back(oss.str());
+        }
+        // sort line by enum count
+        std::sort(lines_output.begin(), lines_output.end(), [](const std::string &a, const std::string &b) {
+            size_t pos_a = a.find_last_of(',');
+            size_t pos_b = b.find_last_of(',');
+            size_t enum_count_a = std::stoul(a.substr(pos_a + 1));
+            size_t enum_count_b = std::stoul(b.substr(pos_b + 1));
+            return enum_count_a < enum_count_b;
+        });
+        for (const auto& line_out : lines_output) {
+            std::cout << line_out << std::endl;
+        }
     }else if (alg == "fold"){ /* fold */
         int beamsize = 0;
         bool sharpturn = false;
@@ -2836,10 +3082,10 @@ int main(int argc, char* argv[]) {
             std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
             // call mprob
             auto start_time = std::chrono::high_resolution_clock::now();
-            double prob_bound = prbound(y_target, y_rivals, verbose);
+            SequenceProb result = prbound(y_target, y_rivals, verbose);
             auto end_time = std::chrono::high_resolution_clock::now();
             std::chrono::duration<double> elapsed = end_time - start_time;
-            std::cout<<"probability bound: "<<prob_bound<<std::endl;
+            std::cout<<"probability bound: "<<result.prob<<std::endl;
             std::cout<<"time elapsed: "<<elapsed.count()<<" seconds"<<std::endl;
         }
     }else if (alg == "mprob"){
@@ -2867,7 +3113,7 @@ int main(int argc, char* argv[]) {
             int num_rivals = 1;
             std::vector<std::string> y_rivals;
             if (!std::getline(iss, motif, ',')) continue;
-            y_target = fill_hairpins(motif);
+            y_target = dotbracket2target(motif);
             // std::replace(y_target.begin(), y_target.end(), '*', '.');
             std::string num_rivals_str;
             if (!std::getline(iss, num_rivals_str, ',')) continue;
@@ -2876,6 +3122,10 @@ int main(int argc, char* argv[]) {
             for(int i = 0; i < num_rivals; ++i){
                 if (!std::getline(iss, y_rivals[i], ',')) continue;
                 y_rivals[i] = fill_hairpins(y_rivals[i]);
+                // if y_rivals[i] starts with 5 and ends with 3, remove them
+                if (y_rivals[i].front() == '5' && y_rivals[i].back() == '3'){
+                    y_rivals[i] = y_rivals[i].substr(1, y_rivals[i].size() - 2);
+                }
             }
             std::cout<<"motif: "<<motif<<std::endl;
             std::cout<<"y_target: "<<y_target<<std::endl;
@@ -2885,12 +3135,12 @@ int main(int argc, char* argv[]) {
             }
             // record time
             auto start_time = std::chrono::high_resolution_clock::now();
-            double prob_bound = prbound(y_target, y_rivals, verbose);
+            SequenceProb result = prbound(y_target, y_rivals, verbose);
             auto end_time = std::chrono::high_resolution_clock::now();
             std::chrono::duration<double> elapsed = end_time - start_time;
-            std::cout<<"probability bound: "<<prob_bound<<std::endl;
+            std::cout<<"probability bound: "<<result.prob<<std::endl;
             // output line: motif, prob_bound, time; prob_bound format: %.10e
-            outfile<<motif<<","<<std::scientific<<std::setprecision(10)<<prob_bound<<","<<elapsed.count()<<std::endl;
+            outfile<<motif<<","<<std::scientific<<std::setprecision(10)<<result.prob<<","<<result.seq<<","<<elapsed.count()<<std::endl;
         }
     }
     else if (alg == "inter"){  // constraint intersection
