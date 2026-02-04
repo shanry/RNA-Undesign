@@ -3,7 +3,7 @@ Algorithms for Identifying the Undesignability of RNA secondary structures
 
 ## Introduction
 
-This project explores the undesignability of RNA secondary structures, under the context of RNA design, building upon the research presented in the paper by T. Zhou et al. [1][2].
+This project explores the (un)designability of RNA secondary structures, under the context of RNA design, building upon the research presented in the papers by T. Zhou et al. [1][2][3].
 
 ## References
 
@@ -12,7 +12,9 @@ This project explores the undesignability of RNA secondary structures, under the
 (RECOMB 2024, [arXiv preprint](https://arxiv.org/abs/2311.08339)) \
 [2] Zhou, T., Tang, W.Y., Apoorv, M., Mathews, D.H. and Huang, L. 
 "Scalable and Interpretable Identification of Minimal Undesignable
-RNA Structure Motifs with Rotational Invariance" (RECOMB 2025, [arXiv preprint](https://arxiv.org/abs/2402.17206))
+RNA Structure Motifs with Rotational Invariance" (RECOMB 2025, [arXiv preprint](https://arxiv.org/abs/2402.17206)) \
+[3] Zhou, T., Mathews, D.H. and Huang, L. 
+"Probabilistic RNA Designability via Interpretable Ensemble Approximation and Dynamic Decomposition"
 
 ## Datasets
 [Eterna100](data/eterna100.csv) \
@@ -35,6 +37,7 @@ Detailed results for undesignable motifs of length up to 14:
 # Test with CentOS
 $ make main   
 $ make main_nosh  # turn off special hairpins
+$ make lineardecompose  # Probabilistic RNA Designability Quantification
 ```
 ### Mac
 ```
@@ -61,6 +64,17 @@ $export PATH_UNDESIGNABLE_LIB=path/to/lib_undesignable.txt
 $export PATH_DESIGNABLE_LIB/path/to/motifs/libs/lib_designable.txt
 ```
 Libraries for designable and undesignable motifs are avaialbe at: https://drive.google.com/drive/u/0/folders/1lMBWVEvUAVI0YHV1BvqipHXuGQ11EphO
+## LinearDecompose
+To replicate the experiment results in the paper: \
+**1. ArchiveII**
+```bash
+cat data/archiveii1144.txt | ./bin/lineardecompose minp | grep -E "Minimum" | tee results_archiveii1144.txt  # prob. bounds will be saved to results_archiveii1144.txt
+```
+**2. Eterna100**
+```bash
+cat data/eterna100.txt | ./bin/lineardecompose minp | grep -E "Minimum" | tee results_eterna100.txt  # prob. bounds will be saved to results_eterna100.txt
+```
+
 ## FastMotif 
 ```
 $echo ".((......((......))......((......((......))......((......))......))......))....." | ./bin/main --alg fastmotif
