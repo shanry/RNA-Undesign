@@ -7,7 +7,7 @@
 
 CC=g++
 DEPS=src/*.hpp src/LinearFold.h src/Utils/energy_parameter.h src/Utils/feature_weight.h src/Utils/intl11.h src/Utils/intl21.h src/Utils/intl22.h src/Utils/utility_v.h  src/Utils/utility_v_max.h src/Utils/utility.h 
-CFLAGS=-std=c++11 -O3 -fopenmp
+CFLAGS=-std=c++17 -O3 -fopenmp
 objects=bin/*
 
 all: main main_nosh
@@ -50,6 +50,15 @@ bin/subopt.o: src/subopt.cpp src/utils.h src/comps.h src/eval.h
 
 subopt: bin/subopt.o bin/utils.o bin/eval.o
 	$(CC)  $(CFLAGS)  bin/subopt.o bin/utils.o bin/eval.o  -o bin/subopt
+
+bin/uniq.o: src/uniq.cpp src/uniq.h
+	$(CC) -std=c++17 -c src/uniq.cpp -o bin/uniq.o
+
+bin/decompose.o: src/lineardecompose.cpp src/uniq.h
+	$(CC) -std=c++17 -c src/lineardecompose.cpp -o bin/decompose.o
+
+lineardecompose: bin/decompose.o bin/uniq.o
+	$(CC)  $(CFLAGS)  bin/decompose.o bin/uniq.o  -o bin/lineardecompose
 
 .PHONY: clean
 clean:
