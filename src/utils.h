@@ -24,6 +24,8 @@ std::vector<std::string> split_string(const std::string& input, char delimiter);
 std::vector<int> ref2pairs(std::string& ref);
 std::vector<std::tuple<int, int>> idx2pair(std::set<int>& positions, std::string& ref);
 std::set<std::pair<int, int>> ref2pairset(std::string& ref);
+std::unordered_map<int, int> pairs_match(const std::string& ss);
+int struct_dist(const std::string& s1, const std::string& s2);
 ulong count_enum(std::vector<std::tuple<int, int>>& pairs_diff);
 bool check_compatible(std::string seq, std::string ss);
 template <typename T>
@@ -61,4 +63,5 @@ inline std::string getRandomIntString(int min = std::pow(10, 8), int max = std::
 }
 std::string dotbracket2target(const std::string& line);
 std::string dotbracket2constraint(const std::string& line);
+std::string fill_hairpins(std::string ref); // replace * with ... (three dots) in y_target
 #endif

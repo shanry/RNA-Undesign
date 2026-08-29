@@ -152,6 +152,53 @@ std::set<std::pair<int, int>> ref2pairset(std::string& ref){
     return pairset;
 }
 
+std::unordered_map<int, int> pairs_match(const std::string& ss) {
+    assert(ss.length() > 2);
+    std::unordered_map<int, int> pairs;
+    std::stack<int> stack;
+    for (size_t i = 0; i < ss.size(); ++i) {
+        char s = ss[i];
+        if (s == '.') {
+            continue;
+        } else if (s == '(') {
+            stack.push(static_cast<int>(i));
+        } else if (s == ')') {
+            assert(!stack.empty());
+            int j = stack.top();
+            stack.pop();
+            assert(j < static_cast<int>(i));
+            pairs[j] = static_cast<int>(i);
+            pairs[static_cast<int>(i)] = j;
+        } else {
+            throw std::invalid_argument("the value of structure at position " + std::to_string(i) + " is not right: " + s);
+        }
+    }
+    return pairs;
+}
+
+int struct_dist(const std::string& s1, const std::string& s2) {
+    assert(s1.length() == s2.length());
+    auto pairs_1 = pairs_match(s1);
+    auto pairs_2 = pairs_match(s2);
+
+    std::set<int> keys_union;
+    for (const auto& kv : pairs_1) {
+        keys_union.insert(kv.first);
+    }
+    for (const auto& kv : pairs_2) {
+        keys_union.insert(kv.first);
+    }
+
+    int overlap = static_cast<int>(s1.length()) - static_cast<int>(keys_union.size());
+    for (const auto& kv : pairs_1) {
+        auto it = pairs_2.find(kv.first);
+        if (it != pairs_2.end() && it->second == kv.second) {
+            overlap += 1;
+        }
+    }
+    return static_cast<int>(s1.length()) - overlap;
+}
+
 ulong count_enum(std::vector<std::tuple<int, int>>& pairs_diff){
     ulong count = 1;
     for(auto& pair: pairs_diff){
@@ -556,4 +603,17 @@ std::string dotbracket2constraint(const std::string &line) {
         result += s;
     }
     return result;
+}
+
+// replace * with ... (three dots) in y_target
+std::string fill_hairpins(std::string ref){
+    std::string y_filled;
+    for(char c: ref){
+        if(c == '*'){
+            y_filled += "...";
+        }else{
+            y_filled += c;
+        }
+    }
+    return y_filled;
 }
