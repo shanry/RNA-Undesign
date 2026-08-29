@@ -7,14 +7,14 @@
 #include <stack>
 #include <ctime>
 #include <chrono>
-#include <string.h> 
+#include <string.h>
 #include <cmath>
 #include <utility>
 #include <algorithm>
 #include <omp.h>
 #include <iomanip>
 #include <sstream>
-#include <cassert> 
+#include <cassert>
 #include <cstdio>
 // #include <random>
 
@@ -90,7 +90,7 @@ class MotifLib{
     public:
         std::map<std::string, int> dotbracket2id;
         int count_unique = 0;
-        
+
         MotifLib(std::string path);
 
         int getID(std::string dotbracket){
@@ -216,7 +216,7 @@ static void loadDesignableEnum(const std::string &path, std::set<std::string> &u
         // strip whitespace
         // trim leading/trailing whitespace
         auto first = line.find_first_not_of(" \t\r\n");
-        if (first == std::string::npos) 
+        if (first == std::string::npos)
             continue;              // blank line
         auto last = line.find_last_not_of(" \t\r\n");
         std::string raw = line.substr(first, last - first + 1);
@@ -334,7 +334,7 @@ void TreeNode::printTreeEnum(std::string& seq, std::string& y){
     }
     for(int j = 0; j < children.size(); j++){
         children[j]->printTreeEnum(seq, y);
-    }       
+    }
 }
 
 // Function to parse a string of nested pairs into a tree
@@ -373,7 +373,7 @@ std::string getCurrentTimestamp() {
 
     // Convert the time_t to a std::tm structure
     std::tm* timeInfo = std::localtime(&currentTime_t);
-    
+
     // Use strftime to format the timestamp
     char buffer[15]; // Adjust the size as needed based on your format
     std::strftime(buffer, sizeof(buffer), "%Y%m%d%H%M%S", timeInfo);
@@ -623,7 +623,7 @@ SequenceProb alg2_ensemble(std::string& y, std::vector<std::string>& y_rival_vec
             auto pause = std::chrono::high_resolution_clock::now();
             printf("thread %2d, %8d, %.4f, %.2f seconds\n", thread_id, (i+1)/10000, prob_bound_thread[thread_id], std::chrono::duration<double, std::milli>(pause - start)/1000.f);
         }
-        double denumerator = 1.;
+        double denominator = 1.;
         // long e_diff_max_local = -10000;
         std::string y_rival_debug;
         for (int j = 0; j < y_rival_vector.size(); j++){
@@ -631,7 +631,7 @@ SequenceProb alg2_ensemble(std::string& y, std::vector<std::string>& y_rival_vec
             auto cr_loops = cr_loops_vector[j];
             if(check_compatible(seq_i, y_prime)){
                 long e_diff = -diff_eval(seq_i, cr_loops, is_verbose, dangle_model); // not divided by 100, \delta G(x, y_star) - \delta G(x, y_prime)
-                denumerator += std::exp(e_diff * 10 / (GASCONST * TEMPERATURE));
+                denominator += std::exp(e_diff * 10 / (GASCONST * TEMPERATURE));
                 // if (e_diff > e_diff_max_local){
                 //     e_diff_max_local = e_diff;
                 //     y_rival_debug = y_prime;
@@ -647,15 +647,15 @@ SequenceProb alg2_ensemble(std::string& y, std::vector<std::string>& y_rival_vec
         // }
         // #pragma omp critical
         // {
-        //     prob_bound = std::max(prob_bound, 1. / denumerator);
+        //     prob_bound = std::max(prob_bound, 1. / denominator);
         //     e_diff_min = std::min(e_diff_min, e_diff_max_local);
         // }
-        double prob_bound_current = 1. / denumerator;
+        double prob_bound_current = 1. / denominator;
         if (prob_bound_current >= prob_bound_thread[thread_id]){
             seq_thread[thread_id] = seq_i;
             prob_bound_thread[thread_id] = prob_bound_current;
         }
-        // prob_bound_thread[thread_id] = std::max(prob_bound_thread[thread_id], 1. / denumerator);
+        // prob_bound_thread[thread_id] = std::max(prob_bound_thread[thread_id], 1. / denominator);
     }
     // std::cout<<"e_diff_min: "<<e_diff_min<<std::endl;
     auto end = std::chrono::high_resolution_clock::now();
@@ -690,7 +690,7 @@ std::vector<std::string> alg_1_v2(std::string& y, std::string& y_prime, std::str
     std::vector<std::vector<int>> cr_loops = find_critical_plus(y, y_prime, critical_positions, is_verbose);
     std::set<int> critical_positions_v2 = loops2positions(cr_loops, y.length());
     assert(critical_positions == critical_positions_v2);
-    
+
     std::vector<std::pair<int, int>> sh_y = loops2specialhp(cr_loops, y.length());
     if (sh_y.size() == 2){
         std::vector<std::string> X;
@@ -800,7 +800,7 @@ std::vector<std::string> alg_1_v2(std::string& y, std::string& y_prime, std::str
     return X;
 }
 
-std::string alg_2(std::string& ref1, std::set<std::string>& refs_checked, std::vector<Constraint>& cs_vec, bool verbose, int dangle_model){ // ref1, ref2, X, is_verbose, dangle_model
+std::string alg_2(std::string& ref1, std::set<std::string>& refs_checked, std::vector<Constraint>& cs_vec, bool verbose, int dangle_model){
     int count_cs = cs_vec.size();
     std::vector<std::pair<ulong, std::pair<std::string, std::string>>> y_primes;
     std::cout<<"inside alg2"<<std::endl;
@@ -929,7 +929,7 @@ std::string alg_2(std::string& ref1, std::set<std::string>& refs_checked, std::v
     }
 }
 
-std::string alg_2_cs(std::string& ref1, std::set<std::string>& refs_checked, std::vector<Constraint>& cs_vec, bool verbose, int dangle_model){ // ref1, ref2, X, is_verbose, dangle_model
+std::string alg_2_cs(std::string& ref1, std::set<std::string>& refs_checked, std::vector<Constraint>& cs_vec, bool verbose, int dangle_model){
     int count_cs = cs_vec.size();
     std::vector<std::pair<ulong, std::pair<std::string, std::string>>> y_primes;
     std::cout<<"inside alg2cs"<<std::endl;
@@ -1088,8 +1088,8 @@ std::string alg_2_helper(std::string& ref1, std::string& ref2, std::string& seq,
         refs_checked.insert(ref2);
         return alg_2(ref1, refs_checked, cs_vec, verbose, dangle_model);
     }
-    std::cout<<"intial y_prime too bad!"<<std::endl;
-    return "intial y_prime too bad";
+    std::cout<<"initial y_prime too bad!"<<std::endl;
+    return "initial y_prime too bad";
 }
 
 std::string alg_2_cs_helper(std::string& ref1, std::string& ref2, std::string& seq, bool verbose, int dangle_model){
@@ -1117,7 +1117,7 @@ std::string alg_2_cs_helper(std::string& ref1, std::string& ref2, std::string& s
             return "undesignable";
         }
         // (IMPORTANT) need to be optimized later
-        // else if (X.size() > MAX_CONSTRAINT){  
+        // else if (X.size() > MAX_CONSTRAINT){
         //     std::cout<<"too many constraints: "<<X.size()<<"\t"<<"out of "<<ref2<<std::endl;
         // }
         else{
@@ -1134,8 +1134,8 @@ std::string alg_2_cs_helper(std::string& ref1, std::string& ref2, std::string& s
         // cs_vec.push_back(cs_ref2);
         return alg_2_cs(ref1, refs_checked, cs_vec, verbose, dangle_model);
     }
-    std::cout<<"intial y_prime too bad!"<<std::endl;
-    return "intial y_prime too bad";
+    std::cout<<"initial y_prime too bad!"<<std::endl;
+    return "initial y_prime too bad";
 }
 
 std::string alg_3_helper(std::string& ref, std::string& seq, bool verbose, int dangle){
@@ -1226,7 +1226,7 @@ std::string alg_3_span_helper(std::string& ref, std::string& seq, std::vector<st
     return "unknown";
 }
 
-std::string alg_5_cs(std::string& ref1, std::set<std::string>& refs_checked, std::vector<Constraint>& cs_vec, std::string& constr, bool verbose, int dangle_model){ // ref1, ref2, X, is_verbose, dangle_model
+std::string alg_5_cs(std::string& ref1, std::set<std::string>& refs_checked, std::vector<Constraint>& cs_vec, std::string& constr, bool verbose, int dangle_model){
     std::cout<<"inside alg5cs"<<std::endl;
     int count_cs = cs_vec.size();
     printf("design constraints: %d\n", count_cs);
@@ -1362,7 +1362,7 @@ std::string alg_5_cs(std::string& ref1, std::set<std::string>& refs_checked, std
     }
 }
 
-std::string alg_5_cs_plus(std::string& ref1, std::set<std::string>& refs_checked, std::vector<Constraint>& cs_vec, std::vector<std::string> X, std::string& constr, bool verbose, int dangle_model){ // ref1, ref2, X, is_verbose, dangle_model
+std::string alg_5_cs_plus(std::string& ref1, std::set<std::string>& refs_checked, std::vector<Constraint>& cs_vec, std::vector<std::string> X, std::string& constr, bool verbose, int dangle_model){
     std::cout<<"inside alg5cs"<<std::endl;
     int count_cs = cs_vec.size();
     printf("design constraints: %d\n", count_cs);
@@ -1561,7 +1561,7 @@ std::string alg_5_helper_v2(std::string& ref1, std::string& ref2, std::string&co
         }else if (X.size() > MAX_CONSTRAINT){
             std::cout<<"too many constraints: "<<X.size()<<"\t"<<"out of "<<ref2<<std::endl;
         }
-        else{            
+        else{
             cs_flag = true;
             // cs_vec.push_back(cs_ref2);
             Constraint cs_ref2 = Constraint(&critical_positions, &X);
@@ -1607,7 +1607,7 @@ std::string alg1_helper(std::string& seq, std::string& ref1, std::string& ref2, 
     if(n_enum > 0 && n_enum < MAX_ENUM){
         std::cout<<"alg 1"<<std::endl;
         // auto X = alg_1(ref1, ref2, cr_loops, pairs_diff, seq, is_verbose, dangle_model);
-        auto X = alg_1_v2(ref1, ref2, seq, verbose, dangle_model);       
+        auto X = alg_1_v2(ref1, ref2, seq, verbose, dangle_model);
         printf("X size: %d\n", X.size());
         if (X.size()==0){
             printf("undesignable!\n");
@@ -1624,8 +1624,8 @@ std::string alg1_helper(std::string& seq, std::string& ref1, std::string& ref2, 
             return "unknown";
         }
     }
-    std::cout<<"intial y_prime too bad!"<<std::endl;
-    return "intial y_prime too bad";
+    std::cout<<"initial y_prime too bad!"<<std::endl;
+    return "initial y_prime too bad";
 }
 
 Constraint alg1_constraint(std::string& ref1, std::string& ref2, bool is_verbose, int dangle_model) {
@@ -1658,7 +1658,7 @@ Constraint alg1_constraint(std::string& ref1, std::string& ref2, bool is_verbose
     std::cout<<"alg 1"<<std::endl;
     // auto X = alg_1(ref1, ref2, cr_loops, pairs_diff, seq, is_verbose, dangle_model);
     std::string seq = tg_init(ref1);
-    X = alg_1_v2(ref1, ref2, seq, verbose, dangle_model);       
+    X = alg_1_v2(ref1, ref2, seq, verbose, dangle_model);
     printf("X size: %d\n", X.size());
     assert(X.size() > 0);
     // Allocate copies on the heap so the returned Constraint owns valid storage.
@@ -1689,7 +1689,7 @@ void csv_process(std::string csv, std::string alg){
     std::string path_undesignable = csv + "." + alg + ".log."+getCurrentTimestamp()+".txt";
     std::string path_designable = csv + "." + alg + ".designable.log."+getCurrentTimestamp()+".txt";
     std::string path_unknown = csv + "." + alg + ".unknown.log."+getCurrentTimestamp()+".txt";
-    
+
     #ifdef SPECIAL_HP
     #else
         path_undesignable = csv + "." + alg + ".log.nosh."+getCurrentTimestamp()+".txt";
@@ -1749,9 +1749,9 @@ void csv_process(std::string csv, std::string alg){
     }
     // std::set<std::string> uniq_ud = loadLib(path_undesignable_lib); // undesignable motifs
     // std::set<std::string> uniq_ds = loadLib(path_designable_lib);   // designable   motifs
-    // std::set<std::string> uniq_unkown;
+    // std::set<std::string> uniq_unknown;
     // if (var_unknown_lib != NULL)
-    //     uniq_unkown = loadLib(var_unknown_lib); // load unknown motifs if the library is set
+    //     uniq_unknown = loadLib(var_unknown_lib); // load unknown motifs if the library is set
     std::cout<<"size of designable motifs: "<<uniq_ds.size()<<std::endl;
     std::cout<<"size of undesignable motifs: "<<uniq_ud.size()<<std::endl;
     std::string path_undesignable_enum = "data/motifs_maxlen14_no_external/results.uniq.json";
@@ -1795,7 +1795,7 @@ void csv_process(std::string csv, std::string alg){
             std::string y_prim; // currently dummy
 
             std::cout<<"Puzzle ID: "<<puzzle_id<<std::endl;
-            
+
             // power neighbor set search
             if (alg == "pn"){
                 auto start_time = std::chrono::high_resolution_clock::now();
@@ -2024,7 +2024,7 @@ void csv_process(std::string csv, std::string alg){
                 } else {
                     std::perror("Error deleting file");
                 }
-                
+
                 auto start_time = std::chrono::high_resolution_clock::now();
                 TreeNode* root = parseStringToTree(y_star);
                 std::set<string> ds_ipairs; // designable internal pairs
@@ -2105,10 +2105,10 @@ void csv_process(std::string csv, std::string alg){
                         auto js = jsrecords(lc, y_star, y_sub, y_rivals, puzzle_id);
                         std::string jstring = js.dump();
                         outputFile_unknown << jstring << std::endl;
-                        // uniq_unkown.insert(treestr);
+                        // uniq_unknown.insert(treestr);
                         // for(Node* rotree: tree->rotated(0)){
                         //     std::string rotreestr = rotree->toDotBracket();
-                        //     uniq_unkown.insert(rotreestr);
+                        //     uniq_unknown.insert(rotreestr);
                         //     delete rotree;
                         // }
                     }
@@ -2436,7 +2436,7 @@ void online_process(std::string y, std::string path_prefix=""){
                         std::cout << "[ProgressInfo] " << "time cost: " + fl2str(time_seconds) << " seconds" << std::endl;
                         records.push_back(jstring);
                         if (!found_ud){
-                            
+
                             undesignableLibFile << jstring << std::endl;
                         }
                     }
@@ -2927,7 +2927,7 @@ int main(int argc, char* argv[]) {
         std::string seq;
         std::vector<std::string> refs;
         while (std::getline(std::cin, seq))
-        {   
+        {
             if (!vrna)
                 refs =  fold(seq, beamsize, sharpturn, verbose, dangle, 0.);
             else{
@@ -3003,7 +3003,7 @@ int main(int argc, char* argv[]) {
             // create json object
             json js;
             js["target"] = ref1;
-            js["result"] = "unkown";
+            js["result"] = "unknown";
             std::cout << "number of rival structures: " << y_rivals.size() << std::endl;
             // if UMFE is a substring of result, get the sequence x (after UMFE:)
             if (result.find("UMFE") != std::string::npos) {
@@ -3044,7 +3044,7 @@ int main(int argc, char* argv[]) {
             getline(std::cin, ref2);
             test_diff(seq, ref1, ref2, verbose, dangle);
         }
-    }else if (alg == "dp"){  /* differential positions */ 
+    }else if (alg == "dp"){  /* differential positions */
         std::string ref1;
         std::string ref2;
         while(std::getline(std::cin, ref1)){
@@ -3166,7 +3166,7 @@ int main(int argc, char* argv[]) {
                 constraints.push_back(constr);
             }
             // intersection verification, starting from the seconda constraint, intersect with all the previous constraints
-        
+
             for(int i = 1; i < constraints.size(); ++i){
                 for(int j = 0; j < i; ++j){
                     // intersect constraints[i] with constraints[j]
@@ -3234,8 +3234,8 @@ int main(int argc, char* argv[]) {
             assert(target.length() == constr.length());
             // TreeNode* root = parseStringToTree(target);
             // int max_internal = max_single(root);
-            // if(max_internal > 30){        
-            //     std::cout<<"the internal loop is too long: "<<max_internal<<std::endl;            
+            // if(max_internal > 30){
+            //     std::cout<<"the internal loop is too long: "<<max_internal<<std::endl;
             //     continue;
             // }
             auto time_start = std::chrono::high_resolution_clock::now();
