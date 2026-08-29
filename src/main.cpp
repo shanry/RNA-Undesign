@@ -597,8 +597,8 @@ struct SequenceProb{
     double prob;
 };
 
-SequenceProb alg2_ensemble(std::string& y, std::vector<std::string>& y_rival_vector, std::vector<std::vector<std::vector<int>>>& cr_loops_vector, std::vector<std::tuple<int, int>>& pairs_diff, std::string& seq, bool is_verbose, int dangle_model){
-    std::cout<<"inside alg2_ensemble"<<std::endl;
+SequenceProb alg_2_ensemble(std::string& y, std::vector<std::string>& y_rival_vector, std::vector<std::vector<std::vector<int>>>& cr_loops_vector, std::vector<std::tuple<int, int>>& pairs_diff, std::string& seq, bool is_verbose, int dangle_model){
+    std::cout<<"inside alg_2_ensemble"<<std::endl;
     assert (y_rival_vector.size() == cr_loops_vector.size());
     auto start = std::chrono::high_resolution_clock::now();
     ulong nEnum = count_enum(pairs_diff);
@@ -2565,7 +2565,7 @@ SequenceProb prbound(std::string& y_target, std::vector<std::string>& y_rivals, 
     if(n_enum > MAX_ENUM)
         std::cout<<"exceeds max enumeration limit: "<<MAX_ENUM<<std::endl;
     // return -1.0;
-    SequenceProb result = alg2_ensemble(y_target, y_rivals, cr_loops_vector, pairs_diff, seq, verbose, dangle);
+    SequenceProb result = alg_2_ensemble(y_target, y_rivals, cr_loops_vector, pairs_diff, seq, verbose, dangle);
     if(verbose){
         std::cout<<"probability bound: "<<result.prob<<std::endl;
     }
