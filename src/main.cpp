@@ -1051,10 +1051,13 @@ std::string alg_2_cs_helper(std::string& ref1, std::string& ref2, std::string& s
             y_rivals.push_back(ref2);
             return "undesignable";
         }
-        // (IMPORTANT) need to be optimized later
-        // else if (X.size() > MAX_CONSTRAINT){  
-        //     std::cout<<"too many constraints: "<<X.size()<<"\t"<<"out of "<<ref2<<std::endl;
-        // }
+        else if (X.size() > MAX_CONSTRAINT){
+            // X was truncated by alg_1_v2's early exit before the enumeration finished, so it is
+            // not the complete candidate set beating ref2 -- must not be used as if it were, or
+            // undesignable verdicts downstream would be unsound. Bail out inconclusively instead.
+            std::cout<<"too many constraints: "<<X.size()<<"\t"<<"out of "<<ref2<<std::endl;
+            return "too many constraints";
+        }
         else{
             Constraint cs_ref2 = Constraint(&critical_positions, &X);
             cs_ref2.setStructure(ref2);
