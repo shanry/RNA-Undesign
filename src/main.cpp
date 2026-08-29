@@ -87,51 +87,42 @@ std::vector<std::pair<int, int>> pairs_inside;
 int SEED_RAND = 2024;
 
 class MotifLib{
-    public:
-        std::map<std::string, int> dotbracket2id;
-        int count_unique = 0;
+public:
+    std::map<std::string, int> dotbracket2id;
+    int count_unique = 0;
 
-        MotifLib(std::string path);
+    MotifLib(std::string path);
 
-        int getID(std::string dotbracket){
-            return dotbracket2id[dotbracket];
-        }
+    int getID(std::string dotbracket){
+        return dotbracket2id[dotbracket];
+    }
 
-        int getCount(){
-            return count_unique;
-        }
+    int getCount(){
+        return count_unique;
+    }
 
-        // int insert(std::string dotbracket){
-        //     if (dotbracket2id.count(dotbracket)==0){
-        //         dotbracket2id[dotbracket] = count_unique+1;
-        //         count_unique += 1;
-        //         return 1;
-        //     }
-        //     return 0;
-        // }
-
-        int insert(Node* tree){
-            std::string treestr = tree->toDotBracket();
-            if (dotbracket2id.count(treestr)==0){
-                std::set<std::string> rostrings;
-                dotbracket2id[treestr] = count_unique+1;
-                for(Node* rotree : tree->rotated(0)){
-                    std::string rotreestr = rotree->toDotBracket();
-                    if (dotbracket2id.count(rotreestr)==0)
-                        dotbracket2id[rotreestr] = count_unique + 1;
-                    else
-                        assert (rostrings.count(rotreestr)==1);
-                    delete rotree;
-                }
-                count_unique += 1;
-                return 1;
+    int insert(Node* tree){
+        std::string treestr = tree->toDotBracket();
+        if (dotbracket2id.count(treestr)==0){
+            std::set<std::string> rostrings;
+            dotbracket2id[treestr] = count_unique+1;
+            for(Node* rotree : tree->rotated(0)){
+                std::string rotreestr = rotree->toDotBracket();
+                if (dotbracket2id.count(rotreestr)==0)
+                    dotbracket2id[rotreestr] = count_unique + 1;
+                else
+                    assert (rostrings.count(rotreestr)==1);
+                delete rotree;
             }
-            return 0;
+            count_unique += 1;
+            return 1;
         }
+        return 0;
+    }
 
-        bool count(std::string dotbracket){
-            return dotbracket2id.count(dotbracket);
-        }
+    bool count(std::string dotbracket){
+        return dotbracket2id.count(dotbracket);
+    }
 };
 
 // load lib from file
@@ -152,9 +143,6 @@ std::set<std::string> loadLib(std::string path){
         Node* tree = new Node(js_record["motif"]);
         std::string treestr = tree->toDotBracket();
         rostrings.insert(treestr);
-        // if (lib.count(treestr) != 0)
-        //     std::cout<<"duplicated motif: "<<treestr<<std::endl;
-        // assert (lib.count(treestr)==0);
         lib.insert(treestr);
         for(Node* rotree : tree->rotated(0)){
             std::string rotreestr = rotree->toDotBracket();
@@ -223,9 +211,6 @@ static void loadDesignableEnum(const std::string &path, std::set<std::string> &u
 
         // insert raw JSON‐or‐dotbracket‐string
         uniq_ds.insert(raw);
-        // if (!uniq_ds.insert(raw).second) { // already exists
-        //     designableLibFile << raw << "\n";
-        // }
     }
 }
 
@@ -624,7 +609,6 @@ SequenceProb alg_2_ensemble(std::string& y, std::vector<std::string>& y_rival_ve
             printf("thread %2d, %8d, %.4f, %.2f seconds\n", thread_id, (i+1)/10000, prob_bound_thread[thread_id], std::chrono::duration<double, std::milli>(pause - start)/1000.f);
         }
         double denominator = 1.;
-        // long e_diff_max_local = -10000;
         std::string y_rival_debug;
         for (int j = 0; j < y_rival_vector.size(); j++){
             std::string y_prime = y_rival_vector[j];
@@ -632,24 +616,8 @@ SequenceProb alg_2_ensemble(std::string& y, std::vector<std::string>& y_rival_ve
             if(check_compatible(seq_i, y_prime)){
                 long e_diff = -diff_eval(seq_i, cr_loops, is_verbose, dangle_model); // not divided by 100, \delta G(x, y_star) - \delta G(x, y_prime)
                 denominator += std::exp(e_diff * 10 / (GASCONST * TEMPERATURE));
-                // if (e_diff > e_diff_max_local){
-                //     e_diff_max_local = e_diff;
-                //     y_rival_debug = y_prime;
-                // }
             }
         }
-        // if (e_diff_max_local < 0){
-        //     std::cout<<"e_diff_max_local < 0"<<std::endl;
-        //     std::cout<<"e_diff_max_local: "<<e_diff_max_local<<std::endl;
-        //     std::cout<<"seq_i: "<<seq_i<<std::endl;
-        //     std::cout<<"y_rival_debug: "<<y_rival_debug<<std::endl;
-        //     assert(false);
-        // }
-        // #pragma omp critical
-        // {
-        //     prob_bound = std::max(prob_bound, 1. / denominator);
-        //     e_diff_min = std::min(e_diff_min, e_diff_max_local);
-        // }
         double prob_bound_current = 1. / denominator;
         if (prob_bound_current >= prob_bound_thread[thread_id]){
             seq_thread[thread_id] = seq_i;
@@ -753,11 +721,6 @@ std::vector<std::string> alg_1_v2(std::string& y, std::string& y_prime, std::str
     std::cout<<"count enum: "<<nEnum<<std::endl;
     std::vector<std::pair<int, std::string>> idX;
 
-    // if(nEnum <= 0 || nEnum >= MAX_ENUM){
-    //     printf("too many enumeration needed!");
-    //     return X;
-    // }
-
     int flag = 0;
     // long e_diff_min = 100;
     #pragma omp parallel for
@@ -812,12 +775,6 @@ std::string alg_2(std::string& ref1, std::set<std::string>& refs_checked, std::v
     }
     if (X.size() > N_SAMPLE)
         X.resize(N_SAMPLE);
-    // if (X.size() > N_SAMPLE) {
-    //     // static std::random_device rd;
-    //     static std::mt19937 g(2025);
-    //     std::shuffle(X.begin(), X.end(), g);
-    //     X.resize(N_SAMPLE);
-    // }
     std::cout<<"X.size: "<<X.size()<<std::endl;
     for(auto x: X){
         assert (check_compatible(x, ref1));
@@ -861,7 +818,6 @@ std::string alg_2(std::string& ref1, std::set<std::string>& refs_checked, std::v
         std::set<int> critical_positions;
         std::vector<std::vector<int>> cr_loops = find_critical_plus(ref1, y_prime.second.first, critical_positions, verbose);
         std::vector<std::tuple<int, int>> pairs_diff = idx2pair(critical_positions, ref1);
-        // std::vector<std::string> X_new = alg_1(ref1, y_prime.second.first, cr_loops, pairs_diff, y_prime.second.second, verbose, dangle_model);
         std::vector<std::string> X_new = alg_1_v2(ref1, y_prime.second.first, y_prime.second.second, verbose, dangle_model);
         if (X_new.size() == 0){
             std::cout<<"y :"<<ref1<<std::endl;
@@ -986,7 +942,6 @@ std::string alg_2_cs(std::string& ref1, std::set<std::string>& refs_checked, std
         std::set<int> critical_positions;
         std::vector<std::vector<int>> cr_loops = find_critical_plus(ref1, y_prime.second.first, critical_positions, verbose);
         std::vector<std::tuple<int, int>> pairs_diff = idx2pair(critical_positions, ref1);
-        // std::vector<std::string> X_new = alg_1(ref1, y_prime.second.first, cr_loops, pairs_diff, y_prime.second.second, verbose, dangle_model);
         std::vector<std::string> X_new = alg_1_v2(ref1, y_prime.second.first, y_prime.second.second, verbose, dangle_model);
         if (X_new.size() == 0){
             std::cout<<"y :"<<ref1<<std::endl;
@@ -1063,7 +1018,6 @@ std::string alg_2_helper(std::string& ref1, std::string& ref2, std::string& seq,
     std::cout<<"enumeration count: "<<n_enum<<std::endl;
     if(n_enum > 0 && n_enum < MAX_ENUM){
         std::cout<<"alg 1"<<std::endl;
-        // auto X = alg_1(ref1, ref2, cr_loops, pairs_diff, seq, verbose, dangle_model);
         auto X = alg_1_v2(ref1, ref2, seq, verbose, dangle_model);
         printf("X size: %d\n", X.size());
         std::set<std::string> refs_checked;
@@ -1104,7 +1058,6 @@ std::string alg_2_cs_helper(std::string& ref1, std::string& ref2, std::string& s
     std::cout<<"enumeration count: "<<n_enum<<std::endl;
     if(n_enum > 0 && n_enum < MAX_ENUM){
         std::cout<<"alg 1"<<std::endl;
-        // auto X = alg_1(ref1, ref2, cr_loops, pairs_diff, seq, verbose, dangle_model);
         auto X = alg_1_v2(ref1, ref2, seq, verbose, dangle_model);
         printf("X size: %d\n", X.size());
         std::set<std::string> refs_checked;
@@ -1116,22 +1069,12 @@ std::string alg_2_cs_helper(std::string& ref1, std::string& ref2, std::string& s
             y_rivals.push_back(ref2);
             return "undesignable";
         }
-        // (IMPORTANT) need to be optimized later
-        // else if (X.size() > MAX_CONSTRAINT){
-        //     std::cout<<"too many constraints: "<<X.size()<<"\t"<<"out of "<<ref2<<std::endl;
-        // }
         else{
             Constraint cs_ref2 = Constraint(&critical_positions, &X);
             cs_ref2.setStructure(ref2);
             cs_vec.push_back(cs_ref2);
         }
         refs_checked.insert(ref2);
-        // std::set<std::string> refs_checked;
-        // refs_checked.insert(ref2);
-        // std::vector<Constraint> cs_vec;
-        // Constraint cs_ref2 = Constraint(&critical_positions, &X);
-        // cs_ref2.setStructure(ref2);
-        // cs_vec.push_back(cs_ref2);
         return alg_2_cs(ref1, refs_checked, cs_vec, verbose, dangle_model);
     }
     std::cout<<"initial y_prime too bad!"<<std::endl;
@@ -1295,7 +1238,6 @@ std::string alg_5_cs(std::string& ref1, std::set<std::string>& refs_checked, std
         std::set<int> critical_positions;
         std::vector<std::vector<int>> cr_loops = find_critical_plus(ref1, y_prime.second.first, critical_positions, verbose);
         std::vector<std::tuple<int, int>> pairs_diff = idx2pair(critical_positions, ref1);
-        // std::vector<std::string> X_new = alg_1(ref1, y_prime.second.first, cr_loops, pairs_diff, y_prime.second.second, verbose, dangle_model);
         std::vector<std::string> X_new = alg_1_v2(ref1, y_prime.second.first, y_prime.second.second, verbose, dangle_model);
         if (X_new.size() == 0){
             std::cout<<"y :"<<ref1<<std::endl;
@@ -1432,7 +1374,6 @@ std::string alg_5_cs_plus(std::string& ref1, std::set<std::string>& refs_checked
         std::set<int> critical_positions;
         std::vector<std::vector<int>> cr_loops = find_critical_plus(ref1, y_prime.second.first, critical_positions, verbose);
         std::vector<std::tuple<int, int>> pairs_diff = idx2pair(critical_positions, ref1);
-        // std::vector<std::string> X_new = alg_1(ref1, y_prime.second.first, cr_loops, pairs_diff, y_prime.second.second, verbose, dangle_model);
         std::vector<std::string> X_new = alg_1_v2(ref1, y_prime.second.first, y_prime.second.second, verbose, dangle_model);
         if (X_new.size() == 0){
             std::cout<<"y :"<<ref1<<std::endl;
@@ -1606,7 +1547,6 @@ std::string alg1_helper(std::string& seq, std::string& ref1, std::string& ref2, 
     std::vector<std::string> X;
     if(n_enum > 0 && n_enum < MAX_ENUM){
         std::cout<<"alg 1"<<std::endl;
-        // auto X = alg_1(ref1, ref2, cr_loops, pairs_diff, seq, is_verbose, dangle_model);
         auto X = alg_1_v2(ref1, ref2, seq, verbose, dangle_model);
         printf("X size: %d\n", X.size());
         if (X.size()==0){
@@ -1639,14 +1579,6 @@ Constraint alg1_constraint(std::string& ref1, std::string& ref2, bool is_verbose
         std::cout<<critical_positions_v2.size()<<std::endl;
         assert (critical_positions == critical_positions_v2);
     }
-    // long delta_energy = diff_eval(seq, cr_loops, is_verbose, dangle_model);
-    // if (is_verbose){
-    //     printf("delta  : %.2f kcal/mol\n", delta_energy/-100.0);
-    //     printf("critical positions: ");
-    //     for (int x: critical_positions)
-    //         printf("%d, ", x);
-    //     printf("\n");
-    // }
     std::vector<std::tuple<int, int>> pairs_diff = idx2pair(critical_positions, ref1);
     if (is_verbose)
         for(auto& pair: pairs_diff)
@@ -1656,7 +1588,6 @@ Constraint alg1_constraint(std::string& ref1, std::string& ref2, bool is_verbose
     std::vector<std::string> X;
     assert (n_enum > 0 && n_enum < MAX_ENUM);
     std::cout<<"alg 1"<<std::endl;
-    // auto X = alg_1(ref1, ref2, cr_loops, pairs_diff, seq, is_verbose, dangle_model);
     std::string seq = tg_init(ref1);
     X = alg_1_v2(ref1, ref2, seq, verbose, dangle_model);
     printf("X size: %d\n", X.size());
@@ -1747,11 +1678,6 @@ void csv_process(std::string csv, std::string alg){
         std::cerr << "Error: PATH_UNKNOWN_LIB is not set" << std::endl;
         return;
     }
-    // std::set<std::string> uniq_ud = loadLib(path_undesignable_lib); // undesignable motifs
-    // std::set<std::string> uniq_ds = loadLib(path_designable_lib);   // designable   motifs
-    // std::set<std::string> uniq_unknown;
-    // if (var_unknown_lib != NULL)
-    //     uniq_unknown = loadLib(var_unknown_lib); // load unknown motifs if the library is set
     std::cout<<"size of designable motifs: "<<uniq_ds.size()<<std::endl;
     std::cout<<"size of undesignable motifs: "<<uniq_ud.size()<<std::endl;
     std::string path_undesignable_enum = "data/motifs_maxlen14_no_external/results.uniq.json";
@@ -1977,9 +1903,6 @@ void csv_process(std::string csv, std::string alg){
                         std::string jstring = js.dump();
                         outputFile << jstring << std::endl;
                         records.push_back(jstring);
-                        // if (!found_ud){ // if new undesignable motif, output to lib file
-                        //     undesignableLibFile << jstring << std::endl;
-                        // }
                     }else{ // unknown case
                         // if new unknown motif, output to file
                         if(uniq_unknown.find(treestr) == uniq_unknown.end()){
@@ -2077,10 +2000,6 @@ void csv_process(std::string csv, std::string alg){
                     std::cout<<"js_motif: "<<js_motif<<std::endl;
                     Node* tree = new Node(js_motif);
                     std::string treestr = tree->toDotBracket();
-                    // if(!goal_test.empty() && treestr != goal_test){
-                    //     delete tree;
-                    //     continue;
-                    // }
                     std::cout<<"treestr: "<<treestr<<std::endl;
 
                     if(uniq_ds.find(treestr) != uniq_ds.end()){
@@ -2105,12 +2024,6 @@ void csv_process(std::string csv, std::string alg){
                         auto js = jsrecords(lc, y_star, y_sub, y_rivals, puzzle_id);
                         std::string jstring = js.dump();
                         outputFile_unknown << jstring << std::endl;
-                        // uniq_unknown.insert(treestr);
-                        // for(Node* rotree: tree->rotated(0)){
-                        //     std::string rotreestr = rotree->toDotBracket();
-                        //     uniq_unknown.insert(rotreestr);
-                        //     delete rotree;
-                        // }
                     }
                     for(auto pair: ds_ipairs)
                         std::cout<<pair<<"  ";
@@ -2171,16 +2084,6 @@ void online_process(std::string y, std::string path_prefix=""){
         std::cerr << "Error opening the file: " << path_undesignable << std::endl;
         return;
     }
-    // Library files for designable and undesignable motifs
-    // if (!designableLibFile.is_open()) {
-    //     std::cerr << "Error opening the file: " << "lib_designable.txt" << std::endl;
-    //     return;
-    // }
-    // if (!undesignableLibFile.is_open()) {
-    //     std::cerr << "Error opening the file: " << "lib_undesignable.txt" << std::endl;
-    //     return;
-    // }
-
     std::string path_time = path_prefix + "." + alg + ".time."+getCurrentTimestamp()+".csv";
     #ifdef SPECIAL_HP
     #else
@@ -2213,10 +2116,6 @@ void online_process(std::string y, std::string path_prefix=""){
     std::string path_designable_lib(var_designable_lib);
     std::cout<<"size of designable motifs: "<<uniq_ds.size()<<std::endl;
     std::cout<<"size of undesignable motifs: "<<uniq_ud.size()<<std::endl;
-    // MotifLib motiflib_ud(path_undesignable_lib);
-    // MotifLib motiflib_ds(path_designable_lib);
-    // std::cout<<"undesignable motiflib size: "<<motiflib_ud.count_unique<<std::endl;
-    // std::cout<<"designable motiflib size: "<<motiflib_ds.count_unique<<std::endl;
     auto time_end_load_lib = std::chrono::high_resolution_clock::now();
     const std::chrono::duration<double, std::milli> time_ms_load_lib = time_end_load_lib - time_start_load_lib;
     std::cout << "[ProgressInfo] Time cost for loading motif libs: " << time_ms_load_lib.count()/1000.f << " seconds" << std::endl;
@@ -2235,15 +2134,11 @@ void online_process(std::string y, std::string path_prefix=""){
                 std::cout<<y_star<<std::endl;
                 continue;
             }
-            // if(row.size() > 2)
-            //     seq = row[2];
-            // else
             seq = tg_init(y_star);
             std::string y_prim; // currently dummy
 
             std::cout<<"Puzzle ID: "<<puzzle_id<<std::endl;
 
-            // std::string goal_test = "p [] (M [0, 5, 0] (p [] (), B [1, 0] (S [0, 0] (p [] ()))))";
             // power neighbor set search
             if (alg == "pn"){
                 auto start_time = std::chrono::high_resolution_clock::now();
@@ -2297,10 +2192,6 @@ void online_process(std::string y, std::string path_prefix=""){
                     std::cout<<"js_motif: "<<js_motif<<std::endl;
                     Node* tree = new Node(js_motif);
                     std::string treestr = tree->toDotBracket();
-                    // if(!goal_test.empty() && treestr != goal_test){
-                    //     delete tree;
-                    //     continue;
-                    // }
                     std::cout<<"treestr: "<<treestr<<std::endl;
                     if(uniq_ds.count(treestr)){
                         std::cout<<"already designable!"<<std::endl;
@@ -2508,18 +2399,6 @@ void online_process(std::string y, std::string path_prefix=""){
         std::cout<<"-----------------"<<std::endl;
         for(auto path_plot: path_plots){
             std::cout<<path_plot<<std::endl;
-            // convert pdf to svg
-            // cmd_str = "inkscape --without-gui --file=" + path_plot + " --export-plain-svg=" + path_plot + ".svg";
-            // std::cout<<"[ProgressInfo] converting to svg: "<<cmd_str<<std::endl;
-            // const char* cmd_cstr2 = cmd_str.c_str();
-            // try{
-            //     std::string output_svg = exec_command(cmd_cstr2);
-            //     std::cout<< "[ProgressInfo] " << path_plot + ".svg" <<std::endl;
-            // }catch(const std::exception& e)
-            // {
-            //     std::cerr << e.what() << '\n';
-            //     std::cout << "inkscape error!" << std::endl;
-            // }
         }
     }
 }
@@ -2967,18 +2846,12 @@ int main(int argc, char* argv[]) {
         // Read input line by line until EOF (end of file) is reached
         while (std::getline(std::cin, ref1)) {
             // Process the line as needed
-            // std::cout<<"got seq"<<std::endl;
-            // getline(std::cin, ref1);
             getline(std::cin, ref2);
             auto start_time = std::chrono::high_resolution_clock::now();
-            // std::vector<std::string> X = alg_1_v2(ref1, ref2, seq, verbose, dangle);
             seq = tg_init(ref1);
             alg1_helper(seq, ref1, ref2, verbose, dangle);
             auto end_time = std::chrono::high_resolution_clock::now();
             const std::chrono::duration<double, std::milli> time_ms = end_time - start_time;
-            // printf("X size: %d\n", X.size());
-            // if (X.size()==0)
-            //     printf("undesignable!\n");
             printf("alg1(v2) time: %.4f seconds\n", time_ms/1000.f);
         }
     }else if (alg == "2"){ /* alg 2 */
@@ -3232,12 +3105,6 @@ int main(int argc, char* argv[]) {
             printf("constr: %s\n", constr.c_str());
             printf("   ref: %s\n", ref.c_str());
             assert(target.length() == constr.length());
-            // TreeNode* root = parseStringToTree(target);
-            // int max_internal = max_single(root);
-            // if(max_internal > 30){
-            //     std::cout<<"the internal loop is too long: "<<max_internal<<std::endl;
-            //     continue;
-            // }
             auto time_start = std::chrono::high_resolution_clock::now();
             std::string result = alg_5_helper_v2(target, ref, constr, seq, verbose, dangle);
             if (result == "UMFE"){
