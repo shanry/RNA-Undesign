@@ -14,7 +14,7 @@ This project explores the (un)designability of RNA secondary structures, under t
 "Scalable and Interpretable Identification of Minimal Undesignable
 RNA Structure Motifs with Rotational Invariance" (RECOMB 2025, [arXiv preprint](https://arxiv.org/abs/2402.17206)) \
 [3] Zhou, T., Mathews, D.H. and Huang, L. 
-"Probabilistic RNA Designability via Interpretable Ensemble Approximation and Dynamic Decomposition"
+"Probabilistic RNA Designability via Interpretable Ensemble Approximation and Dynamic Decomposition" (ISMB 2026, [arXiv preprint](https://arxiv.org/abs/2602.13610))
 
 ## Datasets
 [Eterna100](data/eterna100.csv) \
