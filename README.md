@@ -65,7 +65,7 @@ $ export PATH_DESIGNABLE_LIB=path/to/motifs/libs/lib_designable.txt
 ```
 Libraries for designable and undesignable motifs are available at: https://drive.google.com/drive/u/0/folders/1lMBWVEvUAVI0YHV1BvqipHXuGQ11EphO
 
-## LinearDecompose
+## Probabilistic Designability: LinearDecompose
 To replicate the experiment results in the paper: \
 **1. ArchiveII**
 ```bash
@@ -76,17 +76,19 @@ cat data/archiveii1144.txt | ./bin/lineardecompose minp | grep -E "Minimum" | te
 cat data/eterna100.txt | ./bin/lineardecompose minp | grep -E "Minimum" | tee results_eterna100.txt  # prob. bounds will be saved to results_eterna100.txt
 ```
 
-## FastMotif
+## Motif-level Designability
+
+### FastMotif
 ```
 $ echo ".((......((......))......((......((......))......((......))......))......))....." | ./bin/main --alg fastmotif
 ```
 
-## Rival Motifs Search
+### Rival Motifs Search
 ```
 $ echo "(.(*)...(..(*)))" | ./bin/main --alg motif # motif as a dot-bracket string where (*) is a boundary pair
 ```
 
-## RIGEND
+## Structure-level Designability
 
 ### Undesignability Alg1
 ```
