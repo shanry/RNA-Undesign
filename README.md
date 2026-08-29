@@ -20,7 +20,7 @@ RNA Structure Motifs with Rotational Invariance" (RECOMB 2025, [arXiv preprint](
 [Eterna100](data/eterna100.csv) \
 [ArchiveII](data/archiveii.raw.txt) \
 Motifs of length up to 14 (excluding motifs with external loops for comparison with [CountingDesign](https://gitlab.com/htyao/countingdesign)):
-- [Designable motifs of length up to 14](data/motifs_maxlen14_no_external/short14_undesignable_dg0.txt)
+- [Designable motifs of length up to 14](data/motifs_maxlen14_no_external/short14_designable_dg0.txt)
 - [Undesignable motifs of length up to 14](data/motifs_maxlen14_no_external/short14_undesignable_dg0.txt)
 
 ## Results
@@ -29,20 +29,20 @@ Detailed results for undesignable motifs of length up to 14:
 - [Unique motifs (1805) by rotational invariance](data/motifs_maxlen14_no_external/results.uniq.csv)
 
 ## Dependencies
-- GCC 4.8.5 or above
+- GCC 7 or above (with C++17 and OpenMP support)
 
 ## Build
 ### Linux
 ```
 # Test with CentOS
-$ make main   
+$ make main
 $ make main_nosh  # turn off special hairpins
 $ make lineardecompose  # Probabilistic RNA Designability Quantification
 ```
 ### Mac
 ```
 # Test with Apple Silicon
-$ make main_mac   
+$ make main_mac
 $ make main_nosh_mac  # turn off special hairpins
 ```
 ## Rival Motifs
@@ -59,11 +59,12 @@ $ make main_nosh_mac  # turn off special hairpins
 
 ## Environment Variables
 ```
-$export OMP_NUM_THREADS=8 # parallel computing eabled by OpenMP
-$export PATH_UNDESIGNABLE_LIB=path/to/lib_undesignable.txt
-$export PATH_DESIGNABLE_LIB/path/to/motifs/libs/lib_designable.txt
+$ export OMP_NUM_THREADS=8  # parallel computing enabled by OpenMP
+$ export PATH_UNDESIGNABLE_LIB=path/to/lib_undesignable.txt
+$ export PATH_DESIGNABLE_LIB=path/to/motifs/libs/lib_designable.txt
 ```
-Libraries for designable and undesignable motifs are avaialbe at: https://drive.google.com/drive/u/0/folders/1lMBWVEvUAVI0YHV1BvqipHXuGQ11EphO
+Libraries for designable and undesignable motifs are available at: https://drive.google.com/drive/u/0/folders/1lMBWVEvUAVI0YHV1BvqipHXuGQ11EphO
+
 ## LinearDecompose
 To replicate the experiment results in the paper: \
 **1. ArchiveII**
@@ -75,28 +76,28 @@ cat data/archiveii1144.txt | ./bin/lineardecompose minp | grep -E "Minimum" | te
 cat data/eterna100.txt | ./bin/lineardecompose minp | grep -E "Minimum" | tee results_eterna100.txt  # prob. bounds will be saved to results_eterna100.txt
 ```
 
-## FastMotif 
+## FastMotif
 ```
-$echo ".((......((......))......((......((......))......((......))......))......))....." | ./bin/main --alg fastmotif
+$ echo ".((......((......))......((......((......))......((......))......))......))....." | ./bin/main --alg fastmotif
 ```
 
 ## Rival Motifs Search
 ```
-$echo "(.(*)...(..(*)))" | ./bin/main --alg motif # motif as a dot-bracket string where (*) is a boundary pair
+$ echo "(.(*)...(..(*)))" | ./bin/main --alg motif # motif as a dot-bracket string where (*) is a boundary pair
 ```
 
 ## RIGEND
 
 ### Undesignability Alg1
 ```
-$./bin/main --alg 1
+$ ./bin/main --alg 1
 ......(.........((((.....)))).........)......................
 ................((((.....))))................................
 ```
 
 ### Undesignability Alg2
 ```
-$./bin/main --alg 2
+$ ./bin/main --alg 2
 AAAAUGAGCCCCACGAAAGGAGAGUGCUCACAAA
 ....((((((((.(....)).).).)))))....
 ....(((((((..(....)..).).)))))....
@@ -104,34 +105,36 @@ AAAAUGAGCCCCACGAAAGGAGAGUGCUCACAAA
 
 ### Undesignability Alg2 (constrained)
 ```
-$./bin/main --alg 2c
+$ ./bin/main --alg 2c
 UUAAGGGAAAAUCUUAGCCGAGAAAUCGGAUCCAAAGCGGCAUAAAAAAGAAAGCGCCGAAAUUCGCAGAAAUGCGAGAAAGGCAAGCAAAGAAUUCGGCAGAAAAAAUGCCGACCGGGCAAUGAAAAUUCGCCCGUGGAGCCAAGCGGG
 ((((((.....)))))(((((....)))).)((...(((((............(((((....((((((....))))))...)))..)).......((((((.......))))))(((((((((....))).))))).)..)))..)))))
 ((((((.....))))).((((....))))..((...(((((............(((((....((((((....))))))...)))..)).......((((((.......))))))(((((((((....))).))))).)..)))..)))))
 ```
+
 ### Undesignability Alg3
 ```
-$./bin/main --alg 3
+$ ./bin/main --alg 3
 ACUAAAUGGUGAGCAGACCCAGUGGAAACACACGCAGCCGAAAGGUACCCAUCCGAGAGGAAGUCAGGCGAAAGCUAACGGAAAGAACGUAGACAGGGAGCGAGGGACAAAGACUGCAAGGGAAAGUACACAAGACAAAGUAAAAAAAGGUGAGGCAGGGGAAACCCCGGGAAACCGGUCGAAAGACGCCAGCAAACCGCAGAAACAGCCACCCAGCGAGACAGACAAAAGCGGAUACGUAGUCGACGGAAACGUAGUCAGGGGAAACCCACGCAAUCGAAAGAUAGGGAGUCGGUGAAAACCAGAGAAAUCUACUCAAAAGAGGACAGGCAGCGGAACCCCUACACCGAAAAAA
 .......((((.((((.(((.(((....))).(((.(((....))).(((.(((....))).(((.(((....))).(((.......))).))).))).))).))).(...).)))).((((...((.(((...((...))........))).(((.(((....)))(((....)))(((....)))))).))...((((.(...).(((.(((.(((.(((.(((....(((....))).))).(((....))).))).(((....))).))).(((....))).))).((((((....)))(((....))).(((....)))))).))).))))...)))).)))).......
 ```
+
 ## Utilities
 ### Energy Evaluation
-``` 
-$./bin/main --alg eval
+```
+$ ./bin/main --alg eval
 CACACGCACUACAAAAUGUCCAAAGGAAAAGGCACCACCAGCAAAGCACCAAAGGUAAGGGGAAAAG
 .....((.((.((...)).((...))...)))).((.((.((...)).((...))...)))).....
-(output)total energy: -2.30
+(output) total energy: -2.30
 ```
 ### Differential positions
 ```
-$./bin/main --alg dp
+$ ./bin/main --alg dp
 ..((((((((.......(.((((((....)))))).(((((((....))))))).).......))))))))..
 ..((((((((.........((((((....)))))).(((((((....))))))).........))))))))..
 ```
 ### Energy difference
 ```
-$./bin/main --alg ed
+$ ./bin/main --alg ed
 GGGAGACCCAAAAAAAAGGGCAACUGCAAAAAGGAGACAGCACCCCGAAAAAAGACUGGAAAAAGGGCGAAAAGCUCGAAAAACACGACCAACGGAAAACAGGACGAAAGAGAACAAGCAAGCCAAAGGGAAACAGACUAAAAACGCGAAAGCGACUGCAAAGGGGGAGAAAAAGCGACCCUGAACGAAAAAGGGGCGAAAAAUUGGAACAAAAAAAGGAGGGGGGAAAGGAAAGUCAAAGACACUCGAAACGAGUGAGCGGGCAAAAAAAAAAACGGGGGAUGAAUAACGGACGGAAACGCGGCGGAAAGCGAAAAAAAGAAAAACGUCGUACGGACUACUGGGGUGCAAAAAAAAGGAGGGGCGCAAAAAGGAAAAAACAGGGUCCACUA
 ((..(((((........(.((..((.(.....(....).((((((((.........((......((((.....))))......))...((..((.......(..(......)..)..((..((.....(....).((((.....(((.....(..((.(...).))..).....))).((((...(.......(..(.((...)).)..).......)...))))........)))).....((((((...)))))).))..))...........))..)).........(..((....)((((((.....(........).....))))))..)..)...))))))))........).))..)).).....(.......).)))))..)).
 ((..(((((........(.((..((.(.....(....).((((((((.........((......((((.....))))......))...((..((.......(..(......)..)..((..((............((((.....(((.....(..((.(...).))..).....))).((((...(.......(..(.((...)).)..).......)...))))........)))).....((((((...)))))).))..))...........))..)).........(..((.....((((((.....(........).....)))))).))..)...))))))))........).))..)).).....(.......).)))))..)).
@@ -145,5 +148,5 @@ delta  : 4.50
 ```
 or
 ```
-$./bin/main --alg ed  < data/seq_refs.txt # batched input
+$ ./bin/main --alg ed < data/seq_refs.txt # batched input
 ```
